@@ -1,9 +1,9 @@
 // Minimal browser MCP (Streamable HTTP) client + OAuth 2.1 (PKCE) helpers.
 // Pure client-side: no backend, no Node APIs. The secret (access/refresh token)
-// is persisted in localStorage so this SSG page can reconnect without a server.
+// is persisted via an injectable StorageLike backend (defaults to localStorage).
 //
-// NOTE: tokens in localStorage are readable by any JS on the page (XSS risk).
-// This module exists only to TEST that "secret without backend" is possible.
+// NOTE: tokens in any web-readable storage are exposed to XSS; handle secrets
+// accordingly and avoid shipping them to untrusted surfaces.
 
 export interface OAuthTokens {
   access_token: string;
@@ -28,29 +28,52 @@ export interface Tool {
   inputSchema?: unknown;
 }
 
-const LS_TOKENS = "mcp_test_tokens";
-const LS_PKCE = "mcp_test_pkce";
-const LS_CTX = "mcp_test_ctx";
+// A minimal subset of the Web Storage API so callers can inject a custom
+// backend (localStorage, sessionStorage, an in-memory map, etc.). Keys are
+// relative; prefixing is the caller's responsibility via a wrapping adapter.
+export interface StorageLike {
+  getItem(key: string): string | null;
+  setItem(key: string, value: string): void;
+  removeItem(key: string): void;
+}
 
-/* ----------------------------- localStorage ----------------------------- */
+const LS_TOKENS = "tokens";
+const LS_PKCE = "pkce";
+const LS_CTX = "ctx";
 
-export function loadTokens(): OAuthTokens | null {
+// SSR-safe default: only touched when actually called (client-side).
+function defaultStorage(): StorageLike {
+  return typeof window !== "undefined" ? window.localStorage : memoryStorage();
+}
+
+function memoryStorage(): StorageLike {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k) => (m.has(k) ? (m.get(k) as string) : null),
+    setItem: (k, v) => void m.set(k, v),
+    removeItem: (k) => void m.delete(k),
+  };
+}
+
+/* ----------------------------- token storage ---------------------------- */
+
+export function loadTokens(storage: StorageLike = defaultStorage()): OAuthTokens | null {
   try {
-    const raw = localStorage.getItem(LS_TOKENS);
+    const raw = storage.getItem(LS_TOKENS);
     return raw ? (JSON.parse(raw) as OAuthTokens) : null;
   } catch {
     return null;
   }
 }
 
-export function saveTokens(t: OAuthTokens): void {
-  localStorage.setItem(LS_TOKENS, JSON.stringify(t));
+export function saveTokens(t: OAuthTokens, storage: StorageLike = defaultStorage()): void {
+  storage.setItem(LS_TOKENS, JSON.stringify(t));
 }
 
-export function clearAuth(): void {
-  localStorage.removeItem(LS_TOKENS);
-  localStorage.removeItem(LS_PKCE);
-  localStorage.removeItem(LS_CTX);
+export function clearAuth(storage: StorageLike = defaultStorage()): void {
+  storage.removeItem(LS_TOKENS);
+  storage.removeItem(LS_PKCE);
+  storage.removeItem(LS_CTX);
 }
 
 /* ------------------------------- crypto/PKCE ------------------------------ */
@@ -89,13 +112,13 @@ export async function createPkce(): Promise<Pkce> {
   return { verifier, challenge, state };
 }
 
-export function savePkce(p: Pkce): void {
-  localStorage.setItem(LS_PKCE, JSON.stringify(p));
+export function savePkce(p: Pkce, storage: StorageLike = defaultStorage()): void {
+  storage.setItem(LS_PKCE, JSON.stringify(p));
 }
 
-export function loadPkce(): Pkce | null {
+export function loadPkce(storage: StorageLike = defaultStorage()): Pkce | null {
   try {
-    const raw = localStorage.getItem(LS_PKCE);
+    const raw = storage.getItem(LS_PKCE);
     return raw ? (JSON.parse(raw) as Pkce) : null;
   } catch {
     return null;
@@ -109,13 +132,13 @@ export interface AuthContext {
   redirect_uri: string;
 }
 
-export function saveAuthContext(c: AuthContext): void {
-  localStorage.setItem(LS_CTX, JSON.stringify(c));
+export function saveAuthContext(c: AuthContext, storage: StorageLike = defaultStorage()): void {
+  storage.setItem(LS_CTX, JSON.stringify(c));
 }
 
-export function loadAuthContext(): AuthContext | null {
+export function loadAuthContext(storage: StorageLike = defaultStorage()): AuthContext | null {
   try {
-    const raw = localStorage.getItem(LS_CTX);
+    const raw = storage.getItem(LS_CTX);
     return raw ? (JSON.parse(raw) as AuthContext) : null;
   } catch {
     return null;

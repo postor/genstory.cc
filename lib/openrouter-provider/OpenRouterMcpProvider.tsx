@@ -102,6 +102,8 @@ export interface OpenRouterMcpContextValue {
   serverInfo: unknown | null;
   tools: Tool[];
   isAuthorized: boolean;
+  /** True once the initial mount-time handshake (token load + OAuth callback) has settled. */
+  ready: boolean;
   /** Raw token (a secret) — read only when strictly necessary. */
   token: OAuthTokens | null;
 
@@ -146,6 +148,7 @@ export function OpenRouterMcpProvider({
   const [serverInfo, setServerInfo] = useState<unknown | null>(null);
   const [tools, setTools] = useState<Tool[]>([]);
   const [token, setToken] = useState<OAuthTokens | null>(null);
+  const [ready, setReady] = useState<boolean>(false);
 
   const clientRef = useRef<McpHttpClient | null>(null);
   const resolvedRedirectUri = useMemo(
@@ -357,10 +360,15 @@ export function OpenRouterMcpProvider({
   }, [store, connect, setMcpStatus]);
 
   useEffect(() => {
-    if (!autoHandleCallback) return;
+    if (!autoHandleCallback) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setReady(true);
+      return;
+    }
     // OAuth callback is a one-time mount side effect that may set state.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void handleCallback();
+    // Mark the handshake settled only after it fully resolves (including the
+    // code<->token exchange), so consumers don't read an unsaved token.
+    void handleCallback().finally(() => setReady(true));
     // Only run once on mount.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -390,6 +398,7 @@ export function OpenRouterMcpProvider({
       serverInfo,
       tools,
       isAuthorized: token !== null,
+      ready,
       token,
       setServerUrl: setServerUrlState,
       connect,
@@ -406,6 +415,7 @@ export function OpenRouterMcpProvider({
       serverInfo,
       tools,
       token,
+      ready,
       connect,
       disconnect,
       callTool,

@@ -25,7 +25,6 @@ import {
   type ChatTool,
   type ModelInfo,
 } from "@/lib/openrouter";
-import { loadTokens } from "@/lib/openrouter-provider/mcpHttpClient";
 import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,7 +62,7 @@ export interface ChatBoxProps {
 }
 
 export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRounds = 8 }: ChatBoxProps) {
-  const { status, isAuthorized, tools, connect, callTool, refreshToken, authorize } =
+  const { status, isAuthorized, ready, tools, connect, callTool, refreshToken, authorize } =
     useOpenRouterMcp();
 
   const [models, setModels] = useState<ModelInfo[]>([]);
@@ -89,7 +88,10 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
       .then((ms) => {
         if (cancelled) return;
         setModels(ms);
-        setModel((cur) => cur || ms[0]?.id || "");
+        // Models load asynchronously (independent of MCP init). Keep the last
+        // selected model (restored from localStorage) only if it still exists
+        // in the freshly loaded list; otherwise fall back to the first model.
+        setModel((cur) => (cur && ms.some((m) => m.id === cur) ? cur : ms[0]?.id || ""));
       })
       .catch(() => {
         /* picker falls back to empty list */
@@ -101,17 +103,29 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
   }, []);
 
   useEffect(() => {
-    // If a token exists we can reconnect silently; otherwise gate behind the
-    // OAuth confirm dialog instead of auto-redirecting.
-    if (loadTokens()) {
+    // Wait until the provider has finished its initial handshake (token load +
+    // OAuth callback). Reading loadTokens() here would race with the provider's
+    // callback exchange on the redirect-return load, wrongly popping the dialog
+    // even though we just authorized. Once `ready`, the provider's isAuthorized
+    // is the source of truth.
+    if (!ready) return;
+    if (isAuthorized) {
       void connect();
     } else {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setOauthOpen(true);
     }
-    // Run once on mount.
+    // Run once when the provider becomes ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [ready]);
+
+  // Close the dialog automatically once the handshake completes successfully.
+  useEffect(() => {
+    if (ready && isAuthorized && status === "connected" && oauthOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setOauthOpen(false);
+    }
+  }, [ready, isAuthorized, status, oauthOpen]);
 
   // --- persist chat state to localStorage ---
   useEffect(() => {

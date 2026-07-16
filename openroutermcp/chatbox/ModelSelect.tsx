@@ -1,14 +1,23 @@
 "use client";
 
-// Model picker with a client-side filter and a loading state.
-// Filter input uses the shadcn Input; the option list is a custom control
-// (no shadcn primitive for a filtered select) styled with Tailwind utilities.
+// Model picker built as a proper dropdown (shadcn Popover + Base UI): a trigger
+// button shows the selected model and the panel opens on click, closing on
+// selection, outside-click, or Escape. The panel has a client-side filter and
+// keyboard navigation (ArrowUp/Down move the highlight, Enter/Space select).
 
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDownIcon, Loader2 } from "lucide-react";
 import type { ModelInfo } from "@/lib/openrouter";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverPopup,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 export interface ModelSelectProps {
   models: ModelInfo[];
@@ -19,58 +28,139 @@ export interface ModelSelectProps {
 }
 
 export function ModelSelect({ models, value, onChange, loading, disabled }: ModelSelectProps) {
+  const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
-  const filtered = models.filter((m) =>
-    `${m.name} ${m.id}`.toLowerCase().includes(filter.toLowerCase())
+  const [activeIndex, setActiveIndex] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const itemRefs = useRef<(HTMLButtonElement | null)[]>([]);
+
+  const filtered = useMemo(
+    () =>
+      models.filter((m) =>
+        `${m.name} ${m.id}`.toLowerCase().includes(filter.toLowerCase())
+      ),
+    [models, filter]
   );
 
-  return (
-    <div className="flex flex-col gap-2">
-      <div className="relative">
-        <Input
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-          placeholder="筛选模型…"
-          disabled={disabled}
-          aria-label="筛选模型"
-        />
-        {loading && (
-          <Loader2 className="absolute right-2.5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-        )}
-      </div>
+  const selected = useMemo(() => models.find((m) => m.id === value), [models, value]);
 
-      {loading ? (
-        <p className="px-1 text-sm text-muted-foreground">模型加载中…</p>
-      ) : filtered.length === 0 ? (
-        <p className="px-1 text-sm text-muted-foreground">无匹配模型</p>
-      ) : (
-        <ScrollArea className="h-40 rounded-md border">
-          <ul className="flex flex-col">
-            {filtered.map((m) => {
-              const selected = m.id === value;
-              return (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => onChange(m.id)}
-                    className={
-                      "w-full px-3 py-2 text-left text-sm transition-colors " +
-                      (selected
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-accent hover:text-accent-foreground") +
-                      (disabled ? " cursor-not-allowed opacity-50" : "")
-                    }
-                  >
-                    <span className="font-medium">{m.name}</span>
-                    <span className="ml-1 text-xs opacity-70">{m.id}</span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        </ScrollArea>
-      )}
-    </div>
+  // When the panel opens, start the highlight on the current selection and
+  // focus the filter input.
+  useEffect(() => {
+    if (!open) return;
+    const idx = filtered.findIndex((m) => m.id === value);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setActiveIndex(idx >= 0 ? idx : 0);
+    const t = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(t);
+  }, [open, filtered, value]);
+
+  useEffect(() => {
+    if (activeIndex >= filtered.length) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setActiveIndex(Math.max(0, filtered.length - 1));
+    }
+  }, [filtered.length, activeIndex]);
+
+  useEffect(() => {
+    itemRefs.current[activeIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeIndex]);
+
+  const select = (id: string) => {
+    onChange(id);
+    setOpen(false);
+    setFilter("");
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled || filtered.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const m = filtered[activeIndex];
+      if (m) select(m.id);
+    }
+  };
+
+  const triggerLabel = loading
+    ? "模型加载中…"
+    : selected
+      ? selected.name
+      : "选择模型…";
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            variant="outline"
+            disabled={disabled}
+            className="w-full justify-between font-normal"
+            aria-label="选择模型"
+          />
+        }
+      >
+        <span className="truncate">{triggerLabel}</span>
+        {loading ? (
+          <Loader2 className="size-4 animate-spin text-muted-foreground" />
+        ) : (
+          <ChevronDownIcon className="size-4 opacity-60" />
+        )}
+      </PopoverTrigger>
+      <PopoverPortal>
+        <PopoverPositioner side="bottom" align="start" sideOffset={4} className="w-80">
+          <PopoverPopup onKeyDown={handleKeyDown}>
+            <div className="relative mb-2">
+              <Input
+                ref={inputRef}
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                placeholder="筛选模型…"
+                aria-label="筛选模型"
+              />
+            </div>
+            {filtered.length === 0 ? (
+              <p className="px-1 py-2 text-sm text-muted-foreground">无匹配模型</p>
+            ) : (
+              <ScrollArea className="h-56 rounded-md">
+                <ul className="flex flex-col">
+                  {filtered.map((m, i) => {
+                    const isActive = i === activeIndex;
+                    return (
+                      <li key={m.id}>
+                        <button
+                          type="button"
+                          ref={(el) => {
+                            itemRefs.current[i] = el;
+                          }}
+                          onMouseEnter={() => setActiveIndex(i)}
+                          onClick={() => select(m.id)}
+                          className={
+                            "flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm outline-none transition-colors " +
+                            (isActive
+                              ? "bg-primary text-primary-foreground"
+                              : "hover:bg-accent hover:text-accent-foreground")
+                          }
+                        >
+                          <span className="truncate">
+                            <span className="font-medium">{m.name}</span>
+                            <span className="ml-1 text-xs opacity-70">{m.id}</span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </ScrollArea>
+            )}
+          </PopoverPopup>
+        </PopoverPositioner>
+      </PopoverPortal>
+    </Popover>
   );
 }

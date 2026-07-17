@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FolderOpen, Loader2 } from "lucide-react";
@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { contentTypes, type ContentTypeId } from "@/lib/content-types";
 import {
+  listProjects,
   saveProject,
   type Project,
 } from "@/lib/local-projects";
@@ -23,7 +24,7 @@ import {
   initializeProjectDirectory,
   supportsFileSystemAccess,
 } from "@/lib/file-system/browser";
-import { defaultProjectTitle } from "@/lib/project-templates";
+import { nextDefaultProjectTitle } from "@/lib/project-naming";
 import { useLang } from "@/lib/i18n";
 
 export default function NewClient() {
@@ -38,7 +39,14 @@ export default function NewClient() {
       : (contentTypes[0]?.id ?? "")
   );
   const [title, setTitle] = useState("");
+  const [projects, setProjects] = useState<Project[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    void listProjects().then(setProjects).catch(() => setProjects([]));
+  }, []);
+
+  const defaultTitle = template ? nextDefaultProjectTitle(template, lang, projects) : "";
 
   async function handleSubmit() {
     if (!template) {
@@ -52,8 +60,9 @@ export default function NewClient() {
       }
       const now = Date.now();
       const id = crypto.randomUUID();
+      const latestProjects = await listProjects().catch(() => projects);
       const projectTitle =
-        title.trim() || defaultProjectTitle(lang);
+        title.trim() || nextDefaultProjectTitle(template, lang, latestProjects);
       await initializeProjectDirectory(
         template,
         id,
@@ -126,7 +135,7 @@ export default function NewClient() {
             id="project-name"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            placeholder={t("create.namePlaceholder")}
+            placeholder={defaultTitle || t("create.namePlaceholder")}
           />
         </div>
 

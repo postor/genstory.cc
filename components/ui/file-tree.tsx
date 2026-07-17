@@ -63,10 +63,16 @@ export function Tree({
         <div key={el.id}>
           <button
             type="button"
-            onClick={() => toggle(el.id)}
+            onClick={() => {
+              toggle(el.id);
+              select(el.id);
+            }}
             className={cn(
-              "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-sm text-foreground transition-colors hover:bg-muted",
-              pad
+              "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-sm transition-colors",
+              pad,
+              isSelected
+                ? "bg-primary/10 font-medium text-primary"
+                : "text-foreground hover:bg-muted"
             )}
           >
             {isOpen

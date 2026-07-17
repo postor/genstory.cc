@@ -154,6 +154,7 @@ export async function readVNProjectFromDirectory(
   const textByPath = new Map<string, string>();
 
   for (const entry of files) {
+    if (entry.kind !== "file") continue;
     if (/\.(md|ya?ml|txt|json)$/i.test(entry.path)) {
       textByPath.set(entry.path, await readTextFile(root, entry.path));
     }
@@ -161,6 +162,7 @@ export async function readVNProjectFromDirectory(
 
   const chapters = new Map<string, { title: string; scenes: VNScene[] }>();
   for (const entry of files) {
+    if (entry.kind !== "file") continue;
     const match = entry.path.match(
       /^(chapter-[^/]+)\/scenes\/([^/]+)\/(meta\.md|stage\.yml|script\.md)$/
     );

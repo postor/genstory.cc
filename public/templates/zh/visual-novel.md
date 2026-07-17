@@ -1,22 +1,178 @@
-# 视觉小说项目简报
+# AGENTS.md
 
-你正在创作一部可阅读的互动故事（视觉小说）。本项目在浏览器本地保存，无需后端。
+## 使命
 
-## 项目目标
-- 用角色、场景、分支与选择项组织故事
-- 支持多结局与分支叙事
+在本视觉小说项目中保持长期一致性。
 
-## 建议结构
-1. 世界观与场景设定
-2. 角色档案
-3. 章节与分支流程图
-4. 对白与选择项
-5. 结局设计
+优先级：
 
-## 写作约定
-- 用 Markdown 记录分支与对白
-- 选择项可标注通向的章节
-- 可在页面右上角切换中英语言
+- 设定（Canon）
+- 角色
+- 时间线
+- 视觉一致性
+- 资产复用
 
-## 下一步
-在右侧编辑区撰写脚本，点击「保存」写入本地存储。
+---
+
+## 命名约定
+
+常用文件名：
+
+- `meta.md` — 元数据
+- `script.md` — 对话与叙事
+- `stage.yml` — 场景状态
+- `design.*` — 视觉参考
+- `final.*` — 生成结果
+
+一个事实，一个来源。
+
+---
+
+## 仓库结构
+
+```text
+/
+├── meta.md
+├── references/
+├── assets/
+│   ├── index.yml
+│   ├── characters/
+│   ├── backgrounds/
+│   ├── cg/
+│   ├── motions/
+│   ├── effects/
+│   ├── bgm/
+│   ├── sfx/
+│   └── voice/
+│
+└── chapter-001/
+    ├── meta.md
+    ├── characters/
+    ├── locations/
+    ├── scenes/
+    │   └── scene-001/
+    │       ├── meta.md
+    │       ├── script.md
+    │       └── stage.yml
+    └── cg/
+```
+
+---
+
+## 上下文优先级
+
+```text
+项目 project
+    ↓
+章节 chapter
+    ↓
+场景 scene
+    ↓
+角色 characters
+    ↓
+地点 locations
+    ↓
+参考 references
+    ↓
+当前任务 current task
+```
+
+高优先级覆盖低优先级。
+
+---
+
+## 舞台模型
+
+场景描述**状态**，绝不写渲染指令。
+
+推荐：
+
+- background
+- characters
+- expression
+- pose
+- position
+- motion
+- music
+
+禁止：
+
+- playAnimation(...)
+- changeFigure(...)
+- hide(...)
+- show(...)
+
+状态变化是增量式的。
+
+---
+
+## 资产
+
+仅使用逻辑 ID。
+
+绝不引用文件路径。
+
+所有资产统一索引于：
+
+```text
+assets/index.yml
+```
+
+可用资产类型保持开放，例如：
+
+- Character
+- Background
+- CG
+- Motion
+- Effect
+- BGM
+- SFX
+- Voice
+- UI
+- Font
+- Video
+- Prop
+- Tachie
+- Transition
+- Ambience
+- Palette
+
+---
+
+## 工作流
+
+```text
+理解
+    ↓
+规划
+    ↓
+生成
+    ↓
+校验
+```
+
+始终校验：
+
+- 设定 Canon
+- 时间线 Timeline
+- 角色状态 Character state
+- 舞台状态 Stage state
+- 资产引用 Asset references
+
+---
+
+## 规则
+
+始终：
+
+- 分离故事与呈现。
+- 复用已有资产。
+- 保持对话独立于渲染。
+- 将可复用的知识向上层沉淀。
+
+绝不：
+
+- 重复设定。
+- 硬编码资产路径。
+- 改写已确立的事件。
+- 将渲染逻辑混入故事。

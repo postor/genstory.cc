@@ -70,27 +70,27 @@ function bookTemplate(title: string, lang: Lang, agents: string): ProjectTemplat
   const chapterTitle = lang === "zh" ? "小红帽 · 第一章" : "Little Red Riding Hood · Chapter One";
   const body =
     lang === "zh"
-      ? "小红帽带着点心，穿过森林去看望生病的外婆。"
-      : "Little Red Riding Hood carries a basket through the forest to visit her sick grandmother.";
+      ? "小红帽带着点心，穿过森林去看望生病的外婆。她记得妈妈说过不要离开小路，可森林里的阳光和花香让她慢下了脚步。"
+      : "Little Red Riding Hood carries a basket through the forest to visit her sick grandmother. She remembers her mother's warning to stay on the path, but the light and flowers make her slow down.";
   const illustrations: BookIllustration[] = [
     {
       id: "illus_forest",
       name: lang === "zh" ? "森林·小红帽出发" : "Forest · Little Red Riding Hood sets out",
-      file: "illustrations/illus_forest.png",
+      file: "chapter-001/illustrations/scene-001.png",
       prompt:
         "Children's storybook illustration, soft watercolor and ink style, Little Red Riding Hood — a young girl with rosy cheeks wearing a red hooded cloak — walking along a sunlit forest path carrying a woven basket of food, tall pine and oak trees, dappled golden light, wildflowers, gentle fairy-tale mood, picture-book cover art, detailed, warm palette, no text",
     },
     {
       id: "illus_grandma",
       name: lang === "zh" ? "外婆家·狼的诡计" : "Grandmother's house · the wolf's trick",
-      file: "illustrations/illus_grandma.png",
+      file: "chapter-001/illustrations/scene-002.png",
       prompt:
         "Children's storybook illustration, soft watercolor and ink style, the big bad wolf disguised in grandmother's nightcap and nightgown sitting in bed, cozy cottage interior, eerie fairy-tale mood, warm lamplight, picture-book art, no text",
     },
     {
       id: "illus_rescue",
       name: lang === "zh" ? "猎人解救" : "The woodcutter's rescue",
-      file: "illustrations/illus_rescue.png",
+      file: "chapter-001/illustrations/scene-003.png",
       prompt:
         "Children's storybook illustration, soft watercolor and ink style, a brave woodcutter bursting through the cottage door, the big bad wolf cowering, Little Red Riding Hood watching, heroic fairy-tale mood, picture-book art, no text",
     },
@@ -109,20 +109,68 @@ function bookTemplate(title: string, lang: Lang, agents: string): ProjectTemplat
         "",
         `# ${chapterTitle}`,
         "",
-        "本章正文写在 pages/ 下，配套插图方案见 assets/index.yml。",
+        "本章正文写在 content.md，人物、地点和插图状态分别沉淀在子目录中。",
         "",
       ].join("\n")
     ),
     text(
-      "chapter-001/pages/page-001.md",
-      `# ${chapterTitle}\n\n![${illustrations[0].name}](../../assets/illustrations/illus_forest.png)\n\n${body}\n`
+      "chapter-001/content.md",
+      `# ${chapterTitle}\n\n![${illustrations[0].name}](illustrations/scene-001.png)\n\n${body}\n`
+    ),
+    text(
+      "chapter-001/characters/meta.md",
+      [
+        "---",
+        "characters:",
+        "  - id: red",
+        `    name: ${JSON.stringify(lang === "zh" ? "小红帽" : "Little Red Riding Hood")}`,
+        "    state: carrying basket, walking to grandmother",
+        "  - id: wolf",
+        `    name: ${JSON.stringify(lang === "zh" ? "大灰狼" : "Big Bad Wolf")}`,
+        "    state: watching from the forest",
+        "---",
+        "",
+        "# Characters",
+        "",
+        lang === "zh" ? "本章人物状态以此处为准。" : "Use this file as the source of truth for chapter character state.",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "chapter-001/locations/meta.md",
+      [
+        "---",
+        "locations:",
+        "  - id: forest_path",
+        `    name: ${JSON.stringify(lang === "zh" ? "森林小径" : "Forest path")}`,
+        "    time: morning",
+        "---",
+        "",
+        "# Locations",
+        "",
+        lang === "zh" ? "本章地点状态以此处为准。" : "Use this file as the source of truth for chapter locations.",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "chapter-001/illustrations/scene-001.md",
+      [
+        `# ${illustrations[0].name}`,
+        "",
+        `prompt: ${illustrations[0].prompt}`,
+        "continuity:",
+        "  character: red hood, basket",
+        "  location: forest_path",
+        "",
+      ].join("\n")
     ),
     text("assets/index.yml", buildBookAssetIndex(illustrations)),
+    text("references/glossary.md", "# Glossary\n\n- 小红帽 / Little Red Riding Hood\n"),
+    text("references/timeline.md", "# Timeline\n\n- chapter-001: 小红帽从家出发，进入森林。\n"),
   ];
 
-  // 已生成的插图作为二进制资产随模板下发；其余为待生成计划项。
   files.push({
-    path: "assets/illustrations/illus_forest.png",
+    path: "chapter-001/illustrations/scene-001.png",
     kind: "binary",
     sourceUrl: "/project-templates/book/assets/illustrations/illus_forest.png",
   });
@@ -309,7 +357,7 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
       file: "audio/voice_red.mp3",
       prompt: lang === "zh" ? "终于可以出门啦，我要穿过森林去看外婆！" : "Finally I can go out, I'm going through the forest to see grandmother!",
       voice: "eve",
-      language: "zh",
+      language: lang,
       model: "xai/tts-v1",
     },
     {
@@ -322,7 +370,7 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
           ? "小姑娘，你要去哪儿呀？不如先去采些花，外婆会更开心哦。"
           : "Little girl, where are you going? Why not pick some flowers first, grandmother would be happier.",
       voice: "rex",
-      language: "zh",
+      language: lang,
       model: "xai/tts-v1",
     },
     {
@@ -332,7 +380,7 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
       file: "audio/voice_grandma.mp3",
       prompt: lang === "zh" ? "小红帽，你的耳朵怎么这么大呀？" : "Little Red Riding Hood, why are your ears so big?",
       voice: "sal",
-      language: "zh",
+      language: lang,
       model: "xai/tts-v1",
     },
     {
@@ -342,7 +390,7 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
       file: "audio/voice_woodcutter.mp3",
       prompt: lang === "zh" ? "坏蛋，放开她！" : "You villain, let her go!",
       voice: "leo",
-      language: "zh",
+      language: lang,
       model: "xai/tts-v1",
     },
   ];
@@ -382,6 +430,33 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
       "chapter-001/segments/segment-001/script.md",
       `# ${segmentTitle}\n\n![${assets[0].name}](../../../assets/scenes/scene_forest.png)\n\n${body}\n\n> 视频镜头：[${assets[3].name}](../../../assets/videos/vid_forest.mp4)\n\n> 配音：[${assets[5].name}](../../../assets/audio/voice_red.mp3)\n\n（在这里分支：听狼的话去采花 / 直接去外婆家）\n`
     ),
+    text(
+      "chapter-001/segments/segment-001/timeline.yml",
+      [
+        "timeline:",
+        "  - at: 0",
+        "    video: vid_forest",
+        "    voice: voice_red",
+        "    caption: red enters the forest",
+        "  - at: 8",
+        "    choice: first_forest_choice",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "chapter-001/segments/segment-001/choices.yml",
+      [
+        "choices:",
+        "  - id: first_forest_choice",
+        `    prompt: ${JSON.stringify(lang === "zh" ? "小红帽接下来怎么办？" : "What should Little Red Riding Hood do next?")}`,
+        "    options:",
+        `      - label: ${JSON.stringify(lang === "zh" ? "听狼的话去采花" : "Listen to the wolf and pick flowers")}`,
+        "        next: segment-002",
+        `      - label: ${JSON.stringify(lang === "zh" ? "直接去外婆家" : "Go directly to grandmother's house")}`,
+        "        next: segment-003",
+        "",
+      ].join("\n")
+    ),
     text("assets/index.yml", buildIVAssetIndex(assets)),
   ];
 
@@ -400,9 +475,10 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
 function buildIVAssetIndex(assets: IVAsset[]): string {
   const lines = ["# 镜头与视频方案（Shot & Video Plan）", "assets:"];
   for (const asset of assets) {
+    const type = asset.kind === "video" ? "Video" : asset.kind === "voice" ? "Voice" : "Background";
     lines.push(
       `  - id: ${asset.id}`,
-      `    type: ${asset.kind === "video" ? "Video" : "Background"}`,
+      `    type: ${type}`,
       `    name: ${JSON.stringify(asset.name)}`,
       `    file: ${JSON.stringify(asset.file)}`,
       `    prompt: ${JSON.stringify(asset.prompt)}`

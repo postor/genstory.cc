@@ -24,6 +24,7 @@ export async function exportProjectDirectoryZip(
   const entries = await listProjectFiles(root);
   const zipEntries: ZipEntry[] = [];
   for (const entry of entries) {
+    if (entry.kind !== "file") continue;
     zipEntries.push({
       path: entry.path,
       blob: await readFile(root, entry.path),

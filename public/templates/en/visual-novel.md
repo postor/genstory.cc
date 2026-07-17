@@ -118,7 +118,7 @@ All assets are indexed by:
 assets/index.yml
 ```
 
-Available asset types:
+Available asset types are open-ended, for example:
 
 - Character
 - Background
@@ -128,6 +128,14 @@ Available asset types:
 - BGM
 - SFX
 - Voice
+- UI
+- Font
+- Video
+- Prop
+- Tachie
+- Transition
+- Ambience
+- Palette
 
 ---
 

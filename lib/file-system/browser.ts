@@ -2,6 +2,7 @@
 
 import type { ContentTypeId } from "../content-types";
 import { getProjectTemplate } from "../project-templates";
+import { resolveNewEntryPath } from "./ops";
 import { normalizeRelativePath, projectRelativePath, type ProjectPath } from "./paths";
 import type { ProjectFileEntry } from "./types";
 
@@ -173,6 +174,41 @@ export async function writeTextFile(
   await writeFile(root, path, content);
 }
 
+export async function createDirectory(
+  root: FileSystemDirectoryHandle,
+  path: string
+): Promise<void> {
+  const normalized = normalizeRelativePath(path);
+  await getDirectory(root, normalized.split("/"), true);
+}
+
+export async function deleteEntry(
+  root: FileSystemDirectoryHandle,
+  path: string,
+  recursive = true
+): Promise<void> {
+  const normalized = normalizeRelativePath(path);
+  const parts = normalized.split("/");
+  const name = parts.pop()!;
+  const parent = await getDirectory(root, parts);
+  await parent.removeEntry(name, { recursive });
+}
+
+export async function writeFilesToDirectory(
+  root: FileSystemDirectoryHandle,
+  directoryPath: string,
+  files: readonly File[]
+): Promise<string[]> {
+  const written: string[] = [];
+  await ensurePermission(root, true);
+  for (const file of files) {
+    const path = resolveNewEntryPath(directoryPath, "directory", file.name);
+    await writeFile(root, path, file);
+    written.push(path);
+  }
+  return written;
+}
+
 export async function listProjectFiles(
   root: FileSystemDirectoryHandle
 ): Promise<ProjectFileEntry[]> {
@@ -191,6 +227,10 @@ export async function listProjectFiles(
           lastModified: file.lastModified,
         });
       } else {
+        files.push({
+          path,
+          kind: "directory",
+        });
         await visit(entry, path);
       }
     }

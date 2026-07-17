@@ -2,7 +2,7 @@ export type TemplateFileKind = "text" | "binary";
 
 export interface ProjectFileEntry {
   path: string;
-  kind: "file";
+  kind: "file" | "directory";
   size?: number;
   lastModified?: number;
 }

@@ -72,8 +72,9 @@ export async function readProjectPreview(
 
   if (type === "book") {
     const pages = entries
+      .filter((entry) => entry.kind === "file")
       .map((entry) => entry.path)
-      .filter((path) => /^chapter-[^/]+\/pages\/[^/]+\.md$/i.test(path))
+      .filter((path) => /^chapter-[^/]+\/content\.md$/i.test(path))
       .sort((a, b) => a.localeCompare(b));
     for (const path of pages) {
       const body = await safeText(root, path);
@@ -81,11 +82,12 @@ export async function readProjectPreview(
     }
   } else if (type === "comic") {
     const scripts = entries
+      .filter((entry) => entry.kind === "file")
       .map((entry) => entry.path)
-      .filter((path) => /^chapter-[^/]+\/pages\/[^/]+\/script\.md$/i.test(path))
+      .filter((path) => /^chapter-[^/]+\/pages\/[^/]+\/storyboard\.md$/i.test(path))
       .sort((a, b) => a.localeCompare(b));
     for (const path of scripts) {
-      const metaPath = path.replace(/script\.md$/i, "meta.md");
+      const metaPath = path.replace(/storyboard\.md$/i, "meta.md");
       const [meta, body] = await Promise.all([
         safeText(root, metaPath),
         safeText(root, path),
@@ -98,6 +100,7 @@ export async function readProjectPreview(
     }
   } else {
     const scripts = entries
+      .filter((entry) => entry.kind === "file")
       .map((entry) => entry.path)
       .filter((path) => /^chapter-[^/]+\/segments\/[^/]+\/script\.md$/i.test(path))
       .sort((a, b) => a.localeCompare(b));

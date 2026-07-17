@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileDown, Loader2, Play, RefreshCw, Save } from "lucide-react";
+import { ArrowLeft, FileDown, FolderPlus, Loader2, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
@@ -14,6 +14,8 @@ import {
   type ChatFileChange,
 } from "@/openroutermcp/chatbox";
 import { contentTypeById } from "@/lib/content-types";
+import type { ProjectFileEntry } from "@/lib/file-system/types";
+import { parentDirectoryPath, resolveNewEntryPath, uploadTargetDirectory } from "@/lib/file-system/ops";
 import { normalizeRelativePath } from "@/lib/file-system/paths";
 import {
   collectMarkdownMediaSources,
@@ -21,12 +23,15 @@ import {
   resolveMarkdownMediaPath,
 } from "@/lib/markdown/image-paths";
 import {
+  createDirectory,
+  deleteEntry,
   ensurePermission,
   listProjectFiles,
   openProjectDirectory,
   readFile,
   readTextFile,
   supportsFileSystemAccess,
+  writeFilesToDirectory,
   writeTextFile,
 } from "@/lib/file-system/browser";
 import {
@@ -62,7 +67,7 @@ function mediaKindForPath(path: string): "image" | "video" | "audio" | null {
 }
 
 function buildTree(
-  files: { path: string }[],
+  files: ProjectFileEntry[],
   rootName: string
 ): { elements: TreeViewElement[]; expanded: string[] } {
   const root: TreeViewElement = {
@@ -80,7 +85,8 @@ function buildTree(
     for (let index = 0; index < parts.length; index += 1) {
       const part = parts[index];
       const path = `${prefix}/${part}`;
-      const isFile = index === parts.length - 1;
+      const isLast = index === parts.length - 1;
+      const isFile = isLast && file.kind === "file";
       const children = current.children ?? (current.children = []);
       let next = children.find((child) => child.id === path);
       if (!next) {
@@ -110,7 +116,7 @@ export default function EditorClient() {
   const id = searchParams.get("id");
   const [project, setProject] = useState<Project | null>(null);
   const [root, setRoot] = useState<FileSystemDirectoryHandle | null>(null);
-  const [files, setFiles] = useState<{ path: string }[]>([]);
+  const [files, setFiles] = useState<ProjectFileEntry[]>([]);
   const [contents, setContents] = useState<Record<string, string>>({});
   const [mediaPreview, setMediaPreview] = useState<{
     path: string;
@@ -125,6 +131,7 @@ export default function EditorClient() {
   const [dirtyPaths, setDirtyPaths] = useState<Set<string>>(new Set());
   const [vn, setVn] = useState<VNProject | null>(null);
   const [selectedPath, setSelectedPath] = useState("AGENTS.md");
+  const [selectedKind, setSelectedKind] = useState<"file" | "directory" | null>("file");
   const [mode, setMode] = useState<"source" | "scene">("source");
   const [status, setStatus] = useState<EditorStatus>(id ? "loading" : "missing");
   const [error, setError] = useState("");
@@ -132,6 +139,7 @@ export default function EditorClient() {
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
   const chatRef = useRef<ChatBoxHandle>(null);
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
 
   async function loadProject(pid: string) {
     setStatus("loading");
@@ -154,7 +162,7 @@ export default function EditorClient() {
       const entries = await listProjectFiles(nextRoot);
       const textFiles: Record<string, string> = {};
       for (const entry of entries) {
-        if (isTextPath(entry.path)) {
+        if (entry.kind === "file" && isTextPath(entry.path)) {
           textFiles[entry.path] = await readTextFile(nextRoot, entry.path);
         }
       }
@@ -164,13 +172,14 @@ export default function EditorClient() {
       setContents(textFiles);
       const preferred =
         nextProject.lastOpenedPath &&
-        entries.some((entry) => entry.path === nextProject.lastOpenedPath)
+        entries.some((entry) => entry.kind === "file" && entry.path === nextProject.lastOpenedPath)
           ? nextProject.lastOpenedPath
           : entries.find((entry) => entry.path === "AGENTS.md")?.path ??
-            entries.find((entry) => isTextPath(entry.path))?.path ??
+            entries.find((entry) => entry.kind === "file" && isTextPath(entry.path))?.path ??
             entries[0]?.path ??
             "";
       setSelectedPath(preferred);
+      setSelectedKind(entries.find((entry) => entry.path === preferred)?.kind ?? (preferred ? "file" : "directory"));
       if (nextProject.template === "visual-novel") {
         setVn(await readVNProjectFromDirectory(nextRoot));
       } else {
@@ -196,7 +205,7 @@ export default function EditorClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const tree = useMemo(() => buildTree(files, project?.id ?? "project"), [files, project?.id]);
+  const tree = useMemo(() => buildTree(files, "root"), [files]);
   const selectedContent = selectedPath ? contents[selectedPath] : undefined;
   const visibleMediaPreview =
     mediaPreview?.path === selectedPath ? mediaPreview : null;
@@ -298,8 +307,17 @@ export default function EditorClient() {
   }
 
   function selectPath(path: string) {
-    if (!path.includes("/")) return;
-    setSelectedPath(path.replace(`${project?.id ?? "project"}/`, ""));
+    if (path === "root") {
+      setSelectedPath("");
+      setSelectedKind("directory");
+      setMode("source");
+      return;
+    }
+    if (!path.startsWith("root/")) return;
+    const nextPath = path.replace("root/", "");
+    const entry = files.find((item) => item.path === nextPath);
+    setSelectedPath(nextPath);
+    setSelectedKind(entry?.kind ?? null);
     setMode("source");
   }
 
@@ -348,6 +366,100 @@ export default function EditorClient() {
     }
   }
 
+  async function reloadFiles(preferredPath = selectedPath, preferredKind: "file" | "directory" | null = selectedKind) {
+    if (!root) return;
+    const entries = await listProjectFiles(root);
+    const textFiles: Record<string, string> = {};
+    for (const entry of entries) {
+      if (entry.kind === "file" && isTextPath(entry.path)) {
+        textFiles[entry.path] = await readTextFile(root, entry.path);
+      }
+    }
+    const preferredEntry = preferredPath
+      ? entries.find((entry) => entry.path === preferredPath && (!preferredKind || entry.kind === preferredKind))
+      : undefined;
+    const fallback =
+      preferredEntry ??
+      entries.find((entry) => entry.kind === "file" && entry.path === "AGENTS.md") ??
+      entries.find((entry) => entry.kind === "file" && isTextPath(entry.path)) ??
+      entries[0];
+
+    setFiles(entries);
+    setContents(textFiles);
+    setSelectedPath(fallback?.path ?? "");
+    setSelectedKind(fallback?.kind ?? "directory");
+    if (project?.template === "visual-novel") {
+      setVn(await readVNProjectFromDirectory(root));
+    }
+  }
+
+  async function handleUploadFiles(fileList: FileList | null) {
+    if (!root || !fileList?.length) return;
+    setError("");
+    try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) return;
+      }
+      const target = uploadTargetDirectory(selectedPath, selectedKind);
+      const written = await writeFilesToDirectory(root, target, Array.from(fileList));
+      await reloadFiles(written.at(-1) ?? selectedPath, "file");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      if (uploadInputRef.current) uploadInputRef.current.value = "";
+    }
+  }
+
+  async function handleCreateDirectory() {
+    if (!root) return;
+    const name = window.prompt(t("editor.enterFolderName"));
+    if (!name) return;
+    setError("");
+    try {
+      const path = resolveNewEntryPath(selectedPath, selectedKind, name);
+      await ensurePermission(root, true);
+      await createDirectory(root, path);
+      await reloadFiles(path, "directory");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function handleDeleteSelected() {
+    if (!root || !selectedPath) return;
+    if (!window.confirm(t("editor.confirmDeleteEntry"))) return;
+    setError("");
+    try {
+      if (dirtyPaths.has(selectedPath)) {
+        setDirtyPaths((previous) => {
+          const next = new Set(previous);
+          next.delete(selectedPath);
+          return next;
+        });
+      }
+      await ensurePermission(root, true);
+      await deleteEntry(root, selectedPath, true);
+      setContents((previous) => {
+        const next = { ...previous };
+        for (const path of Object.keys(next)) {
+          if (path === selectedPath || path.startsWith(`${selectedPath}/`)) delete next[path];
+        }
+        return next;
+      });
+      setDirtyPaths((previous) => {
+        const next = new Set(previous);
+        for (const path of [...next]) {
+          if (path === selectedPath || path.startsWith(`${selectedPath}/`)) next.delete(path);
+        }
+        return next;
+      });
+      await reloadFiles(parentDirectoryPath(selectedPath), "directory");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   async function handlePreview() {
     if (!project) return;
     if (dirty) {
@@ -393,6 +505,7 @@ export default function EditorClient() {
     });
     setProject((previous) => (previous ? { ...previous, updatedAt: now } : previous));
     setSelectedPath(normalized.at(-1)?.path ?? selectedPath);
+    setSelectedKind("file");
     setSaved(true);
   }
 
@@ -446,12 +559,36 @@ export default function EditorClient() {
           </h1>
         </div>
         <div className="flex flex-wrap gap-2">
+          <input
+            ref={uploadInputRef}
+            type="file"
+            multiple
+            className="sr-only"
+            onChange={(event) => void handleUploadFiles(event.currentTarget.files)}
+          />
           <Button variant="outline" size="sm" onClick={() => id && void loadProject(id)} disabled={status === "loading"}>
             <RefreshCw className="size-4" />
             {t("editor.refreshFiles")}
           </Button>
           {project && root && (
             <>
+              <Button variant="outline" size="sm" onClick={() => uploadInputRef.current?.click()}>
+                <Upload className="size-4" />
+                {t("editor.uploadFiles")}
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void handleCreateDirectory()}>
+                <FolderPlus className="size-4" />
+                {t("editor.newFolder")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleDeleteSelected()}
+                disabled={!selectedPath}
+              >
+                <Trash2 className="size-4" />
+                {t("editor.deleteEntry")}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => void handlePreview()}>
                 <Play className="size-4" />
                 {t("editor.preview")}
@@ -500,7 +637,7 @@ export default function EditorClient() {
               key={`${project?.id ?? "none"}-${files.length}`}
               elements={tree.elements}
               initialExpandedItems={tree.expanded}
-              initialSelectedId={`${project?.id ?? "project"}/${selectedPath}`}
+              initialSelectedId={selectedPath ? `root/${selectedPath}` : "root"}
               onSelect={selectPath}
               className="p-2"
             />
@@ -566,6 +703,10 @@ export default function EditorClient() {
                   <audio src={visibleMediaPreview.url} controls className="w-full max-w-2xl" />
                 )}
               </div>
+            </div>
+          ) : selectedKind === "directory" ? (
+            <div className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">
+              {t("editor.folderSelected")}
             </div>
           ) : (
             <div className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">

@@ -5,7 +5,9 @@ export type ComicProjectFileKind =
   | "metadata"
   | "asset-index"
   | "page-meta"
-  | "script"
+  | "storyboard"
+  | "panel"
+  | "layout"
   | "asset";
 
 export interface ComicProjectFile {
@@ -105,6 +107,47 @@ function buildPageScript(page: ComicPage, style: string): string {
   return lines.join("\n");
 }
 
+function panelSlug(id: string): string {
+  const match = id.match(/(\d+)$/);
+  return match ? `panel-${match[1].padStart(3, "0")}` : id;
+}
+
+function buildPanelFile(panel: ComicPanel): string {
+  const lines = [
+    "---",
+    `id: ${panelSlug(panel.id)}`,
+    `shot: ${yamlString(panel.size || "medium")}`,
+    `asset: ${yamlString(panel.asset || "none")}`,
+    `characters: ${panel.characters.length ? panel.characters.join(", ") : "none"}`,
+    "---",
+    "",
+    `# ${panelSlug(panel.id)}`,
+    "",
+    panel.description,
+  ];
+  if (panel.caption) lines.push("", `caption: ${panel.caption}`);
+  if (panel.balloons?.length) {
+    lines.push("", "dialogue:");
+    for (const balloon of panel.balloons) {
+      lines.push(`  - ${balloon.speaker}: ${balloon.line}`);
+    }
+  }
+  lines.push("");
+  return lines.join("\n");
+}
+
+function buildLayoutFile(page: ComicPage): string {
+  return [
+    `# ${page.title} Layout`,
+    "",
+    `summary: ${page.summary}`,
+    "",
+    "panels:",
+    ...page.panels.map((panel) => `  - id: ${panelSlug(panel.id)}\n    size: ${panel.size || "medium"}`),
+    "",
+  ].join("\n");
+}
+
 function buildAssetIndex(project: ComicProject): string {
   const lines = ["assets:"];
   const all: ComicAsset[] = [
@@ -114,7 +157,7 @@ function buildAssetIndex(project: ComicProject): string {
       id: page.assetId,
       type: "CG" as const,
       name: page.title,
-      file: `${page.id}.png`,
+      file: `chapter-001/pages/${page.id}/final.png`,
     })),
   ];
   for (const asset of all) {
@@ -161,13 +204,27 @@ export function buildComicProjectFiles(
       pageId: page.id,
     });
     files.push({
-      path: `${base}/script.md`,
+      path: `${base}/storyboard.md`,
       content: buildPageScript(page, project.style),
-      kind: "script",
+      kind: "storyboard",
       pageId: page.id,
     });
     files.push({
-      path: `assets/pages/${page.id}.png`,
+      path: `${base}/layout.md`,
+      content: buildLayoutFile(page),
+      kind: "layout",
+      pageId: page.id,
+    });
+    for (const panel of page.panels) {
+      files.push({
+        path: `${base}/panels/${panelSlug(panel.id)}.md`,
+        content: buildPanelFile(panel),
+        kind: "panel",
+        pageId: page.id,
+      });
+    }
+    files.push({
+      path: `${base}/final.png`,
       content: "",
       kind: "asset",
       pageId: page.id,

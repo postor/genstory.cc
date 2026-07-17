@@ -1,23 +1,170 @@
-# Visual Novel Project Brief
+# AGENTS.md
 
-You are creating a readable interactive story (a visual novel). This project is
-saved in your browser — no backend required.
+## Mission
 
-## Goal
-- Organize the story with characters, scenes, branches, and choices
-- Support multiple endings and branching narratives
+Maintain long-term consistency across this visual novel project.
 
-## Suggested structure
-1. Worldbuilding and scene setting
-2. Character profiles
-3. Chapter and branch flowchart
-4. Dialogue and choices
-5. Ending design
+Prioritize:
+
+- Canon
+- Characters
+- Timeline
+- Visual consistency
+- Asset reuse
+
+---
 
 ## Conventions
-- Use Markdown to record branches and dialogue
-- Annotate which chapter each choice leads to
-- Switch between Chinese and English via the top-right toggle
 
-## Next steps
-Write the script in the editor on the right, then click “Save” to local storage.
+Common filenames:
+
+- `meta.md` — metadata
+- `script.md` — dialogue & narrative
+- `stage.yml` — scene state
+- `design.*` — visual reference
+- `final.*` — generated result
+
+One fact, one source.
+
+---
+
+## Repository
+
+```text
+/
+├── meta.md
+├── references/
+├── assets/
+│   ├── index.yml
+│   ├── characters/
+│   ├── backgrounds/
+│   ├── cg/
+│   ├── motions/
+│   ├── effects/
+│   ├── bgm/
+│   ├── sfx/
+│   └── voice/
+│
+└── chapter-001/
+    ├── meta.md
+    ├── characters/
+    ├── locations/
+    ├── scenes/
+    │   └── scene-001/
+    │       ├── meta.md
+    │       ├── script.md
+    │       └── stage.yml
+    └── cg/
+```
+
+---
+
+## Context
+
+```
+project
+    ↓
+chapter
+    ↓
+scene
+    ↓
+characters
+    ↓
+locations
+    ↓
+references
+    ↓
+current task
+```
+
+Higher priority overrides lower priority.
+
+---
+
+## Stage Model
+
+Scenes describe **state**, never rendering commands.
+
+Good:
+
+- background
+- characters
+- expression
+- pose
+- position
+- motion
+- music
+
+Bad:
+
+- playAnimation(...)
+- changeFigure(...)
+- hide(...)
+- show(...)
+
+State changes are incremental.
+
+---
+
+## Assets
+
+Use logical IDs only.
+
+Never reference file paths.
+
+All assets are indexed by:
+
+```
+assets/index.yml
+```
+
+Available asset types:
+
+- Character
+- Background
+- CG
+- Motion
+- Effect
+- BGM
+- SFX
+- Voice
+
+---
+
+## Workflow
+
+```
+Understand
+    ↓
+Plan
+    ↓
+Generate
+    ↓
+Validate
+```
+
+Always validate:
+
+- Canon
+- Timeline
+- Character state
+- Stage state
+- Asset references
+
+---
+
+## Rules
+
+Always:
+
+- Separate story from presentation.
+- Reuse existing assets.
+- Keep dialogue independent of rendering.
+- Promote reusable knowledge upward.
+
+Never:
+
+- Duplicate canon.
+- Hardcode asset paths.
+- Rewrite established events.
+- Mix rendering logic into story.

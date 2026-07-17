@@ -196,3 +196,20 @@ assets/index.yml
 - 改写已确立的事件。
 - 将渲染逻辑混入故事。
 <!-- END:visual-novel-rules -->
+
+<!-- BEGIN:vn-browser-plan -->
+# 视觉小说浏览器端方案
+
+视觉小说（OpenWebGal）能力**在浏览器内闭环**实现：编辑（IndexedDB）、预览（桥接 Service
+Worker 喂引擎）、发布（导出可独立运行的 OpenWebGal 项目 zip）。不再使用磁盘独立子项目
+`vn-template/` 的 CLI 工作流（其 `source/` 仅作为内容/编译逻辑的参考来源）。
+
+完整方案见 [`docs/vn-browser-plan.md`](./docs/vn-browser-plan.md)。
+
+关键约定速记：
+- 用户数据存 `Project.vn`（`lib/vn/types.ts`），种子为 小红帽（`lib/vn/seed.ts`）。
+- 编译：`lib/vn/compile.ts`（markdown → `Record<path, Blob>`）。
+- 引擎 vendored 于 `public/webgal/`（gitignored），由 `npm run sync-webgal` 生成。
+- 预览靠 `public/webgal/webgal-serviceworker.js` 桥接 SW 从 IndexedDB 读 `game/*`。
+- 导出 zip＝引擎 + 编译产物，且**还原原始引擎 SW**（不使用桥接 SW）。
+<!-- END:vn-browser-plan -->

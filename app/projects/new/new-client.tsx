@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label";
 import { contentTypes, type ContentTypeId } from "@/lib/content-types";
 import { loadTemplate } from "@/lib/templates";
 import { saveProject, type Project } from "@/lib/local-projects";
+import { seedRedRidingHood } from "@/lib/vn/seed";
 import { useLang } from "@/lib/i18n";
 
 export default function NewClient() {
@@ -51,8 +52,11 @@ export default function NewClient() {
       const project: Project = {
         id,
         template,
-        title: title.trim() || contentTypes.find((c) => c.id === template)!.label[lang],
+        title:
+          title.trim() ||
+          contentTypes.find((c) => c.id === template)!.label[lang],
         content,
+        vn: template === "visual-novel" ? seedRedRidingHood() : undefined,
         lang,
         createdAt: now,
         updatedAt: now,

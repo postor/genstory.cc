@@ -1,5 +1,5 @@
 export { ChatBox } from "./ChatBox";
-export type { ChatBoxProps } from "./ChatBox";
+export type { ChatBoxProps, ChatBoxHandle } from "./ChatBox";
 export { ChatHistoryWindow } from "./ChatHistoryWindow";
 export type { ChatHistoryWindowProps } from "./ChatHistoryWindow";
 export { ModelSelect } from "./ModelSelect";

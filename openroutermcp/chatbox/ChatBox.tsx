@@ -17,7 +17,7 @@
 //
 // Styling uses shadcn primitives + Tailwind utilities only — no inline `style`.
 
-import { useCallback, useEffect, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
 import {
   chat,
   listModels,
@@ -44,6 +44,11 @@ const LS_MODEL = "chatbox_model";
 const LS_MESSAGES = "chatbox_messages";
 const LS_IMAGES = "chatbox_images";
 
+/** Namespace a storage key by an optional chat/project id. */
+function storageKey(base: string, chatId?: string): string {
+  return chatId ? `${base}_${chatId}` : base;
+}
+
 function loadJSON<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
   try {
@@ -59,9 +64,37 @@ export interface ChatBoxProps {
   placeholder?: string;
   /** Max agent-loop iterations per send. Defaults to 8. */
   maxToolRounds?: number;
+  /** Optional project/workspace context appended to the system prompt so the
+   *  assistant can answer with awareness of the current project. */
+  context?: string;
+  /** Scope chat history + images to this id (e.g. project id) so different
+   *  conversations do not share messages. Omit for a global shared chat. */
+  chatId?: string;
+  /** Fires when the user explicitly changes the selected model. */
+  onModelChange?: (model: string) => void;
+  /** Fires whenever a (non-empty) message is sent. */
+  onSend?: (text: string) => void;
 }
 
-export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRounds = 8 }: ChatBoxProps) {
+/** Imperative handle so a parent can drive the chat (e.g. auto-send a prompt). */
+export interface ChatBoxHandle {
+  /** Send a message programmatically, as if typed and submitted by the user. */
+  send: (text: string) => void;
+  /** Fill the input with text and focus it, without sending. */
+  prefill: (text: string) => void;
+}
+
+export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
+  {
+    placeholder = "输入消息，Enter 发送",
+    maxToolRounds = 8,
+    context,
+    chatId,
+    onModelChange,
+    onSend,
+  }: ChatBoxProps,
+  ref
+) {
   const { status, isAuthorized, ready, tools, connect, callTool, refreshToken, authorize } =
     useOpenRouterMcp();
 
@@ -69,11 +102,16 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
   const [modelLoading, setModelLoading] = useState(true);
   const [model, setModel] = useState<string>(() => loadJSON(LS_MODEL, ""));
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() => loadJSON<ChatMessage[]>(LS_MESSAGES, []));
-  const [images, setImages] = useState<Record<string, string>>(() => loadJSON<Record<string, string>>(LS_IMAGES, {}));
+  const [messages, setMessages] = useState<ChatMessage[]>(() =>
+    loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), [])
+  );
+  const [images, setImages] = useState<Record<string, string>>(() =>
+    loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {})
+  );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const [oauthOpen, setOauthOpen] = useState(false);
 
@@ -128,21 +166,33 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
   }, [ready, isAuthorized, status, oauthOpen]);
 
   // --- persist chat state to localStorage ---
+  // Model selection stays global (user preference); messages + images are
+  // scoped per chatId so each project keeps its own conversation.
   useEffect(() => {
     if (model) window.localStorage.setItem(LS_MODEL, model);
   }, [model]);
 
   useEffect(() => {
-    window.localStorage.setItem(LS_MESSAGES, JSON.stringify(messages));
-  }, [messages]);
+    window.localStorage.setItem(storageKey(LS_MESSAGES, chatId), JSON.stringify(messages));
+  }, [messages, chatId]);
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(LS_IMAGES, JSON.stringify(images));
+      window.localStorage.setItem(storageKey(LS_IMAGES, chatId), JSON.stringify(images));
     } catch {
       /* localStorage may overflow with many/large images; ignore. */
     }
-  }, [images]);
+  }, [images, chatId]);
+
+  // When the scoped chat id changes (e.g. switching projects), load that
+  // conversation's history instead of continuing to show the previous one.
+  const lastChatId = useRef(chatId);
+  useEffect(() => {
+    if (lastChatId.current === chatId) return;
+    lastChatId.current = chatId;
+    setMessages(loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), []));
+    setImages(loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {}));
+  }, [chatId]);
 
   const clearChat = useCallback(() => {
     setMessages([]);
@@ -150,9 +200,10 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
     setError(null);
   }, []);
 
-  const sendChat = useCallback(async () => {
-    const text = input.trim();
-    if (!text || sending) return;
+  const sendChat = useCallback(
+    async (presetText?: string) => {
+      const text = (presetText ?? input).trim();
+      if (!text || sending) return;
 
     const tk = await refreshToken();
     if (!tk) {
@@ -175,13 +226,17 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
     setInput("");
     setError(null);
     setSending(true);
+    onSend?.(text);
 
     const systemMsg: ChatMessage = {
       role: "system",
       content:
         "你可以通过调用提供的 MCP 工具来获取信息或执行操作。" +
         "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
-        "只在确实需要的时调用工具，不要编造工具参数。",
+        "只在确实需要的时调用工具，不要编造工具参数。" +
+        (context
+          ? `\n\n以下是用户当前正在编辑的项目上下文，回答时请结合它：\n${context}`
+          : ""),
     };
 
     try {
@@ -229,7 +284,23 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
     } finally {
       setSending(false);
     }
-  }, [input, sending, refreshToken, tools, messages, model, callTool, maxToolRounds]);
+  },     [input, sending, refreshToken, tools, messages, model, callTool, maxToolRounds, context, onSend]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      send: (text: string) => {
+        setInput(text);
+        void sendChat(text);
+      },
+      prefill: (text: string) => {
+        setInput(text);
+        // Focus after the controlled value paints.
+        requestAnimationFrame(() => textareaRef.current?.focus());
+      },
+    }),
+    [sendChat]
+  );
 
   // Click anywhere on the widget re-opens the OAuth dialog while unauthenticated.
   const handleRootClick = useCallback(() => {
@@ -256,7 +327,10 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
       <ModelSelect
         models={models}
         value={model}
-        onChange={setModel}
+        onChange={(id) => {
+          setModel(id);
+          onModelChange?.(id);
+        }}
         loading={modelLoading}
         disabled={!authorized}
       />
@@ -267,6 +341,7 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
 
       <Textarea
         value={input}
+        ref={textareaRef}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && !e.shiftKey) {
@@ -318,4 +393,4 @@ export function ChatBox({ placeholder = "输入消息，Enter 发送", maxToolRo
       </Dialog>
     </div>
   );
-}
+});

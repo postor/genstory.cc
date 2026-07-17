@@ -33,7 +33,7 @@ export default function Home() {
               <Button
                 render={<Link href="/projects/new" />}
                 size="lg"
-                variant="secondary"
+                className="bg-background text-foreground hover:bg-background/90"
               >
                 <BookOpen className="size-4" />
                 {t("home.ctaCreate")}

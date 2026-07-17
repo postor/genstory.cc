@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendored/generated assets (not source):
+    "public/webgal/**",
+    "vn-template/dist/**",
+    "vn-template/node_modules/**",
   ]),
 ]);
 

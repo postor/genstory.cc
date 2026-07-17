@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 
-import EditorClient from "./editor-client";
+import PreviewClient from "./preview-client";
 
-export default function EditorPage() {
+export default function PreviewPage() {
   return (
     <Suspense
       fallback={
@@ -11,7 +11,7 @@ export default function EditorPage() {
         </main>
       }
     >
-      <EditorClient />
+      <PreviewClient />
     </Suspense>
   );
 }

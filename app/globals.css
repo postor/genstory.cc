@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@import "tailwindcss/theme.css";
+@import "tailwindcss/preflight.css";
+@import "tailwindcss/utilities.css";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
@@ -20,11 +22,6 @@ body {
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -145,14 +142,12 @@ a {
   --sidebar-ring: oklch(0.556 0 0);
 }
 
-@layer base {
-  * {
-    @apply border-border outline-ring/50;
-  }
-  body {
-    @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
+* {
+  @apply border-border outline-ring/50;
+}
+body {
+  @apply bg-background text-foreground;
+}
+html {
+  @apply font-sans;
 }

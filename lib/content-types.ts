@@ -43,7 +43,7 @@ export const contentTypes: ContentTypeInfo[] = [
       zh: "用角色、场景、分支和选择项组织可阅读的互动故事。",
       en: "Readable interactive stories organized with characters, scenes, branches, and choices.",
     },
-    enabled: false,
+    enabled: true,
   },
   {
     id: "interactive-video",

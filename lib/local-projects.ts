@@ -1,12 +1,15 @@
 import type { Lang } from "@/lib/i18n";
 import type { ContentTypeId } from "@/lib/content-types";
+import type { VNProject } from "@/lib/vn/types";
 
 export interface Project {
   id: string;
   template: ContentTypeId;
   title: string;
-  /** Markdown body, seeded from the chosen template. */
+  /** Markdown body, seeded from the chosen template (unused for visual-novel). */
   content: string;
+  /** Structured visual-novel data, present when template === "visual-novel". */
+  vn?: VNProject;
   lang: Lang;
   createdAt: number;
   updatedAt: number;
@@ -106,6 +109,7 @@ export async function readProjectFile(file: File): Promise<Project> {
     template: data.template ?? "book",
     title: data.title,
     content: data.content,
+    vn: data.vn,
     lang: data.lang === "en" ? "en" : "zh",
     createdAt: data.createdAt ?? now,
     updatedAt: now,

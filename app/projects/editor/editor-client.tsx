@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, FileDown, Loader2, Play, RefreshCw, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -11,33 +12,48 @@ import { CodeEditor } from "@/components/ui/code-editor";
 import {
   ChatBox,
   type ChatBoxHandle,
+  type ChatFileChange,
 } from "@/openroutermcp/chatbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { contentTypeById } from "@/lib/content-types";
-import { loadTemplate } from "@/lib/templates";
+import { normalizeRelativePath } from "@/lib/file-system/paths";
 import {
-  downloadProject,
+  ensurePermission,
+  listProjectFiles,
+  openProjectDirectory,
+  readFile,
+  readTextFile,
+  supportsFileSystemAccess,
+  writeTextFile,
+} from "@/lib/file-system/browser";
+import {
   getProject,
-  listProjects,
-  saveProject,
+  updateProjectState,
   type Project,
 } from "@/lib/local-projects";
-import { exportVNZip } from "@/lib/vn/export";
-import { buildVNProjectFiles, type VNProjectFile } from "@/lib/vn/project-files";
-import { VNEditor, VNSceneList } from "./vn-editor";
+import { exportVNZipFromDirectory } from "@/lib/vn/export";
+import {
+  exportProjectDirectoryZip,
+  exportReadableProjectZip,
+} from "@/lib/project-export";
+import { readProjectPreview } from "@/lib/project-source";
+import { buildVNProjectFiles } from "@/lib/vn/project-files";
+import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
+import type { VNProject } from "@/lib/vn/types";
+import { VNEditor } from "./vn-editor";
 import { useLang } from "@/lib/i18n";
 
-function buildTree(files: VNProjectFile[], rootName: string): {
-  elements: TreeViewElement[];
-  expanded: string[];
-} {
+function isTextPath(path: string): boolean {
+  return /\.(md|markdown|ya?ml|txt|json|js|ts|tsx|jsx|css|html|svg)$/i.test(path);
+}
+
+function isImagePath(path: string): boolean {
+  return /\.(png|jpe?g|gif|webp|avif|bmp|ico)$/i.test(path);
+}
+
+function buildTree(
+  files: { path: string }[],
+  rootName: string
+): { elements: TreeViewElement[]; expanded: string[] } {
   const root: TreeViewElement = {
     id: rootName,
     name: rootName,
@@ -74,438 +90,413 @@ function buildTree(files: VNProjectFile[], rootName: string): {
   return { elements: [root], expanded };
 }
 
+type EditorStatus = "loading" | "ready" | "missing" | "error";
+
 export default function EditorClient() {
   const { t } = useLang();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
-
-  const [projects, setProjects] = useState<Project[]>([]);
   const [project, setProject] = useState<Project | null>(null);
-  const [selectedFilePath, setSelectedFilePath] = useState("AGENTS.md");
-  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [notFound, setNotFound] = useState(false);
+  const [root, setRoot] = useState<FileSystemDirectoryHandle | null>(null);
+  const [files, setFiles] = useState<{ path: string }[]>([]);
+  const [contents, setContents] = useState<Record<string, string>>({});
+  const [imagePreview, setImagePreview] = useState<{
+    path: string;
+    url: string;
+    size: number;
+    type: string;
+  } | null>(null);
+  const imageUrlRef = useRef<string | null>(null);
+  const [dirtyPaths, setDirtyPaths] = useState<Set<string>>(new Set());
+  const [vn, setVn] = useState<VNProject | null>(null);
+  const [selectedPath, setSelectedPath] = useState("AGENTS.md");
+  const [mode, setMode] = useState<"source" | "scene">("source");
+  const [status, setStatus] = useState<EditorStatus>(id ? "loading" : "missing");
+  const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [dirty, setDirty] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [guidanceOpen, setGuidanceOpen] = useState(false);
-  // Onboarding flow after confirming guidance: "model" → "input" → null.
-  const [onboardingStep, setOnboardingStep] = useState<"model" | "input" | null>(null);
-  const [chatRect, setChatRect] = useState<DOMRect | null>(null);
-  const [viewport, setViewport] = useState({ w: 0, h: 0 });
-
   const chatRef = useRef<ChatBoxHandle>(null);
-  const chatContainerRef = useRef<HTMLElement>(null);
-
-  function measureChat() {
-    const el = chatContainerRef.current;
-    if (!el) return;
-    setChatRect(el.getBoundingClientRect());
-    setViewport({ w: window.innerWidth, h: window.innerHeight });
-  }
 
   async function loadProject(pid: string) {
-    setLoading(true);
-    setNotFound(false);
+    setStatus("loading");
+    setError("");
     setSaved(false);
-    setDirty(false);
-    setOnboardingStep(null);
-    const p = await getProject(pid);
-    if (!p) {
-      setNotFound(true);
-      setProject(null);
-    } else {
-      setProject(p);
-      setSelectedFilePath(p.template === "visual-novel" ? "AGENTS.md" : "document");
-      setSelectedSceneId(p.vn?.chapters[0]?.scenes[0]?.id ?? null);
-      // Show the first-chapter guidance once per project (tracked in
-      // localStorage) when entering the editor for an existing project.
-      const shown = (() => {
-        try {
-          return window.localStorage.getItem(`genstory_guidance_${pid}`);
-        } catch {
-          return null;
-        }
-      })();
-      if (!shown) setGuidanceOpen(true);
-    }
-    setLoading(false);
-  }
-
-  function dismissGuidance() {
-    if (project) {
-      try {
-        window.localStorage.setItem(`genstory_guidance_${project.id}`, "1");
-      } catch {
-        /* ignore storage errors */
+    setDirtyPaths(new Set());
+    try {
+      if (!supportsFileSystemAccess()) {
+        throw new Error(t("editor.fileSystemUnsupported"));
       }
+      const nextProject = await getProject(pid);
+      if (!nextProject) {
+        setStatus("missing");
+        return;
+      }
+      const nextRoot = await openProjectDirectory(
+        nextProject.template,
+        nextProject.id
+      );
+      const entries = await listProjectFiles(nextRoot);
+      const textFiles: Record<string, string> = {};
+      for (const entry of entries) {
+        if (isTextPath(entry.path)) {
+          textFiles[entry.path] = await readTextFile(nextRoot, entry.path);
+        }
+      }
+      setProject(nextProject);
+      setRoot(nextRoot);
+      setFiles(entries);
+      setContents(textFiles);
+      const preferred =
+        nextProject.lastOpenedPath &&
+        entries.some((entry) => entry.path === nextProject.lastOpenedPath)
+          ? nextProject.lastOpenedPath
+          : entries.find((entry) => entry.path === "AGENTS.md")?.path ??
+            entries.find((entry) => isTextPath(entry.path))?.path ??
+            entries[0]?.path ??
+            "";
+      setSelectedPath(preferred);
+      if (nextProject.template === "visual-novel") {
+        setVn(await readVNProjectFromDirectory(nextRoot));
+      } else {
+        setVn(null);
+      }
+      setStatus("ready");
+      await updateProjectState(pid, {
+        lastOpenedPath: preferred,
+        updatedAt: nextProject.updatedAt,
+      });
+    } catch (e) {
+      setStatus("error");
+      setError(e instanceof Error ? e.message : String(e));
     }
-    setGuidanceOpen(false);
-  }
-
-  // Confirm guidance → start the onboarding overlay (model selection first).
-  function startGuidance() {
-    dismissGuidance();
-    setOnboardingStep("model");
-    measureChat();
-  }
-
-  // User picked a model during onboarding → move to the input step and prefill
-  // the prompt without sending it.
-  function handleModelSelected() {
-    if (onboardingStep !== "model") return;
-    setOnboardingStep("input");
-    chatRef.current?.prefill(t("editor.firstChapterPrompt"));
-  }
-
-  // A message was sent → the onboarding hint is no longer needed.
-  function handleChatSent() {
-    setOnboardingStep(null);
   }
 
   useEffect(() => {
+    if (!id) return;
+    void (async () => {
+      await loadProject(id);
+    })();
+    // The project id is the route's stable input.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  const tree = useMemo(() => buildTree(files, project?.id ?? "project"), [files, project?.id]);
+  const selectedContent = selectedPath ? contents[selectedPath] : undefined;
+  const visibleImagePreview =
+    imagePreview?.path === selectedPath ? imagePreview : null;
+  const dirty = dirtyPaths.size > 0;
+
+  useEffect(() => {
+    if (!root || !selectedPath || !isImagePath(selectedPath)) return;
     let cancelled = false;
-    (async () => {
-      const list = await listProjects();
-      if (cancelled) return;
-      setProjects(list);
-      const target = id ?? list[0]?.id;
-      if (target) {
-        await loadProject(target);
-      } else {
-        setLoading(false);
-        setNotFound(true);
+    void (async () => {
+      try {
+        const file = await readFile(root, selectedPath);
+        const url = URL.createObjectURL(file);
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          return;
+        }
+        setImagePreview(() => {
+          if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+          imageUrlRef.current = url;
+          return {
+            path: selectedPath,
+            url,
+            size: file.size,
+            type: file.type || "image",
+          };
+        });
+      } catch {
+        /* Keep the binary fallback visible. */
       }
     })();
     return () => {
       cancelled = true;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [root, selectedPath]);
 
-  // Keep the chat-area rectangle (used by the onboarding cutout mask) in sync
-  // with layout and viewport changes while onboarding is active.
   useEffect(() => {
-    if (!onboardingStep) return;
-    measureChat();
-    window.addEventListener("resize", measureChat);
-    return () => window.removeEventListener("resize", measureChat);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [onboardingStep]);
+    return () => {
+      if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+    };
+  }, []);
 
-  function update(patch: Partial<Project>) {
-    setProject((prev) => (prev ? { ...prev, ...patch } : prev));
+  function updateContent(path: string, value: string) {
+    setContents((previous) => ({ ...previous, [path]: value }));
+    setDirtyPaths((previous) => new Set(previous).add(path));
     setSaved(false);
-    setDirty(true);
   }
 
-  async function handleSave() {
-    if (!project) return;
+  function selectPath(path: string) {
+    if (!path.includes("/")) return;
+    setSelectedPath(path.replace(`${project?.id ?? "project"}/`, ""));
+    setMode("source");
+  }
+
+  function updateStructuredVN(next: VNProject) {
+    const agents = contents["AGENTS.md"] ?? "";
+    const generated = buildVNProjectFiles(next, agents).filter(
+      (file) => file.kind !== "asset"
+    );
+    setVn(next);
+    setContents((previous) => {
+      const nextContents = { ...previous };
+      for (const file of generated) nextContents[file.path] = file.content;
+      return nextContents;
+    });
+    setDirtyPaths((previous) => {
+      const nextDirty = new Set(previous);
+      for (const file of generated) nextDirty.add(file.path);
+      return nextDirty;
+    });
+    setSaved(false);
+  }
+
+  async function handleSave(): Promise<boolean> {
+    if (!project || !root) return false;
     setSaving(true);
     try {
-      const next: Project = { ...project, updatedAt: Date.now() };
-      await saveProject(next);
-      setProject(next);
+      await ensurePermission(root, true);
+      for (const path of dirtyPaths) {
+        const value = contents[path];
+        if (value !== undefined) await writeTextFile(root, path, value);
+      }
+      const now = Math.max(project.updatedAt + 1, project.createdAt);
+      await updateProjectState(project.id, {
+        updatedAt: now,
+        lastOpenedPath: selectedPath,
+      });
+      setProject((previous) => (previous ? { ...previous, updatedAt: now } : previous));
+      setDirtyPaths(new Set());
       setSaved(true);
-      setDirty(false);
+      return true;
+    } catch (e) {
+      setError(t("editor.saveFailed") + (e instanceof Error ? e.message : String(e)));
+      return false;
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleLoadTemplate() {
+  async function handlePreview() {
     if (!project) return;
-    try {
-      const content = await loadTemplate(project.lang, project.template);
-      update({ content });
-    } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+    if (dirty) {
+      const ok = await handleSave();
+      if (!ok) return;
     }
+    router.push(`/projects/preview?id=${project.id}`);
   }
 
-  function handleFileSelect(path: string) {
-    setSelectedFilePath(path);
-    const file = vnFiles.find((candidate) => candidate.path === path);
-    if (file?.sceneId) setSelectedSceneId(file.sceneId);
+  async function applyChatFileChanges(changes: ChatFileChange[]) {
+    if (!project || !root) return;
+    const normalized = changes.map((change) => {
+      const path = normalizeRelativePath(change.path);
+      if (!isTextPath(path)) {
+        throw new Error(`聊天变更只能写入文本文件：${path}`);
+      }
+      return { ...change, path };
+    });
+
+    await ensurePermission(root, true);
+    for (const change of normalized) {
+      await writeTextFile(root, change.path, change.content);
+    }
+    const entries = await listProjectFiles(root);
+    setFiles(entries);
+    setContents((previous) => {
+      const next = { ...previous };
+      for (const change of normalized) next[change.path] = change.content;
+      return next;
+    });
+    setDirtyPaths((previous) => {
+      const next = new Set(previous);
+      for (const change of normalized) next.delete(change.path);
+      return next;
+    });
+    if (project.template === "visual-novel") {
+      setVn(await readVNProjectFromDirectory(root));
+    }
+    const now = Math.max(project.updatedAt + 1, project.createdAt);
+    await updateProjectState(project.id, {
+      updatedAt: now,
+      lastOpenedPath: normalized.at(-1)?.path ?? selectedPath,
+    });
+    setProject((previous) => (previous ? { ...previous, updatedAt: now } : previous));
+    setSelectedPath(normalized.at(-1)?.path ?? selectedPath);
+    setSaved(true);
   }
 
-  const isVN = project?.template === "visual-novel";
-  const vnFiles = useMemo(
-    () =>
-      project?.vn
-        ? buildVNProjectFiles(project.vn, project.content)
-        : [],
-    [project?.content, project?.vn]
-  );
-  const vnTree = useMemo(
-    () => buildTree(vnFiles, "source"),
-    [vnFiles]
-  );
-  const singleDocumentTree = useMemo(
-    () =>
-      buildTree(
-        [
-          {
-            path: project?.template === "book" ? "AGENTS.md" : "document",
-            content: project?.content ?? "",
-            kind: "metadata",
-          },
-        ],
-        "project"
-      ),
-    [project?.content, project?.template]
-  );
-  const selectedVNFile = vnFiles.find((file) => file.path === selectedFilePath);
-
-  async function handleExportVN() {
-    if (!project?.vn) return;
+  async function handleDownloadSource() {
+    if (!project || !root) return;
     setExporting(true);
     try {
-      await exportVNZip(project.vn);
+      await exportProjectDirectoryZip(root, `${project.title || "project"}-source`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally {
       setExporting(false);
     }
   }
 
-  // The file shown in the tree / editor. A book's document is its AGENTS.md
-  // (seeded from the localized book.md), so it is named "AGENTS.md" rather
-  // than falling back to the template label (e.g. "图书.md").
-  function projectFileName(p: Project): string {
-    if (p.template === "book") return "AGENTS.md";
-    return `${p.title || t("editor.noProject")}.md`;
-  }
-
-  function addChapter() {
-    if (!project?.vn) return;
-    update({
-      vn: {
-        ...project.vn,
-        chapters: [
-          ...project.vn.chapters,
-          { id: `chapter-${crypto.randomUUID().slice(0, 8)}`, title: "新章节", scenes: [] },
-        ],
-      },
-    });
-  }
-
-  function addScene() {
-    if (!project?.vn?.chapters[0]) return;
-    const id = `scene-${crypto.randomUUID().slice(0, 8)}`;
-    update({
-      vn: {
-        ...project.vn,
-        chapters: project.vn.chapters.map((chapter, index) =>
-          index === 0
-            ? {
-                ...chapter,
-                scenes: [
-                  ...chapter.scenes,
-                  { id, title: "新场景", characters: [], script: "" },
-                ],
-              }
-            : chapter
-        ),
-      },
-    });
-    setSelectedSceneId(id);
-    setSelectedFilePath(`${project.vn.chapters[0].id}/scenes/${id}/script.md`);
-  }
-
-  // Build the chat context from AGENTS.md plus the current OpenWebGal source.
-  function buildContext(p: Project): string {
-    if (p.template === "visual-novel" && p.vn) {
-      const sourceFiles = buildVNProjectFiles(p.vn, p.content)
-        .map((file) => `## ${file.path}\n\n${file.content}`)
-        .join("\n\n");
-      return `# ${p.title}\n模板：视觉小说 / OpenWebGal\n\n## AGENTS.md 约束\n\n${p.content}\n\n## OpenWebGal 项目源文件\n\n${sourceFiles}`;
+  async function handleExport() {
+    if (!project || !root) return;
+    setExporting(true);
+    try {
+      if (project.template === "visual-novel") {
+        await exportVNZipFromDirectory(root, `${project.title || "openwebgal"}.zip`);
+      } else {
+        const preview = await readProjectPreview(root, project.template);
+        await exportReadableProjectZip(preview, project.title);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setExporting(false);
     }
-    return `# ${p.title}\n模板：${contentTypeById[p.template]?.label[p.lang] ?? p.template}\n\n${p.content}`;
   }
+
+  const context = useMemo(() => {
+    if (!project) return undefined;
+    const source = Object.entries(contents)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([path, content]) => `## ${path}\n\n${content}`)
+      .join("\n\n");
+    return `# ${project.title}\n模板：${contentTypeById[project.template]?.label[project.lang] ?? project.template}\n\n${source}`;
+  }, [contents, project]);
 
   return (
     <main className="flex h-[calc(100svh-3.5rem)] flex-col">
-      {/* workspace header */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
-          <Button
-            render={<Link href="/projects" />}
-            variant="ghost"
-            size="icon"
-            aria-label={t("editor.back")}
-          >
+          <Button render={<Link href="/projects" />} variant="ghost" size="icon" aria-label={t("editor.back")}>
             <ArrowLeft className="size-4" />
           </Button>
-          <h1 className="text-lg font-bold tracking-tight">{t("editor.title")}</h1>
+          <h1 className="text-lg font-bold tracking-tight">
+            {project?.title ?? t("editor.title")}
+          </h1>
         </div>
         <div className="flex flex-wrap gap-2">
-          {isVN ? (
+          <Button variant="outline" size="sm" onClick={() => id && void loadProject(id)} disabled={status === "loading"}>
+            <RefreshCw className="size-4" />
+            {t("editor.refreshFiles")}
+          </Button>
+          {project && root && (
             <>
-              <Button
-                render={<Link href={`/projects/preview?id=${project?.id}`} />}
-                variant="outline"
-                size="sm"
-                disabled={!project}
-              >
+              <Button variant="outline" size="sm" onClick={() => void handlePreview()}>
                 <Play className="size-4" />
-                {t("vn.preview")}
+                {t("editor.preview")}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void handleExportVN()}
-                disabled={!project?.vn || exporting}
-              >
-                {exporting ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <FileDown className="size-4" />
-                )}
-                {t("vn.exportOpenwebgal")}
+              <Button variant="outline" size="sm" onClick={() => void handleExport()} disabled={exporting}>
+                {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+                {project.template === "visual-novel" ? t("vn.exportOpenwebgal") : t("editor.export")}
               </Button>
-            </>
-          ) : (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void handleLoadTemplate()}
-                disabled={!project}
-              >
-                <RefreshCw className="size-4" />
-                {t("editor.loadTemplate")}
+              <Button variant="outline" size="sm" onClick={() => void handleDownloadSource()} disabled={exporting}>
+                {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
+                {t("editor.downloadSource")}
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => project && downloadProject(project)}
-                disabled={!project}
-              >
-                <FileDown className="size-4" />
-                {t("editor.export")}
-              </Button>
+              {project.template === "visual-novel" && (
+                <Button
+                  variant={mode === "scene" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setMode((previous) => (previous === "scene" ? "source" : "scene"))}
+                  disabled={!vn}
+                >
+                  {t("vn.structuredEditor")}
+                </Button>
+              )}
             </>
           )}
-          <Button size="sm" onClick={() => void handleSave()} disabled={!project || saving}>
-            {saving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
+          <Button size="sm" onClick={() => void handleSave()} disabled={!dirty || saving || status !== "ready"}>
+            {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
             {t("editor.save")}
             {saved && !saving ? ` · ${t("editor.saved")}` : ""}
           </Button>
         </div>
       </div>
 
-      {/* three-pane workspace */}
+      {error && (
+        <div className="flex items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" onClick={() => id && void loadProject(id)}>
+            {t("projects.reconnect")}
+          </Button>
+        </div>
+      )}
+
       <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[260px_1fr_360px]">
-        {/* left: project file tree */}
         <aside className="min-h-0 overflow-auto border-b border-border lg:border-b-0 lg:border-r">
-          {projects.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">{t("editor.noProjects")}</p>
+          {status === "ready" ? (
+            <Tree
+              key={`${project?.id ?? "none"}-${files.length}`}
+              elements={tree.elements}
+              initialExpandedItems={tree.expanded}
+              initialSelectedId={`${project?.id ?? "project"}/${selectedPath}`}
+              onSelect={selectPath}
+              className="p-2"
+            />
           ) : (
-            <div className="flex h-full min-h-0 flex-col">
-              <div className="min-h-0 flex-1">
-                <Tree
-                  key={`${project?.id ?? "none"}-${isVN ? "vn" : "document"}`}
-                  elements={isVN ? vnTree.elements : singleDocumentTree.elements}
-                  initialExpandedItems={isVN ? vnTree.expanded : singleDocumentTree.expanded}
-                  initialSelectedId={
-                    isVN ? `source/${selectedFilePath}` : "project/document"
-                  }
-                  onSelect={(path) =>
-                    isVN
-                      ? handleFileSelect(path.replace(/^source\//, ""))
-                      : setSelectedFilePath("document")
-                  }
-                  className="p-2"
-                />
-              </div>
-              {isVN && project?.vn && (
-                <div className="max-h-[45%] min-h-0 overflow-auto border-t border-border">
-                  <VNSceneList
-                    vn={project.vn}
-                    selectedSceneId={selectedSceneId}
-                    onSceneSelect={(sceneId) => {
-                      setSelectedSceneId(sceneId);
-                      const chapter = project.vn?.chapters.find((item) =>
-                        item.scenes.some((scene) => scene.id === sceneId)
-                      );
-                      if (chapter) {
-                        setSelectedFilePath(
-                          `${chapter.id}/scenes/${sceneId}/script.md`
-                        );
-                      }
-                    }}
-                    onAddChapter={addChapter}
-                    onAddScene={addScene}
-                  />
-                </div>
-              )}
-            </div>
+            <p className="p-4 text-sm text-muted-foreground">
+              {status === "loading" ? "…" : t("editor.noProject")}
+            </p>
           )}
         </aside>
 
-        {/* center: VS Code-style file editor */}
-        <section className="min-h-0 overflow-hidden p-0">
-          {loading ? (
-            <div className="flex h-full items-center justify-center">
-              <p className="text-sm text-muted-foreground">…</p>
+        <section className="min-h-0 overflow-hidden">
+          {status === "loading" ? (
+            <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+              <Loader2 className="mr-2 size-4 animate-spin" />
+              {t("create.loading")}
             </div>
-          ) : notFound || !project ? (
-            <div className="flex h-full items-center justify-center px-4">
-              <p className="text-sm text-muted-foreground">
-                {projects.length === 0 ? t("editor.noProjects") : t("editor.noProject")}
-              </p>
+          ) : status !== "ready" || !project ? (
+            <div className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">
+              {status === "missing" ? t("editor.notFound") : t("editor.noBoundProject")}
             </div>
-          ) : isVN ? (
-            project.vn ? (
-              selectedFilePath === "AGENTS.md" ? (
-                <CodeEditor
-                  value={project.content}
-                  onChange={(value) => update({ content: value })}
-                  filename="AGENTS.md"
-                  dirty={dirty}
-                />
-              ) : selectedVNFile ? (
-                <CodeEditor
-                  value={selectedVNFile.content}
-                  onChange={() => undefined}
-                  filename={selectedVNFile.path}
-                  readOnly
-                  dirty={dirty}
-                />
-              ) : (
-                <VNEditor
-                  vn={project.vn}
-                  onChange={(vn) => update({ vn })}
-                  selectedSceneId={selectedSceneId}
-                  onSceneSelect={setSelectedSceneId}
-                  showSceneList={false}
-                />
-              )
-            ) : (
-              <div className="flex h-full items-center justify-center px-4">
-                <p className="text-sm text-muted-foreground">{t("vn.noScenes")}</p>
-              </div>
-            )
-          ) : (
-            <CodeEditor
-              value={project.content}
-              onChange={(v) => update({ content: v })}
-              filename={projectFileName(project)}
-              dirty={dirty}
-              onRename={(name) => update({ title: name })}
+          ) : mode === "scene" && vn ? (
+            <VNEditor
+              vn={vn}
+              onChange={updateStructuredVN}
+              showSceneList
             />
+          ) : selectedContent !== undefined ? (
+            <CodeEditor
+              value={selectedContent}
+              onChange={(value) => updateContent(selectedPath, value)}
+              filename={selectedPath}
+              dirty={dirtyPaths.has(selectedPath)}
+              readOnly={selectedPath === "AGENTS.md" && false}
+            />
+          ) : visibleImagePreview ? (
+            <div className="flex h-full min-h-0 flex-col bg-muted/20">
+              <div className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2 text-sm">
+                <span className="truncate font-medium">{visibleImagePreview.path}</span>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {visibleImagePreview.type} · {Math.ceil(visibleImagePreview.size / 1024)} KB
+                </span>
+              </div>
+              <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
+                <div className="relative h-full max-h-full w-full max-w-full">
+                <Image
+                  src={visibleImagePreview.url}
+                  alt={visibleImagePreview.path}
+                  fill
+                  unoptimized
+                  sizes="100vw"
+                  className="rounded-md border bg-background object-contain"
+                />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="flex h-full items-center justify-center px-4 text-sm text-muted-foreground">
+              {t("editor.binaryFile")}
+            </div>
           )}
         </section>
 
-        {/* right: chat assistant */}
-        <aside
-          ref={chatContainerRef}
-          className="min-h-0 overflow-auto border-t border-border lg:border-l lg:border-t-0"
-        >
+        <aside className="min-h-0 overflow-auto border-t border-border lg:border-l lg:border-t-0">
           <div className="flex h-full flex-col gap-3 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("editor.chat")}
@@ -514,119 +505,13 @@ export default function EditorClient() {
               <ChatBox
                 ref={chatRef}
                 chatId={project?.id}
-                context={project ? buildContext(project) : undefined}
-                onModelChange={handleModelSelected}
-                onSend={handleChatSent}
+                context={context}
+                onFileChanges={applyChatFileChanges}
               />
             </div>
           </div>
         </aside>
       </div>
-
-      {/* Onboarding overlay: a frosted-glass SVG mask that reveals only the
-          chat area (non-blocking), with hint bubbles for model + input. */}
-      {onboardingStep && chatRect && viewport.w > 0 && (
-        <OnboardingOverlay
-          step={onboardingStep}
-          rect={chatRect}
-          viewport={viewport}
-          pickModelText={t("editor.guidancePickModel")}
-          pressEnterText={t("editor.guidancePressEnter")}
-        />
-      )}
-
-      <Dialog open={guidanceOpen} onOpenChange={(o) => !o && dismissGuidance()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("editor.guidanceTitle")}</DialogTitle>
-            <DialogDescription>{t("editor.guidanceDesc")}</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={dismissGuidance}>
-              {t("editor.guidanceSkip")}
-            </Button>
-            <Button onClick={startGuidance}>{t("editor.guidanceStart")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </main>
-  );
-}
-
-/** Frosted SVG mask with a cutout over the chat area + onboarding hint bubbles. */
-function OnboardingOverlay({
-  step,
-  rect,
-  viewport,
-  pickModelText,
-  pressEnterText,
-}: {
-  step: "model" | "input";
-  rect: DOMRect;
-  viewport: { w: number; h: number };
-  pickModelText: string;
-  pressEnterText: string;
-}) {
-  const maskId = "onboard-cutout";
-  return (
-    <>
-      <svg className="pointer-events-none absolute h-0 w-0" aria-hidden>
-        <defs>
-          <mask
-            id={maskId}
-            maskUnits="userSpaceOnUse"
-            x="0"
-            y="0"
-            width={viewport.w}
-            height={viewport.h}
-          >
-            <rect x="0" y="0" width={viewport.w} height={viewport.h} fill="white" />
-            <rect
-              x={rect.x - 6}
-              y={rect.y - 6}
-              width={rect.width + 12}
-              height={rect.height + 12}
-              rx="14"
-              fill="black"
-            />
-          </mask>
-        </defs>
-      </svg>
-
-      <div
-        className="pointer-events-none fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px]"
-        style={{ WebkitMaskImage: `url(#${maskId})`, maskImage: `url(#${maskId})` }}
-      />
-
-      {step === "model" && (
-        <OnboardBubble
-          x={rect.x + rect.width / 2}
-          y={Math.max(16, rect.y - 92)}
-          text={pickModelText}
-        />
-      )}
-      {step === "input" && (
-        <OnboardBubble
-          x={rect.x + rect.width / 2}
-          y={rect.y + rect.height - 130}
-          text={pressEnterText}
-        />
-      )}
-    </>
-  );
-}
-
-/** A small non-interactive hint bubble with a downward arrow. */
-function OnboardBubble({ x, y, text }: { x: number; y: number; text: string }) {
-  return (
-    <div
-      className="pointer-events-none fixed z-50 w-64 -translate-x-1/2"
-      style={{ top: y, left: x }}
-    >
-      <div className="rounded-xl bg-primary px-4 py-3 text-center text-sm font-medium text-primary-foreground shadow-lg">
-        {text}
-      </div>
-      <div className="mx-auto h-0 w-0 border-x-[8px] border-t-[10px] border-x-transparent border-t-primary" />
-    </div>
   );
 }

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { FileDown, FileUp, Plus, Trash2 } from "lucide-react";
+import { FileDown, Plus, Trash2 } from "lucide-react";
 
 import {
   Card,
@@ -14,19 +14,17 @@ import { Button } from "@/components/ui/button";
 import { useLang } from "@/lib/i18n";
 import {
   deleteProject,
-  downloadProject,
   listProjects,
-  readProjectFile,
-  saveProject,
   type Project,
 } from "@/lib/local-projects";
+import { openProjectDirectory } from "@/lib/file-system/browser";
+import { exportProjectDirectoryZip } from "@/lib/project-export";
 
 export default function ProjectsPage() {
   const { lang, t } = useLang();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function refresh() {
     try {
@@ -61,17 +59,12 @@ export default function ProjectsPage() {
     void refresh();
   }
 
-  function handleExport(project: Project) {
-    downloadProject(project);
-  }
-
-  async function handleImportFile(file: File) {
+  async function handleDownloadSource(project: Project) {
     try {
-      const project = await readProjectFile(file);
-      await saveProject(project);
-      void refresh();
+      const root = await openProjectDirectory(project.template, project.id);
+      await exportProjectDirectoryZip(root, `${project.title || "project"}-source`);
     } catch (e) {
-      setError(t("projects.importFailed") + (e instanceof Error ? e.message : String(e)));
+      setError(e instanceof Error ? e.message : String(e));
     }
   }
 
@@ -80,25 +73,10 @@ export default function ProjectsPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-            <FileUp className="size-4" />
-            {t("projects.import")}
-          </Button>
           <Button render={<Link href="/projects/new" />}>
             <Plus className="size-4" />
             {t("projects.new")}
           </Button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="application/json"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void handleImportFile(file);
-              e.target.value = "";
-            }}
-          />
         </div>
       </div>
 
@@ -130,16 +108,19 @@ export default function ProjectsPage() {
                 </p>
               </CardHeader>
               <CardContent className="flex flex-wrap gap-2">
-                <Button render={<Link href={`/projects/editor?id=${project.id}`} />} size="sm">
+                <Button
+                  render={<Link href={`/projects/editor?id=${project.id}`} />}
+                  size="sm"
+                >
                   {t("projects.open")}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  onClick={() => handleExport(project)}
+                  onClick={() => void handleDownloadSource(project)}
                 >
                   <FileDown className="size-4" />
-                  {t("projects.export")}
+                  {t("editor.downloadSource")}
                 </Button>
                 <Button
                   size="sm"

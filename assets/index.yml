@@ -1,0 +1,64 @@
+# 视觉小说资产索引 — 小红帽
+# 生成流水线：GPT Image 2 Developer (1024x768, png) → Youchuan V8.1 Remove Background (透明)
+# 角色为透明 PNG（figure），背景为完整场景（background）。
+# 仅登记逻辑 ID，引用相对文件路径；不硬编码绝对路径。
+
+characters:
+  # 小红帽 (fig_red)
+  - id: fig_red_normal
+    name: 小红帽·常态
+    file: characters/red_normal.png
+    base: fig_red
+    expression: 开心
+  - id: fig_red_curious
+    name: 小红帽·疑惑
+    file: characters/red_curious.png
+    base: fig_red
+    expression: 疑惑
+  - id: fig_red_sad
+    name: 小红帽·担忧
+    file: characters/red_sad.png
+    base: fig_red
+    expression: 担忧
+
+  # 大灰狼 (fig_wolf)
+  - id: fig_wolf_sly
+    name: 大灰狼·狡猾
+    file: characters/wolf_sly.png
+    base: fig_wolf
+    expression: 狡猾
+  - id: fig_wolf_proud
+    name: 大灰狼·得意
+    file: characters/wolf_proud.png
+    base: fig_wolf
+    expression: 得意
+  - id: fig_wolf_fierce
+    name: 大灰狼·凶狠
+    file: characters/wolf_fierce.png
+    base: fig_wolf
+    expression: 凶狠
+
+  # 外婆 (fig_grandma)
+  - id: fig_grandma_weak
+    name: 外婆·虚弱
+    file: characters/grandma_weak.png
+    base: fig_grandma
+    expression: 虚弱
+
+  # 猎人 (fig_woodcutter)
+  - id: fig_woodcutter_brave
+    name: 猎人·英勇
+    file: characters/woodcutter_brave.png
+    base: fig_woodcutter
+    expression: 英勇
+
+backgrounds:
+  - id: bg_home
+    name: 小红帽的家
+    file: backgrounds/bg_home.png
+  - id: bg_forest
+    name: 森林
+    file: backgrounds/bg_forest.png
+  - id: bg_grandma
+    name: 外婆家
+    file: backgrounds/bg_grandma.png

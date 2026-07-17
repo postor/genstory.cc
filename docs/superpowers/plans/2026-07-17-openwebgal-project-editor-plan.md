@@ -4,7 +4,13 @@
 
 **Goal:** Make a new visual-novel project start from the OpenWebGal source template, show its project files and chapter scenes, allow editing through the structured editor and AI context, and keep preview/export working.
 
-**Architecture:** Keep `Project.vn` as the single structured source of truth. Add a pure helper that derives a virtual OpenWebGal source tree and file contents from `Project.content` plus `VNProject`; the editor uses that tree for navigation while scene edits continue through `VNEditor`. Keep compiled OpenWebGal output in `lib/vn/compile.ts`, and make the preview path consume the same saved structured project.
+**Architecture:** Use the real browser File System Access project directory as
+the single source of truth. New projects are initialized by writing the
+OpenWebGal template plus `AGENTS.md` into
+`<opfs>/<template>/<projectId>/`. The editor enumerates and writes those
+files directly; `VNProject` is only a temporary parsed view used by the
+structured editor, preview, and export. Keep compiled OpenWebGal output in
+`lib/vn/compile.ts`, and make preview read the same saved source files.
 
 **Tech Stack:** Next.js 16 App Router, React 19, TypeScript, shadcn/ui/Tailwind, IndexedDB, OpenWebGal vendored engine.
 
@@ -90,9 +96,11 @@ Expected: PASS with 2 tests.
 
 Keep the existing Red Riding Hood structured data, but make the seed's title and chapter/scene IDs match the OpenWebGal source template and ensure the default project content is the visual-novel `AGENTS.md` document.
 
-- [ ] **Step 2: Preserve imported VN structure**
+- [ ] **Step 2: Remove IndexedDB content import as a primary path**
 
-Update `readProjectFile` so an imported `vn` field is retained when present and `content` remains the AI constraint document. Do not convert a visual-novel project into a title-named markdown file.
+New projects are initialized directly into OPFS from template files plus
+`AGENTS.md`. Do not convert a visual-novel project into a title-named markdown
+file, and do not keep an IndexedDB `vn` or `content` copy as project source.
 
 - [ ] **Step 3: Run type checking through the production build**
 
@@ -109,11 +117,17 @@ Expected: the project compiles with the existing static export configuration.
 
 - [ ] **Step 1: Build the tree from the selected project**
 
-For visual novels, render one root folder named `source` containing `AGENTS.md`, `meta.md`, `assets`, and chapter/scene files from `buildVNProjectFiles`. Do not render `projects.map(...)` and do not call the file `test2.md`.
+For visual novels, enumerate the real project root containing `AGENTS.md`,
+`meta.md`, `assets`, and chapter/scene files initialized by the template. Do
+not render `projects.map(...)` and do not call the file `test2.md`.
 
 - [ ] **Step 2: Wire tree selection to real editing**
 
-Selecting `AGENTS.md` opens the markdown editor and updates `project.content`. Selecting a scene `script.md`, `stage.yml`, or `meta.md` selects that scene in `VNEditor`; the structured editor remains the source of truth and regenerates the virtual file content after changes. Asset and metadata files are visible and read-only until their owning structured editor controls are used.
+Selecting `AGENTS.md` opens the markdown editor and edits the real file.
+Selecting a scene `script.md`, `stage.yml`, or `meta.md` selects that scene in
+`VNEditor`; the structured editor is a view over those files and writes the
+affected files after changes. Asset and metadata files are visible and
+read-only until their owning structured editor controls are used.
 
 - [ ] **Step 3: Keep non-VN projects working**
 
@@ -121,7 +135,9 @@ For books, comics, and interactive videos, keep the existing single-document edi
 
 - [ ] **Step 4: Include AGENTS constraints in AI context**
 
-Change `buildContext` so visual novels include the full `project.content` first, followed by project/chapter/scene summary and the selected scene script. This makes the `AGENTS.md` constraints apply to chat-assisted editing.
+Change `buildContext` so it reads the full `AGENTS.md` first, followed by
+project/chapter/scene metadata and the selected scene script. This makes the
+real file constraints apply to chat-assisted editing.
 
 ### Task 4: Verify editing and preview together
 

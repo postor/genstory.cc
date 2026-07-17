@@ -1,22 +1,18 @@
 import type { Lang } from "@/lib/i18n";
 import type { ContentTypeId } from "@/lib/content-types";
-import type { VNProject } from "@/lib/vn/types";
 
 export interface Project {
   id: string;
   template: ContentTypeId;
   title: string;
-  /** Markdown body, seeded from the chosen template (unused for visual-novel). */
-  content: string;
-  /** Structured visual-novel data, present when template === "visual-novel". */
-  vn?: VNProject;
   lang: Lang;
   createdAt: number;
   updatedAt: number;
+  lastOpenedPath?: string;
 }
 
 const DB_NAME = "genstory";
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 const STORE = "projects";
 
 function openDB(): Promise<IDBDatabase> {
@@ -41,77 +37,71 @@ function store(db: IDBDatabase, mode: IDBTransactionMode): IDBObjectStore {
   return db.transaction(STORE, mode).objectStore(STORE);
 }
 
-export async function listProjects(): Promise<Project[]> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const req = store(db, "readonly").getAll();
-    req.onsuccess = () =>
-      resolve(
-        (req.result as Project[]).sort((a, b) => b.updatedAt - a.updatedAt)
-      );
-    req.onerror = () => reject(req.error);
+function closeAfter<T>(db: IDBDatabase, promise: Promise<T>): Promise<T> {
+  return promise.finally(() => db.close());
+}
+
+export function listProjects(): Promise<Project[]> {
+  return openDB().then((db) =>
+    closeAfter(
+      db,
+      new Promise((resolve, reject) => {
+        const req = store(db, "readonly").getAll();
+        req.onsuccess = () =>
+          resolve(
+            (req.result as Project[]).sort((a, b) => b.updatedAt - a.updatedAt)
+          );
+        req.onerror = () => reject(req.error);
+      })
+    )
+  );
+}
+
+export function getProject(id: string): Promise<Project | undefined> {
+  return openDB().then((db) =>
+    closeAfter(
+      db,
+      new Promise((resolve, reject) => {
+        const req = store(db, "readonly").get(id);
+        req.onsuccess = () => resolve(req.result as Project | undefined);
+        req.onerror = () => reject(req.error);
+      })
+    )
+  );
+}
+
+export function saveProject(project: Project): Promise<void> {
+  return openDB().then((db) =>
+    closeAfter(
+      db,
+      new Promise((resolve, reject) => {
+        const req = store(db, "readwrite").put(project);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      })
+    )
+  );
+}
+
+export function updateProjectState(
+  id: string,
+  patch: Partial<Pick<Project, "updatedAt" | "lastOpenedPath">>
+): Promise<void> {
+  return getProject(id).then((project) => {
+    if (!project) return;
+    return saveProject({ ...project, ...patch });
   });
 }
 
-export async function getProject(id: string): Promise<Project | undefined> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const req = store(db, "readonly").get(id);
-    req.onsuccess = () => resolve(req.result as Project | undefined);
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export async function saveProject(project: Project): Promise<void> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const req = store(db, "readwrite").put(project);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-export async function deleteProject(id: string): Promise<void> {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const req = store(db, "readwrite").delete(id);
-    req.onsuccess = () => resolve();
-    req.onerror = () => reject(req.error);
-  });
-}
-
-/** Export a project as a downloadable .json file (File API). */
-export function downloadProject(project: Project): void {
-  const blob = new Blob([JSON.stringify(project, null, 2)], {
-    type: "application/json",
-  });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${project.title || "project"}.json`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
-}
-
-/** Parse an imported project file (File API) into a Project. */
-export async function readProjectFile(file: File): Promise<Project> {
-  const text = await file.text();
-  const data = JSON.parse(text) as Partial<Project>;
-  if (!data.title || typeof data.content !== "string") {
-    throw new Error("文件格式不正确：缺少 title 或 content");
-  }
-  const now = Date.now();
-  return {
-    id:
-      typeof data.id === "string" && data.id ? data.id : crypto.randomUUID(),
-    template: data.template ?? "book",
-    title: data.title,
-    content: data.content,
-    vn: data.vn,
-    lang: data.lang === "en" ? "en" : "zh",
-    createdAt: data.createdAt ?? now,
-    updatedAt: now,
-  };
+export function deleteProject(id: string): Promise<void> {
+  return openDB().then((db) =>
+    closeAfter(
+      db,
+      new Promise((resolve, reject) => {
+        const req = store(db, "readwrite").delete(id);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      })
+    )
+  );
 }

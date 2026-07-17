@@ -2,6 +2,7 @@ import { compile } from "./compile";
 import { zipStore } from "./zip";
 import { ORIGINAL_SW } from "./original-sw";
 import type { VNProject } from "./types";
+import { readVNProjectFromDirectory } from "./source-reader";
 
 const ENGINE_BASE = "/webgal";
 const MANIFEST_URL = `${ENGINE_BASE}/engine-manifest.json`;
@@ -59,4 +60,12 @@ export async function exportVNZip(
 
   const zip = await zipStore(entries);
   triggerDownload(zip, filename);
+}
+
+export async function exportVNZipFromDirectory(
+  root: FileSystemDirectoryHandle,
+  filename = "openwebgal-project.zip"
+): Promise<void> {
+  const project = await readVNProjectFromDirectory(root);
+  await exportVNZip(project, filename);
 }

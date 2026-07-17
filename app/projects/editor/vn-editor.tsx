@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -12,22 +12,6 @@ import type { VNProject, VNScene, VNAsset, AssetType } from "@/lib/vn/types";
 
 function uid(): string {
   return crypto.randomUUID().slice(0, 8);
-}
-
-async function fileToAsset(file: File): Promise<VNAsset> {
-  const dataUrl = await new Promise<string>((resolve, reject) => {
-    const r = new FileReader();
-    r.onload = () => resolve(r.result as string);
-    r.onerror = () => reject(r.error);
-    r.readAsDataURL(file);
-  });
-  return {
-    id: `asset-${uid()}`,
-    type: "Background",
-    name: file.name.replace(/\.[^.]+$/, ""),
-    file: file.name,
-    dataUrl,
-  };
 }
 
 export function VNEditor({
@@ -53,14 +37,12 @@ export function VNEditor({
   );
 
   const selected = selectedSceneId ?? internalSelected;
-  const current = scenes.find((x) => x.scene.id === selected)?.scene ?? null;
-
-  useEffect(() => {
-    if (selected && scenes.some((x) => x.scene.id === selected)) return;
-    const next = scenes[0]?.scene.id ?? null;
-    setInternalSelected(next);
-    if (next) onSceneSelect?.(next);
-  }, [onSceneSelect, scenes, selected]);
+  const effectiveSelected =
+    selected && scenes.some((x) => x.scene.id === selected)
+      ? selected
+      : scenes[0]?.scene.id ?? null;
+  const current =
+    scenes.find((x) => x.scene.id === effectiveSelected)?.scene ?? null;
 
   function selectScene(sceneId: string) {
     setInternalSelected(sceneId);
@@ -145,12 +127,6 @@ export function VNEditor({
     patchScene(sceneId, {
       characters: scene.characters.filter((_, i) => i !== idx),
     });
-  }
-
-  async function onAssetFiles(files: FileList | null) {
-    if (!files || files.length === 0) return;
-    const added = await Promise.all(Array.from(files).map(fileToAsset));
-    onChange({ ...vn, assets: [...vn.assets, ...added] });
   }
 
   function patchAsset(id: string, patch: Partial<VNAsset>) {
@@ -308,23 +284,6 @@ export function VNEditor({
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("vn.assets")}
           </span>
-              <Button
-                size="sm"
-                variant="outline"
-                render={
-                  <label className="cursor-pointer">
-                    <Plus className="size-4" />
-                    {t("vn.addAsset")}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => void onAssetFiles(e.target.files)}
-                    />
-                  </label>
-                }
-              />
         </div>
         <p className="mb-3 text-xs text-muted-foreground">{t("vn.assetsHint")}</p>
         <div className="space-y-2">

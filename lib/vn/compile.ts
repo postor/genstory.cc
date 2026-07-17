@@ -84,6 +84,10 @@ function slug(s: string): string {
   );
 }
 
+function basename(path: string): string {
+  return path.split("/").at(-1) ?? path;
+}
+
 /**
  * Compile a VN project into an OpenWebGal `game/` file map.
  * Keys are paths relative to `game/` (e.g. "scene/start.txt", "background/home.png").
@@ -94,7 +98,7 @@ export async function compile(vn: VNProject): Promise<Record<string, Blob>> {
 
   for (const a of vn.assets) {
     const dir = ASSET_DIR[a.type];
-    const file = a.file || `${a.id}.png`;
+    const file = basename(a.file || `${a.id}.png`);
     let blob: Blob | undefined;
     if (a.dataUrl) blob = await dataUrlToBlob(a.dataUrl);
     if (!blob) blob = await makePngBlob(320, 240, ASSET_COLORS[a.type], a.name);
@@ -123,12 +127,12 @@ export async function compile(vn: VNProject): Promise<Record<string, Blob>> {
     const out: string[] = [`; ===== ${sc.id} =====`];
     if (sc.background) {
       const a = byId.get(sc.background);
-      const file = a ? a.file : `${sc.background}.png`;
+      const file = a ? basename(a.file) : `${sc.background}.png`;
       out.push(`changeBg:${file};`);
     }
     for (const ch of sc.characters || []) {
       const a = byId.get(ch.id);
-      const file = a ? a.file : `${ch.id}.png`;
+      const file = a ? basename(a.file) : `${ch.id}.png`;
       const pos =
         ch.position === "left" ? " -left" : ch.position === "right" ? " -right" : "";
       out.push(`changeFigure:${file}${pos};`);

@@ -1,96 +1,146 @@
 # 视觉小说（Visual Novel）浏览器内创作方案
 
-> 状态：已采用。本方案把 OpenWebGal 视觉小说能力从「磁盘上的独立子项目 `vn-template/`」
-> 改为「genstory.cc 应用内的浏览器端能力」，与项目「本地优先、SSG、无后端」的定位一致。
-> 详见 `AGENTS.md` 中对本文件的引用。
-
-## 问题
-
-原 `vn-template/` 是独立子项目：用户在磁盘上编辑 `source/*.md`，用 node CLI（`build`/`preview`/
-`export`）构建、起静态服务器预览、打 zip。这与 genstory.cc（IndexedDB 本地存储、SSG、无后端）
-是两套范式，且 `app/` 内没有任何对它的引用——用户无法在站内编辑/预览/发布。
-
-此外 `Project.content` 只是一个 markdown 字符串，装不下视觉小说（章节/场景/分支/资产）。
+> 状态：已采用。GenStory 是无后端、SSG 的浏览器应用。视觉小说项目的正文和资产
+> 来源保存在浏览器 Origin Private File System 中；IndexedDB 只保存项目索引、时间戳
+> 和 UI 状态。
 
 ## 目标
 
-用户在浏览器内闭环完成：编辑 → 预览 → 发布（导出 OpenWebGal 项目 zip）。
-不需要后端、不需要 umd 解释器、不需要常驻编译服务。
+用户在浏览器内完成：
 
-## 架构
-
-```
-浏览器内 VN 数据模型 (IndexedDB: Project.vn)
-        │  编辑 UI (app/projects/editor/vn-editor.tsx)
-        ▼
-lib/vn/compile.ts  (纯 JS：markdown → OpenWebGal 文件 map<path,Blob>)
-        ├─ 预览：写入 IndexedDB 的 webgal-preview 槽
-        │        → 预览页 iframe 加载 /webgal/ (vendored 引擎)
-        │        → 桥接 Service Worker (public/webgal/webgal-serviceworker.js)
-        │          拦截 /webgal/game/* 并从 IDB 返回 Blob
-        └─ 发布：lib/vn/export.ts 把编译产物 + 引擎打成一个可独立运行的 zip 下载
+```text
+初始化（模板 + AGENTS.md）
+    ↓
+读取真实项目文件
+    ↓
+编辑并保存真实项目文件
+    ↓
+从真实文件编译预览
+    ↓
+导出独立 OpenWebGal zip
 ```
 
-### 关键决策
+不需要后端、API Route、常驻编译服务或磁盘 CLI。Next.js 只负责 SSG；浏览器端
+组件在用户操作后调用 File System Access API。
 
-1. **引擎 vendor 进 `public/webgal/`**（由 `scripts/sync-webgal.mjs` 从
-   `vn-template/node_modules/webgal-engine/dist` 拷贝并生成 `engine-manifest.json`）。
-   SSG 无运行时 node_modules，引擎不能作为 npm 依赖在运行时加载。
-   `public/webgal` 体积约 59MB（主要是 CJK 字体），故加入 `.gitignore`，靠 sync 脚本本地生成。
+## 目录与持久化
 
-2. **预览用 Service Worker 桥接**：OpenWebGal 引擎按相对路径 `game/` 走 HTTP fetch 加载。
-   纯前端、运行时不能写磁盘。引擎自带 `webgal-serviceworker.js` 注册机制（仅缓存构建资源，
-   不过问 `game/`）。我们用**同路径的桥接 SW** 替换它：保留原构建资源缓存逻辑，并新增对
-   `/webgal/game/*` 的拦截——从 IndexedDB 的 `webgal-preview` 槽读取编译产物 Blob 返回。
-   预览页在加载 iframe 前先编译并写入该槽。
+创建项目时不需要上传文件，也不需要选择父目录。应用直接在浏览器的 Origin Private
+File System 中根据类型和项目 ID 自动创建：
 
-3. **发布（导出）不含桥接 SW**：导出 zip 用「原始引擎 SW」替换桥接 SW（否则磁盘部署时
-   `game/` 会被桥接 SW 拦截成 404）。原始 SW 源码作为常量内嵌于 `lib/vn/export.ts`。
+```text
+<opfs>/<type>/<projectId>/
+```
 
-4. **编译逻辑纯前端**：移植 `vn-template/scripts/lib/compile.mjs` 的 `parseScript` 与
-   场景组装；占位 PNG 用浏览器 Canvas 生成（`lib/vn/png.ts`）；资产若有用户上传
-   `dataUrl` 则转 Blob 覆盖占位图。
+例如：
 
-5. **数据模型升级**：`Project` 增加可选 `vn?: VNProject`（结构化章节/场景/资产），以
-   `vn-template` 的 小红帽 内容作种子（`lib/vn/seed.ts`）。`content` 字段对 VN 不再使用。
+```text
+<opfs>/visual-novel/2e.../
+├── AGENTS.md
+├── meta.md
+├── assets/
+│   ├── index.yml
+│   ├── backgrounds/
+│   └── characters/
+└── chapter-001/
+    └── scenes/
+        └── scene-001/
+            ├── meta.md
+            ├── script.md
+            └── stage.yml
+```
 
-### 数据模型（`lib/vn/types.ts`）
+浏览器私有文件目录是唯一的项目正文来源。IndexedDB 不保存 `content`、`vn` 或文件
+内容副本，只保存：
 
 ```ts
-interface VNAsset { id; type: "Background"|"Character"|"CG"; name; file; dataUrl? }
-interface VNStageCharacter { id; position?: "left"|"center"|"right"; expression? }
-interface VNScene { id; title; background?; characters: VNStageCharacter[]; script: string }
-interface VNChapter { id; title; scenes: VNScene[] }
-interface VNProject { title; chapters: VNChapter[]; assets: VNAsset[] }
+interface Project {
+  id: string;
+  template: ContentTypeId;
+  title: string;
+  lang: "zh" | "en";
+  createdAt: number;
+  updatedAt: number;
+  lastOpenedPath?: string;
+}
 ```
 
-`script` 沿用 vn-template 的简洁 markdown 文法（旁白 `:`、对话 `说话者: 文本`、`>> a:场景| b:场景`
-分支、`~~ 毫秒` 等待、`changeScene:` 跳转、`#` 注释、`end;` 结束），由 `compile` 转成 OpenWebGal
-`.txt`。
+项目目录始终由 `template + id` 解析为 `<type>/<projectId>`，不依赖用户选择的父目录，也不能用缓存
+内容伪造文件树。需要让用户取出项目时，通过导出 ZIP 完成。
 
-## 文件清单
+## 模板初始化
 
-- `docs/vn-browser-plan.md` — 本方案
-- `lib/vn/types.ts` — 类型
-- `lib/vn/seed.ts` — 小红帽示例
-- `lib/vn/png.ts` — 浏览器占位 PNG
-- `lib/vn/compile.ts` — 编译为 `Record<string, Blob>`
-- `lib/vn/zip.ts` — 最小 store 模式 zip 写入（无依赖）
-- `lib/vn/export.ts` — 取引擎 + 编译产物 → zip 下载
-- `lib/vn/preview-store.ts` — 预览游戏槽的 IDB 读写（与 SW 共用）
-- `scripts/webgal-bridge-sw.js` — 桥接 SW 源码（sync 时拷到 public/webgal/）
-- `scripts/sync-webgal.mjs` — 引擎拷贝 + manifest + 桥接 SW
-- `public/webgal/` — vendored 引擎（gitignored，由 sync 生成）
-- `app/projects/editor/vn-editor.tsx` — VN 编辑 UI
-- `app/projects/preview/page.tsx`(+`preview-client.tsx`) — 预览页
-- `app/projects/editor/editor-client.tsx` / `new-client.tsx` — 接入 VN 分支
-- `lib/content-types.ts` — `visual-novel` `enabled: true`
-- `lib/local-projects.ts` — `Project.vn`
-- `lib/i18n.tsx` — VN 相关文案
+新项目初始化就是把项目类型模板和根部 `AGENTS.md` 写入真实目录。所有类型至少
+包含 `AGENTS.md` 与 `meta.md`，并拥有自己的章节、页面、场景或片段源文件。
+
+视觉小说模板来自小红帽示例，包含完整的：
+
+- `meta.md`
+- `assets/index.yml`
+- `chapter-001/meta.md`
+- `chapter-001/scenes/*/meta.md`
+- `chapter-001/scenes/*/script.md`
+- `chapter-001/scenes/*/stage.yml`
+- `assets/` 下的模板图片
+
+模板中不生成 `test2.md`，也不生成以项目标题命名的随机 markdown 文件。
+
+## 视觉小说数据约定
+
+- 故事与呈现分离。
+- `script.md` 保存叙事和对白。
+- `stage.yml` 只描述背景、角色、表情、姿势、位置等舞台状态，不写渲染调用。
+- `assets/index.yml` 是资产索引，故事文件只引用逻辑资产 ID。
+- `AGENTS.md` 是可编辑的 AI 约束文件，也是聊天上下文的第一来源。
+
+`lib/vn/source-reader.ts` 从真实目录读取这些文件，解析成编译器使用的临时
+`VNProject`。该对象只存在于当前编辑或预览操作期间，不写回 IndexedDB。
+
+## 编辑器
+
+编辑器打开项目时：
+
+1. 读取 IndexedDB 中的项目索引。
+2. 通过 `navigator.storage.getDirectory()` 打开 OPFS 根目录。
+3. 递归枚举真实项目目录，文件树只显示该目录中的条目。
+4. 按需读取文件，编辑缓冲区只存在于当前页面内。
+5. 保存时通过适配层写回对应真实文件。
+
+视觉小说结构化编辑器是 `meta.md`、`script.md`、`stage.yml` 等真实文件的视图。
+保存结构化修改会写入受影响的真实文件；刷新或重新打开项目后仍从这些文件读取。
+
+AI 上下文按以下顺序从磁盘读取：
+
+```text
+AGENTS.md → 项目/章节/场景 meta.md → 当前选中的源文件
+```
+
+## 预览与导出
+
+预览流程：
+
+1. 从当前项目目录读取 `meta.md`、`assets/index.yml`、场景脚本和舞台状态。
+2. 在内存中编译为 OpenWebGal `game/*` 文件。
+3. 写入浏览器预览缓存，供 vendored OpenWebGal iframe 读取。
+
+预览缓存只是运行时缓存，不是项目来源。导出 zip 时使用真实源文件编译结果和引擎
+资源，并还原原始引擎 Service Worker，不把浏览器桥接 SW 带入独立项目。
+
+## SSG 与浏览器 API
+
+客户端组件在构建期间只渲染静态壳；`window`、`navigator.storage` 和
+`indexedDB` 只在用户交互或 `useEffect` 中访问。应用不依赖服务器端
+文件系统，也不提供 API Route。
 
 ## 验证
 
-- `npm run lint` / `npm run build`（SSG 导出）通过。
-- 浏览器手测：新建视觉小说 → 编辑场景/资产 → 预览（iframe 跑 OpenWebGal）→ 导出 zip
-  （解压后可直接作为 OpenWebGal 项目运行）。
-- 注意：`public/webgal` 需先 `npm run sync-webgal` 生成，否则预览/导出的引擎资源缺失。
+```text
+npm run lint
+npm run build
+node --experimental-strip-types --test lib/**/*.test.ts
+git diff --check
+```
+
+浏览器验证必须覆盖：创建多个类型项目、确认目录为
+`<opfs>/<type>/<projectId>`、编辑保存真实文件、刷新后内容仍在，以及视觉小说预览
+和导出。

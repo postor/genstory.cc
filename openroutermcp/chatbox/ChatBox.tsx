@@ -74,6 +74,51 @@ export interface ChatBoxProps {
   onModelChange?: (model: string) => void;
   /** Fires whenever a (non-empty) message is sent. */
   onSend?: (text: string) => void;
+  /** Applies explicit file edits returned by the assistant after user confirmation. */
+  onFileChanges?: (changes: ChatFileChange[]) => void | Promise<void>;
+}
+
+export interface ChatFileChange {
+  path: string;
+  content: string;
+  description?: string;
+}
+
+function isFileChange(value: unknown): value is ChatFileChange {
+  if (!value || typeof value !== "object") return false;
+  const item = value as Record<string, unknown>;
+  return typeof item.path === "string" && typeof item.content === "string";
+}
+
+function collectFileChanges(value: unknown): ChatFileChange[] {
+  if (!value || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  const source = record.fileChanges ?? record.files ?? record.changes;
+  if (!Array.isArray(source)) return [];
+  return source.filter(isFileChange).map((change) => ({
+    path: change.path,
+    content: change.content,
+    description: change.description,
+  }));
+}
+
+function parseFileChanges(content: string | null | undefined): ChatFileChange[] {
+  if (!content) return [];
+  const candidates: string[] = [];
+  const fenced = content.matchAll(/```(?:json|genstory-file-changes)?\s*([\s\S]*?)```/gi);
+  for (const match of fenced) candidates.push(match[1].trim());
+  candidates.push(content.trim());
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      const changes = collectFileChanges(parsed);
+      if (changes.length > 0) return changes;
+    } catch {
+      /* Try the next candidate. */
+    }
+  }
+  return [];
 }
 
 /** Imperative handle so a parent can drive the chat (e.g. auto-send a prompt). */
@@ -92,6 +137,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     chatId,
     onModelChange,
     onSend,
+    onFileChanges,
   }: ChatBoxProps,
   ref
 ) {
@@ -110,6 +156,8 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   );
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [applyingChanges, setApplyingChanges] = useState(false);
+  const [pendingChanges, setPendingChanges] = useState<ChatFileChange[]>([]);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -234,6 +282,9 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         "你可以通过调用提供的 MCP 工具来获取信息或执行操作。" +
         "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
         "只在确实需要的时调用工具，不要编造工具参数。" +
+        (onFileChanges
+          ? "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。"
+          : "") +
         (context
           ? `\n\n以下是用户当前正在编辑的项目上下文，回答时请结合它：\n${context}`
           : ""),
@@ -276,6 +327,8 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         }
 
         history.push({ role: "assistant", content: content ?? "" });
+        const fileChanges = parseFileChanges(content);
+        if (fileChanges.length > 0) setPendingChanges(fileChanges);
         setMessages([...history]);
         break;
       }
@@ -284,7 +337,21 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     } finally {
       setSending(false);
     }
-  },     [input, sending, refreshToken, tools, messages, model, callTool, maxToolRounds, context, onSend]);
+  },     [input, sending, refreshToken, tools, messages, model, callTool, maxToolRounds, context, onSend, onFileChanges]);
+
+  async function applyPendingChanges() {
+    if (!onFileChanges || pendingChanges.length === 0) return;
+    setApplyingChanges(true);
+    setError(null);
+    try {
+      await onFileChanges(pendingChanges);
+      setPendingChanges([]);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setApplyingChanges(false);
+    }
+  }
 
   useImperativeHandle(
     ref,
@@ -336,6 +403,30 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       />
 
       <ChatHistoryWindow messages={messages} loading={sending} images={images} />
+
+      {pendingChanges.length > 0 && (
+        <div className="rounded-md border bg-muted/40 p-3">
+          <p className="mb-2 text-xs font-semibold">待应用文件变更</p>
+          <div className="mb-3 space-y-1">
+            {pendingChanges.map((change) => (
+              <div key={change.path} className="text-xs">
+                <span className="font-mono">{change.path}</span>
+                {change.description ? (
+                  <span className="text-muted-foreground"> · {change.description}</span>
+                ) : null}
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={() => void applyPendingChanges()} disabled={applyingChanges}>
+              {applyingChanges ? "应用中…" : "应用变更"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setPendingChanges([])} disabled={applyingChanges}>
+              丢弃
+            </Button>
+          </div>
+        </div>
+      )}
 
       {error && <p className="whitespace-pre-wrap text-xs text-destructive">{error}</p>}
 

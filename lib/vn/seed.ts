@@ -8,13 +8,17 @@ export function seedRedRidingHood(): VNProject {
   return {
     title: "小红帽",
     assets: [
-      { id: "bg_home", type: "Background", name: "小红帽的家", file: "home.png" },
-      { id: "bg_forest", type: "Background", name: "森林", file: "forest.png" },
-      { id: "bg_grandma", type: "Background", name: "外婆家", file: "grandma_house.png" },
-      { id: "fig_red", type: "Character", name: "小红帽", file: "red.png" },
-      { id: "fig_wolf", type: "Character", name: "大灰狼", file: "wolf.png" },
-      { id: "fig_grandma", type: "Character", name: "外婆", file: "grandma.png" },
-      { id: "fig_woodcutter", type: "Character", name: "猎人", file: "woodcutter.png" },
+      { id: "bg_home", type: "Background", name: "小红帽的家", file: "backgrounds/bg_home.png" },
+      { id: "bg_forest", type: "Background", name: "森林", file: "backgrounds/bg_forest.png" },
+      { id: "bg_grandma", type: "Background", name: "外婆家", file: "backgrounds/bg_grandma.png" },
+      { id: "fig_red_normal", type: "Character", name: "小红帽·常态", file: "characters/red_normal.png" },
+      { id: "fig_red_curious", type: "Character", name: "小红帽·疑惑", file: "characters/red_curious.png" },
+      { id: "fig_red_sad", type: "Character", name: "小红帽·担忧", file: "characters/red_sad.png" },
+      { id: "fig_wolf_sly", type: "Character", name: "大灰狼·狡猾", file: "characters/wolf_sly.png" },
+      { id: "fig_wolf_proud", type: "Character", name: "大灰狼·得意", file: "characters/wolf_proud.png" },
+      { id: "fig_wolf_fierce", type: "Character", name: "大灰狼·凶狠", file: "characters/wolf_fierce.png" },
+      { id: "fig_grandma_weak", type: "Character", name: "外婆·虚弱", file: "characters/grandma_weak.png" },
+      { id: "fig_woodcutter_brave", type: "Character", name: "猎人·英勇", file: "characters/woodcutter_brave.png" },
     ],
     chapters: [
       {
@@ -26,8 +30,8 @@ export function seedRedRidingHood(): VNProject {
             title: "森林奇遇",
             background: "bg_forest",
             characters: [
-              { id: "fig_red", position: "left", expression: "开心" },
-              { id: "fig_wolf", position: "right", expression: "狡猾" },
+              { id: "fig_red_normal", position: "left", expression: "开心" },
+              { id: "fig_wolf_sly", position: "right", expression: "狡猾" },
             ],
             script: `# 旁白
 : 从前，有个可爱的小女孩，因为总戴着一顶红帽子，大家都叫她小红帽。
@@ -50,8 +54,8 @@ export function seedRedRidingHood(): VNProject {
             title: "狼的诡计",
             background: "bg_grandma",
             characters: [
-              { id: "fig_wolf", position: "left", expression: "得意" },
-              { id: "fig_grandma", position: "right", expression: "虚弱" },
+              { id: "fig_wolf_proud", position: "left", expression: "得意" },
+              { id: "fig_grandma_weak", position: "right", expression: "虚弱" },
             ],
             script: `# 旁白
 : 小红帽听了狼的话，去林中采花。
@@ -70,9 +74,9 @@ changeScene:scene-003.txt;`,
             title: "猎人来解救",
             background: "bg_grandma",
             characters: [
-              { id: "fig_red", position: "left", expression: "疑惑" },
-              { id: "fig_wolf", position: "center", expression: "凶狠" },
-              { id: "fig_woodcutter", position: "right", expression: "英勇" },
+              { id: "fig_red_curious", position: "left", expression: "疑惑" },
+              { id: "fig_wolf_fierce", position: "center", expression: "凶狠" },
+              { id: "fig_woodcutter_brave", position: "right", expression: "英勇" },
             ],
             script: `# 旁白
 : 小红帽来到外婆床前。

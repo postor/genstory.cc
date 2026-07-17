@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { FolderOpen, Loader2 } from "lucide-react";
 
 import {
   Card,
@@ -15,9 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { contentTypes, type ContentTypeId } from "@/lib/content-types";
-import { loadTemplate } from "@/lib/templates";
-import { saveProject, type Project } from "@/lib/local-projects";
-import { seedRedRidingHood } from "@/lib/vn/seed";
+import {
+  saveProject,
+  type Project,
+} from "@/lib/local-projects";
+import {
+  initializeProjectDirectory,
+  supportsFileSystemAccess,
+} from "@/lib/file-system/browser";
+import { defaultProjectTitle } from "@/lib/project-templates";
 import { useLang } from "@/lib/i18n";
 
 export default function NewClient() {
@@ -41,22 +47,23 @@ export default function NewClient() {
     }
     setSubmitting(true);
     try {
+      if (!supportsFileSystemAccess()) {
+        throw new Error(t("create.browserUnsupported"));
+      }
       const now = Date.now();
       const id = crypto.randomUUID();
-      let content = "";
-      try {
-        content = await loadTemplate(lang, template);
-      } catch {
-        content = "";
-      }
+      const projectTitle =
+        title.trim() || defaultProjectTitle(lang);
+      await initializeProjectDirectory(
+        template,
+        id,
+        lang,
+        projectTitle
+      );
       const project: Project = {
         id,
         template,
-        title:
-          title.trim() ||
-          contentTypes.find((c) => c.id === template)!.label[lang],
-        content,
-        vn: template === "visual-novel" ? seedRedRidingHood() : undefined,
+        title: projectTitle,
         lang,
         createdAt: now,
         updatedAt: now,
@@ -65,6 +72,7 @@ export default function NewClient() {
       router.push(`/projects/editor?id=${id}`);
     } catch (e) {
       setSubmitting(false);
+      if (e instanceof DOMException && e.name === "AbortError") return;
       window.alert(e instanceof Error ? e.message : String(e));
     }
   }
@@ -124,6 +132,7 @@ export default function NewClient() {
 
         <Button onClick={() => void handleSubmit()} disabled={submitting}>
           {submitting && <Loader2 className="size-4 animate-spin" />}
+          {!submitting && <FolderOpen className="size-4" />}
           {t("create.submit")}
         </Button>
       </div>

@@ -1,0 +1,11 @@
+background: bg_grandma
+characters:
+  - id: fig_wolf
+    expression: 得意
+    pose: 站立
+    position: left
+  - id: fig_grandma
+    expression: 虚弱
+    pose: 卧床
+    position: right
+music: null

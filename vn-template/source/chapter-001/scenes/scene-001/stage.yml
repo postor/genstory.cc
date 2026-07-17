@@ -1,0 +1,11 @@
+background: bg_forest
+characters:
+  - id: fig_red
+    expression: 开心
+    pose: 站立
+    position: left
+  - id: fig_wolf
+    expression: 狡猾
+    pose: 站立
+    position: right
+music: null

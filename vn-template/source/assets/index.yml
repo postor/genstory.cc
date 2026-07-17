@@ -1,0 +1,66 @@
+assets:
+  # 背景
+  - id: bg_home
+    type: Background
+    name: 小红帽的家
+    file: home.png
+    model: openai/gpt-image-2
+    prompt: >-
+      Children's storybook illustration of a cozy little cottage at the edge of a
+      forest, red tiled roof, warm morning light, flat vector fairy-tale art style,
+      soft pastel colors, simple plain background
+  - id: bg_forest
+    type: Background
+    name: 森林
+    file: forest.png
+    model: openai/gpt-image-2
+    prompt: >-
+      Children's storybook illustration of a sunny green forest with tall trees and
+      a winding dirt path, flat vector fairy-tale art style, soft pastel colors,
+      simple plain background
+  - id: bg_grandma
+    type: Background
+    name: 外婆家
+    file: grandma_house.png
+    model: openai/gpt-image-2
+    prompt: >-
+      Children's storybook illustration of a cozy grandmother's bedroom with a
+      wooden bed and a window, warm interior light, flat vector fairy-tale art
+      style, soft pastel colors, simple plain background
+  # 角色（立绘）
+  - id: fig_red
+    type: Character
+    name: 小红帽
+    file: red.png
+    model: openai/gpt-image-2
+    prompt: >-
+      Children's storybook illustration of a cute little girl wearing a red hooded
+      cloak and dress, friendly smile, full body, flat vector fairy-tale art
+      style, soft pastel colors, plain light background
+  - id: fig_wolf
+    type: Character
+    name: 大灰狼
+    file: wolf.png
+    model: openai/gpt-image-2
+    prompt: >-
+      Children's storybook illustration of a gray wolf standing upright with a sly
+      smile, cartoon character, flat vector fairy-tale art style, soft pastel
+      colors, plain light background
+  - id: fig_grandma
+    type: Character
+    name: 外婆
+    file: grandma.png
+    model: openai/gpt-image-2
+    prompt: >-
+      Children's storybook illustration of a kind elderly grandmother wearing a
+      nightcap and round glasses, gentle smile, flat vector fairy-tale art style,
+      soft pastel colors, plain light background
+  - id: fig_woodcutter
+    type: Character
+    name: 猎人
+    file: woodcutter.png
+    model: openai/gpt-image-2
+    prompt: >-
+      Children's storybook illustration of a brave woodcutter holding an axe,
+      heroic pose, flat vector fairy-tale art style, soft pastel colors, plain
+      light background

@@ -1,0 +1,15 @@
+background: bg_grandma
+characters:
+  - id: fig_red
+    expression: 疑惑
+    pose: 站立
+    position: left
+  - id: fig_wolf
+    expression: 凶狠
+    pose: 站立
+    position: center
+  - id: fig_woodcutter
+    expression: 英勇
+    pose: 站立
+    position: right
+music: null

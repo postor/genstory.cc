@@ -18,6 +18,8 @@
 从真实文件编译预览
     ↓
 导出独立 OpenWebGal zip
+    ↓
+导出/导入可编辑 source zip
 ```
 
 不需要后端、API Route、常驻编译服务或磁盘 CLI。Next.js 只负责 SSG；浏览器端
@@ -66,7 +68,8 @@ interface Project {
 ```
 
 项目目录始终由 `template + id` 解析为 `<type>/<projectId>`，不依赖用户选择的父目录，也不能用缓存
-内容伪造文件树。需要让用户取出项目时，通过导出 ZIP 完成。
+内容伪造文件树。需要让用户取出项目时，通过 source ZIP 完成；重新导入时创建新的
+`<type>/<projectId>` 目录，并从 ZIP 内的 `meta.md` 恢复标题和项目类型。
 
 ## 模板初始化
 
@@ -126,6 +129,14 @@ AGENTS.md → 项目/章节/场景 meta.md → 当前选中的源文件
 预览缓存只是运行时缓存，不是项目来源。导出 zip 时使用真实源文件编译结果和引擎
 资源，并还原原始引擎 Service Worker，不把浏览器桥接 SW 带入独立项目。
 
+项目列表和编辑器提供“下载源码”，导出当前 OPFS 项目目录的可编辑 source ZIP。项目列表
+提供“导入源码 ZIP”，用于恢复 GenStory 自己导出的未压缩 source ZIP。导入会校验
+`meta.md` 与 `AGENTS.md`，推断项目类型，并写入新的 OPFS 目录；它不会覆盖已有项目。
+
+`public/webgal/` 是生成目录且被 gitignore。`npm run dev` 与 `npm run build` 都会先执行
+`npm run sync-webgal`；如果 `vn-template/node_modules/webgal-engine/dist` 不存在，同步脚本会
+在 `vn-template/` 内执行 `npm ci` 后再复制引擎。
+
 ## SSG 与浏览器 API
 
 客户端组件在构建期间只渲染静态壳；`window`、`navigator.storage` 和
@@ -142,5 +153,5 @@ git diff --check
 ```
 
 浏览器验证必须覆盖：创建多个类型项目、确认目录为
-`<opfs>/<type>/<projectId>`、编辑保存真实文件、刷新后内容仍在，以及视觉小说预览
-和导出。
+`<opfs>/<type>/<projectId>`、编辑保存真实文件、刷新后内容仍在、source ZIP 导出后可
+导入恢复为新项目，以及视觉小说预览和导出。

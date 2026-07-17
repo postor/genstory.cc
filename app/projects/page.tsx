@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FileDown, Plus, Trash2 } from "lucide-react";
+import { FileDown, Plus, Trash2, Upload } from "lucide-react";
 
 import {
   Card,
@@ -14,16 +14,25 @@ import { Button } from "@/components/ui/button";
 import { useLang } from "@/lib/i18n";
 import {
   deleteProject,
+  saveProject,
   listProjects,
   type Project,
 } from "@/lib/local-projects";
-import { openProjectDirectory } from "@/lib/file-system/browser";
+import {
+  openProjectDirectory,
+  removeProjectDirectory,
+  restoreProjectDirectory,
+  supportsFileSystemAccess,
+} from "@/lib/file-system/browser";
 import { exportProjectDirectoryZip } from "@/lib/project-export";
+import { parseProjectSourceZip } from "@/lib/project-import";
 
 export default function ProjectsPage() {
   const { lang, t } = useLang();
+  const importInputRef = useRef<HTMLInputElement | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function refresh() {
@@ -55,6 +64,7 @@ export default function ProjectsPage() {
 
   async function handleDelete(project: Project) {
     if (!window.confirm(t("projects.confirmDelete"))) return;
+    await removeProjectDirectory(project.template, project.id);
     await deleteProject(project.id);
     void refresh();
   }
@@ -68,11 +78,56 @@ export default function ProjectsPage() {
     }
   }
 
+  async function handleImportSource(file: File | undefined) {
+    if (!file) return;
+    setImporting(true);
+    setError(null);
+    try {
+      if (!supportsFileSystemAccess()) {
+        throw new Error(t("create.browserUnsupported"));
+      }
+      const imported = await parseProjectSourceZip(file);
+      const id = crypto.randomUUID();
+      const now = Date.now();
+      await restoreProjectDirectory(imported.template, id, imported.files);
+      await saveProject({
+        id,
+        template: imported.template,
+        title: imported.title,
+        lang,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setImporting(false);
+      if (importInputRef.current) importInputRef.current.value = "";
+    }
+  }
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
         <div className="flex gap-2">
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".zip,application/zip"
+            className="sr-only"
+            onChange={(event) => void handleImportSource(event.currentTarget.files?.[0])}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => importInputRef.current?.click()}
+            disabled={importing}
+          >
+            <Upload className="size-4" />
+            {importing ? t("projects.importing") : t("projects.import")}
+          </Button>
           <Button render={<Link href="/projects/new" />}>
             <Plus className="size-4" />
             {t("projects.new")}

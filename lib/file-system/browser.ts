@@ -93,11 +93,39 @@ export async function initializeProjectDirectory(
   return root;
 }
 
+export async function restoreProjectDirectory(
+  template: ContentTypeId,
+  projectId: string,
+  files: { path: string; blob: Blob }[]
+) {
+  const projectPath = projectRelativePath(template, projectId);
+  const root = await getProjectDirectory(projectPath, true);
+  for (const file of files) {
+    await writeFile(root, file.path, file.blob);
+  }
+  return root;
+}
+
 export async function openProjectDirectory(
   template: ContentTypeId,
   projectId: string
 ): Promise<FileSystemDirectoryHandle> {
   return getProjectDirectory(projectRelativePath(template, projectId));
+}
+
+export async function removeProjectDirectory(
+  template: ContentTypeId,
+  projectId: string
+): Promise<void> {
+  const [typeSegment, projectSegment] = projectRelativePath(template, projectId);
+  try {
+    const storageRoot = await getBrowserFileSystemRoot();
+    const typeRoot = await storageRoot.getDirectoryHandle(typeSegment);
+    await typeRoot.removeEntry(projectSegment, { recursive: true });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === "NotFoundError") return;
+    throw e;
+  }
 }
 
 export async function readFile(

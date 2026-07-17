@@ -16,6 +16,11 @@ import {
 import { contentTypeById } from "@/lib/content-types";
 import { normalizeRelativePath } from "@/lib/file-system/paths";
 import {
+  collectMarkdownMediaSources,
+  mediaKindForSource,
+  resolveMarkdownMediaPath,
+} from "@/lib/markdown/image-paths";
+import {
   ensurePermission,
   listProjectFiles,
   openProjectDirectory,
@@ -47,6 +52,13 @@ function isTextPath(path: string): boolean {
 
 function isImagePath(path: string): boolean {
   return /\.(png|jpe?g|gif|webp|avif|bmp|ico)$/i.test(path);
+}
+
+function mediaKindForPath(path: string): "image" | "video" | "audio" | null {
+  if (isImagePath(path)) return "image";
+  if (/\.(mp4|webm|ogg|mov|m4v)$/i.test(path)) return "video";
+  if (/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(path)) return "audio";
+  return null;
 }
 
 function buildTree(
@@ -100,13 +112,16 @@ export default function EditorClient() {
   const [root, setRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const [files, setFiles] = useState<{ path: string }[]>([]);
   const [contents, setContents] = useState<Record<string, string>>({});
-  const [imagePreview, setImagePreview] = useState<{
+  const [mediaPreview, setMediaPreview] = useState<{
     path: string;
     url: string;
     size: number;
     type: string;
+    kind: "image" | "video" | "audio";
   } | null>(null);
-  const imageUrlRef = useRef<string | null>(null);
+  const mediaUrlRef = useRef<string | null>(null);
+  const [markdownMediaUrls, setMarkdownMediaUrls] = useState<Record<string, string>>({});
+  const markdownMediaUrlsRef = useRef<Record<string, string>>({});
   const [dirtyPaths, setDirtyPaths] = useState<Set<string>>(new Set());
   const [vn, setVn] = useState<VNProject | null>(null);
   const [selectedPath, setSelectedPath] = useState("AGENTS.md");
@@ -183,12 +198,25 @@ export default function EditorClient() {
 
   const tree = useMemo(() => buildTree(files, project?.id ?? "project"), [files, project?.id]);
   const selectedContent = selectedPath ? contents[selectedPath] : undefined;
-  const visibleImagePreview =
-    imagePreview?.path === selectedPath ? imagePreview : null;
+  const visibleMediaPreview =
+    mediaPreview?.path === selectedPath ? mediaPreview : null;
   const dirty = dirtyPaths.size > 0;
 
+  function replaceMarkdownMediaUrls(nextUrls: Record<string, string>) {
+    for (const url of Object.values(markdownMediaUrlsRef.current)) URL.revokeObjectURL(url);
+    markdownMediaUrlsRef.current = nextUrls;
+    queueMicrotask(() => setMarkdownMediaUrls(nextUrls));
+  }
+
   useEffect(() => {
-    if (!root || !selectedPath || !isImagePath(selectedPath)) return;
+    const kind = selectedPath ? mediaKindForPath(selectedPath) : null;
+    if (!root || !selectedPath || !kind) {
+      if (mediaUrlRef.current) {
+        URL.revokeObjectURL(mediaUrlRef.current);
+        mediaUrlRef.current = null;
+      }
+      return;
+    }
     let cancelled = false;
     void (async () => {
       try {
@@ -198,15 +226,14 @@ export default function EditorClient() {
           URL.revokeObjectURL(url);
           return;
         }
-        setImagePreview(() => {
-          if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
-          imageUrlRef.current = url;
-          return {
-            path: selectedPath,
-            url,
-            size: file.size,
-            type: file.type || "image",
-          };
+        if (mediaUrlRef.current) URL.revokeObjectURL(mediaUrlRef.current);
+        mediaUrlRef.current = url;
+        setMediaPreview({
+          path: selectedPath,
+          url,
+          size: file.size,
+          type: file.type || "image",
+          kind,
         });
       } catch {
         /* Keep the binary fallback visible. */
@@ -218,8 +245,49 @@ export default function EditorClient() {
   }, [root, selectedPath]);
 
   useEffect(() => {
+    if (!root || !selectedPath || selectedContent === undefined || !isTextPath(selectedPath)) {
+      replaceMarkdownMediaUrls({});
+      return;
+    }
+
+    const sources = collectMarkdownMediaSources(selectedContent);
+    if (sources.length === 0) {
+      replaceMarkdownMediaUrls({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const nextUrls: Record<string, string> = {};
+      const createdUrls: string[] = [];
+      for (const source of sources) {
+        const mediaPath = resolveMarkdownMediaPath(selectedPath, source);
+        if (!mediaPath || !mediaKindForPath(mediaPath)) continue;
+        try {
+          const file = await readFile(root, mediaPath);
+          const url = URL.createObjectURL(file);
+          createdUrls.push(url);
+          nextUrls[source] = url;
+        } catch {
+          /* Leave missing images as their original markdown paths. */
+        }
+      }
+      if (cancelled) {
+        for (const url of createdUrls) URL.revokeObjectURL(url);
+        return;
+      }
+      replaceMarkdownMediaUrls(nextUrls);
+    })();
+
     return () => {
-      if (imageUrlRef.current) URL.revokeObjectURL(imageUrlRef.current);
+      cancelled = true;
+    };
+  }, [root, selectedPath, selectedContent]);
+
+  useEffect(() => {
+    return () => {
+      if (mediaUrlRef.current) URL.revokeObjectURL(mediaUrlRef.current);
+      for (const url of Object.values(markdownMediaUrlsRef.current)) URL.revokeObjectURL(url);
     };
   }, []);
 
@@ -466,23 +534,37 @@ export default function EditorClient() {
               filename={selectedPath}
               dirty={dirtyPaths.has(selectedPath)}
               readOnly={selectedPath === "AGENTS.md" && false}
+              resolveImageSrc={(src) => markdownMediaUrls[src] ?? src}
+              mediaKindForSrc={mediaKindForSource}
             />
-          ) : visibleImagePreview ? (
+          ) : visibleMediaPreview ? (
             <div className="flex h-full min-h-0 flex-col bg-muted/20">
               <div className="flex items-center justify-between gap-3 border-b bg-background px-4 py-2 text-sm">
-                <span className="truncate font-medium">{visibleImagePreview.path}</span>
+                <span className="truncate font-medium">{visibleMediaPreview.path}</span>
                 <span className="shrink-0 text-xs text-muted-foreground">
-                  {visibleImagePreview.type} · {Math.ceil(visibleImagePreview.size / 1024)} KB
+                  {visibleMediaPreview.type} · {Math.ceil(visibleMediaPreview.size / 1024)} KB
                 </span>
               </div>
               <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
-                {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={visibleImagePreview.url}
-                  alt={visibleImagePreview.path}
-                  className="max-h-full max-w-full rounded-md border bg-background object-contain"
-                />
+                {visibleMediaPreview.kind === "image" ? (
+                  <>
+                    {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={visibleMediaPreview.url}
+                      alt={visibleMediaPreview.path}
+                      className="max-h-full max-w-full rounded-md border bg-background object-contain"
+                    />
+                  </>
+                ) : visibleMediaPreview.kind === "video" ? (
+                  <video
+                    src={visibleMediaPreview.url}
+                    controls
+                    className="max-h-full max-w-full rounded-md border bg-black"
+                  />
+                ) : (
+                  <audio src={visibleMediaPreview.url} controls className="w-full max-w-2xl" />
+                )}
               </div>
             </div>
           ) : (

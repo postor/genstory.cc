@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GenStory
 
-## Getting Started
+GenStory is a local-first creative writing workspace for books, comics, visual novels, and interactive video projects. The app is a static Next.js export: there is no backend, API route, or server-side project filesystem. Project source files live in the browser Origin Private File System (OPFS), and IndexedDB stores only the project index and UI state.
 
-First, run the development server:
+# What Local Means
+
+- Project text and assets are written to OPFS under `<type>/<projectId>/`.
+- The editor always reads and saves real project files such as `AGENTS.md`, `meta.md`, `script.md`, `stage.yml`, and `assets/index.yml`.
+- IndexedDB keeps lightweight metadata: project id, template, title, language, timestamps, and last opened path.
+- Visual novel preview uses a browser-only IndexedDB cache for compiled OpenWebGal `game/*` files. That cache is runtime output, not a project source of truth.
+- AI assistance is optional and browser-side. If the user connects OpenRouter, requests go to OpenRouter from the browser; the GenStory app still does not run its own backend.
+
+# Requirements
+
+- Node.js 20 or newer for development.
+- A modern Chromium-based browser with `navigator.storage.getDirectory()` / OPFS support for project editing.
+- Network access during first setup if `vn-template/node_modules` is missing, because `npm run sync-webgal` installs the vendored OpenWebGal engine dependencies there.
+
+# Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. The `dev` script runs `npm run sync-webgal` first so visual novel preview has `public/webgal/` available.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+```
 
-## Learn More
+`next.config.ts` uses `output: "export"`, so the production app is emitted to `out/`. The `build` script also runs `npm run sync-webgal` first. If `vn-template/node_modules/webgal-engine/dist` is absent, the sync script runs `npm ci` inside `vn-template/` and then copies the engine into `public/webgal/`.
 
-To learn more about Next.js, take a look at the following resources:
+`public/webgal/` is generated and gitignored. Do not edit it by hand.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Backups and Restore
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+The browser owns OPFS storage. Clearing site data, switching browsers, or changing origins can remove local projects. Users should regularly use **Download source** from the project list or editor.
 
-## Deploy on Vercel
+A downloaded source ZIP can be restored from the project list with **Import source ZIP**. GenStory imports ZIP files produced by its own source exporter, restores all files into a new OPFS project directory, and rebuilds the IndexedDB project index from `meta.md`.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+For visual novels, **Export OpenWebGal** creates a standalone OpenWebGal project ZIP. That export is for running the game, not for editing. Use **Download source** for editable backups.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Verification
+
+```bash
+npm run lint
+node --experimental-strip-types --test lib/**/*.test.ts
+npm run build
+git diff --check
+```
+
+# Project Model
+
+Each project contains editable source files:
+
+```text
+AGENTS.md
+meta.md
+assets/index.yml
+chapter-001/
+  meta.md
+  scenes/scene-001/
+    meta.md
+    script.md
+    stage.yml
+```
+
+Visual novel rules keep story facts, stage state, and render output separate. `script.md` carries narration and dialogue, `stage.yml` describes state, and `assets/index.yml` maps logical asset IDs to project assets.

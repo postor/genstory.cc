@@ -4,7 +4,7 @@ import { useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 type CodeEditorProps = {
@@ -15,6 +15,8 @@ type CodeEditorProps = {
   onRename?: (name: string) => void;
   lineCount?: number;
   readOnly?: boolean;
+  resolveImageSrc?: (src: string) => string;
+  mediaKindForSrc?: (src: string) => "image" | "video" | "audio" | null;
 };
 
 export function CodeEditor({
@@ -25,6 +27,8 @@ export function CodeEditor({
   onRename,
   lineCount,
   readOnly = false,
+  resolveImageSrc,
+  mediaKindForSrc,
 }: CodeEditorProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(filename);
@@ -37,6 +41,49 @@ export function CodeEditor({
   }
 
   const mdSource = markdown();
+  const markdownComponents: Components = {
+    img: ({ node: _node, src, alt, ...props }) => {
+      void _node;
+      const resolvedSrc = typeof src === "string" && resolveImageSrc ? resolveImageSrc(src) : src;
+      return (
+        <>
+          {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            {...props}
+            src={resolvedSrc}
+            alt={alt ?? ""}
+            className="max-w-full rounded-md border bg-background"
+          />
+        </>
+      );
+    },
+    a: ({ node: _node, href, children, title }) => {
+      void _node;
+      const kind = typeof href === "string" && mediaKindForSrc ? mediaKindForSrc(href) : null;
+      const resolvedHref = typeof href === "string" && resolveImageSrc ? resolveImageSrc(href) : href;
+      if (kind === "video") {
+        return (
+          <video
+            src={resolvedHref}
+            controls
+            title={title}
+            className="my-3 max-h-96 w-full rounded-md border bg-black"
+          >
+            {children}
+          </video>
+        );
+      }
+      if (kind === "audio") {
+        return <audio src={resolvedHref} controls title={title} className="my-3 w-full" />;
+      }
+      return (
+        <a href={resolvedHref} title={title}>
+          {children}
+        </a>
+      );
+    },
+  };
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-[#1e1e1e] text-[#d4d4d4]">
@@ -93,7 +140,9 @@ export function CodeEditor({
         {preview ? (
           <div className="h-full overflow-auto bg-background p-6 text-foreground">
             <div className="mx-auto max-w-3xl space-y-3 text-sm leading-6 [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-3 [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{value}</ReactMarkdown>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                {value}
+              </ReactMarkdown>
             </div>
           </div>
         ) : (

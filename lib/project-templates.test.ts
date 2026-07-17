@@ -32,6 +32,13 @@ test("new projects use Little Red Riding Hood as the default theme", async () =>
   assert.match(source?.content ?? "", /外婆/);
 });
 
+
+test("uses public template file as AGENTS.md", async () => {
+  const files = await getProjectTemplate("book", "zh", "测试项目");
+  const agents = files.find((file) => file.path === "AGENTS.md");
+  const expected = await (await import("node:fs/promises")).readFile("public/templates/zh/book.md", "utf8");
+  assert.equal(agents?.content, expected);
+});
 test("visual novel template contains real OpenWebGal source files", async () => {
   const files = await getProjectTemplate("visual-novel", "zh", "小红帽");
   const paths = new Set(files.map((file) => file.path));

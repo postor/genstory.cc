@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "npm run sync-webgal && next dev",
+    "build": "npm run sync-webgal && next build",
     "start": "next start",
     "lint": "eslint",
     "sync-webgal": "node scripts/sync-webgal.mjs"

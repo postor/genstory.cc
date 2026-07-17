@@ -200,16 +200,17 @@ assets/index.yml
 <!-- BEGIN:vn-browser-plan -->
 # 视觉小说浏览器端方案
 
-视觉小说（OpenWebGal）能力**在浏览器内闭环**实现：编辑（IndexedDB）、预览（桥接 Service
+视觉小说（OpenWebGal）能力**在浏览器内闭环**实现：编辑（OPFS 真实项目文件）、预览（桥接 Service
 Worker 喂引擎）、发布（导出可独立运行的 OpenWebGal 项目 zip）。不再使用磁盘独立子项目
-`vn-template/` 的 CLI 工作流（其 `source/` 仅作为内容/编译逻辑的参考来源）。
+`vn-template/` 的 CLI 工作流；`vn-template/` 只保留为 OpenWebGal 引擎依赖和历史内容/编译参考。
 
 完整方案见 [`docs/vn-browser-plan.md`](./docs/vn-browser-plan.md)。
 
 关键约定速记：
-- 用户数据存 `Project.vn`（`lib/vn/types.ts`），种子为 小红帽（`lib/vn/seed.ts`）。
+- 用户项目正文和资产存浏览器 OPFS：`<type>/<projectId>/`。IndexedDB 只存项目索引、时间戳和 UI 状态。
 - 编译：`lib/vn/compile.ts`（markdown → `Record<path, Blob>`）。
-- 引擎 vendored 于 `public/webgal/`（gitignored），由 `npm run sync-webgal` 生成。
+- 引擎 vendored 于 `public/webgal/`（gitignored），由 `npm run sync-webgal` 生成；`npm run dev` 和 `npm run build` 会先执行同步。
 - 预览靠 `public/webgal/webgal-serviceworker.js` 桥接 SW 从 IndexedDB 读 `game/*`。
 - 导出 zip＝引擎 + 编译产物，且**还原原始引擎 SW**（不使用桥接 SW）。
+- 可编辑备份靠“下载源码”导出 source ZIP；项目列表的“导入源码 ZIP”可恢复该 ZIP 到新的 OPFS 项目目录。
 <!-- END:vn-browser-plan -->

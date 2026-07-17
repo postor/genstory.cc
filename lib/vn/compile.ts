@@ -1,5 +1,6 @@
 import { ASSET_COLORS, ASSET_DIR, type VNProject, type VNAsset } from "./types";
 import { makePngBlob } from "./png";
+import { compileSceneStage } from "./stage-compile";
 
 function textBlob(s: string): Blob {
   return new Blob([s], { type: "text/plain; charset=utf-8" });
@@ -124,19 +125,7 @@ export async function compile(vn: VNProject): Promise<Record<string, Blob>> {
 
   const scenes = vn.chapters.flatMap((c) => c.scenes);
   for (const sc of scenes) {
-    const out: string[] = [`; ===== ${sc.id} =====`];
-    if (sc.background) {
-      const a = byId.get(sc.background);
-      const file = a ? basename(a.file) : `${sc.background}.png`;
-      out.push(`changeBg:${file};`);
-    }
-    for (const ch of sc.characters || []) {
-      const a = byId.get(ch.id);
-      const file = a ? basename(a.file) : `${ch.id}.png`;
-      const pos =
-        ch.position === "left" ? " -left" : ch.position === "right" ? " -right" : "";
-      out.push(`changeFigure:${file}${pos};`);
-    }
+    const out: string[] = [`; ===== ${sc.id} =====`, ...compileSceneStage(sc, byId)];
     out.push("");
     out.push(...parseScript(sc.script));
     files[`scene/${sc.id}.txt`] = textBlob(out.join("\n") + "\n");

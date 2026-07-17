@@ -6,6 +6,10 @@ import type { ProjectTemplateFile } from "./file-system/types";
 import { buildVNProjectFiles } from "./vn/project-files.ts";
 // @ts-expect-error TS5097: required by the native Node test runner.
 import { seedRedRidingHood } from "./vn/seed.ts";
+// @ts-expect-error TS5097: required by the native Node test runner.
+import { seedComicRedRidingHood } from "./comic/seed.ts";
+// @ts-expect-error TS5097: required by the native Node test runner.
+import { buildComicProjectFiles } from "./comic/project-files.ts";
 
 const AGENTS = `# GenStory 项目约束
 
@@ -99,12 +103,48 @@ function visualNovelTemplate(title: string): ProjectTemplateFile[] {
   return files;
 }
 
+function comicAgents(): string {
+  return `# GenStory 漫画项目约束
+
+本项目的正文事实保存在当前目录的真实文件中。
+
+- 一个事实，一个来源；不要把正文复制到其他缓存文件。
+- 遵循当前项目的设定、角色、时间线和资产索引。
+- 故事与画面分离：script.md 记录分镜与对白，meta.md 记录页面状态，不写渲染指令。
+- 分镜只描述画面状态（背景、角色、表情、位置、动作），不要写 show / hide / play 等渲染调用。
+- 仅使用逻辑资产 ID（见 assets/index.yml），不要在故事文件中硬编码外部路径。
+- 补充资产时优先使用低成本、低分辨率的资源，仅在成品页需要高清时再升级。
+- 编辑前先理解上下文，编辑后校验引用、状态和结构。
+`;
+}
+
+function comicTemplate(title: string): ProjectTemplateFile[] {
+  const comic = seedComicRedRidingHood();
+  comic.title = title;
+  const generated = buildComicProjectFiles(comic, {
+    agents: comicAgents(),
+  });
+  const files: ProjectTemplateFile[] = [];
+  for (const file of generated) {
+    if (file.kind === "asset") {
+      files.push({
+        path: file.path,
+        kind: "binary",
+        sourceUrl: `/project-templates/comic/assets/pages/${file.pageId}.png`,
+      });
+    } else {
+      files.push({ path: file.path, kind: "text", content: file.content });
+    }
+  }
+  return files;
+}
+
 export async function getProjectTemplate(
   type: ContentTypeId,
   lang: Lang,
   title: string
 ): Promise<ProjectTemplateFile[]> {
-  return type === "visual-novel"
-    ? visualNovelTemplate(title)
-    : simpleTemplate(type, title, lang);
+  if (type === "comic") return comicTemplate(title);
+  if (type === "visual-novel") return visualNovelTemplate(title);
+  return simpleTemplate(type, title, lang);
 }

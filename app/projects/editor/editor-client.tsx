@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, FileDown, Loader2, Play, RefreshCw, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -477,16 +476,13 @@ export default function EditorClient() {
                 </span>
               </div>
               <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-4">
-                <div className="relative h-full max-h-full w-full max-w-full">
-                <Image
+                {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
                   src={visibleImagePreview.url}
                   alt={visibleImagePreview.path}
-                  fill
-                  unoptimized
-                  sizes="100vw"
-                  className="rounded-md border bg-background object-contain"
+                  className="max-h-full max-w-full rounded-md border bg-background object-contain"
                 />
-                </div>
               </div>
             </div>
           ) : (

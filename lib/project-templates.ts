@@ -380,13 +380,13 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
     ),
     text(
       "chapter-001/segments/segment-001/script.md",
-      `# ${segmentTitle}\n\n![${assets[0].name}](../../../assets/scenes/scene_forest.png)\n\n${body}\n\n> 视频镜头：[${assets[3].name}](../../../assets/videos/vid_forest.mp4)\n\n（在这里分支：听狼的话去采花 / 直接去外婆家）\n`
+      `# ${segmentTitle}\n\n![${assets[0].name}](../../../assets/scenes/scene_forest.png)\n\n${body}\n\n> 视频镜头：[${assets[3].name}](../../../assets/videos/vid_forest.mp4)\n\n> 配音：[${assets[5].name}](../../../assets/audio/voice_red.mp3)\n\n（在这里分支：听狼的话去采花 / 直接去外婆家）\n`
     ),
     text("assets/index.yml", buildIVAssetIndex(assets)),
   ];
 
   for (const asset of assets) {
-    const dir = asset.kind === "video" ? "videos" : "scenes";
+    const dir = asset.kind === "video" ? "videos" : asset.kind === "voice" ? "audio" : "scenes";
     const filename = asset.file.split("/").pop()!;
     files.push({
       path: `assets/${dir}/${filename}`,

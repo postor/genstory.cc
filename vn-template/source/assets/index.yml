@@ -64,3 +64,33 @@ assets:
       Children's storybook illustration of a brave woodcutter holding an axe,
       heroic pose, flat vector fairy-tale art style, soft pastel colors, plain
       light background
+
+  # 配音（角色音色，使用 Atlas Seed Audio 1.0 生成，支持 references 克隆且最便宜）
+  - id: voice_red
+    type: Voice
+    name: 小红帽·配音
+    file: voice/red.mp3
+    model: bytedance/seed-audio-1.0
+    prompt: >-
+      A cheerful young girl's voice says the character's lines.
+  - id: voice_wolf
+    type: Voice
+    name: 大灰狼·配音
+    file: voice/wolf.mp3
+    model: bytedance/seed-audio-1.0
+    prompt: >-
+      A sly low male wolf's voice says the character's lines.
+  - id: voice_grandma
+    type: Voice
+    name: 外婆·配音
+    file: voice/grandma.mp3
+    model: bytedance/seed-audio-1.0
+    prompt: >-
+      A kind elderly grandmother's gentle voice says the character's lines.
+  - id: voice_woodcutter
+    type: Voice
+    name: 猎人·配音
+    file: voice/woodcutter.mp3
+    model: bytedance/seed-audio-1.0
+    prompt: >-
+      A brave strong woodcutter's deep voice says the character's lines.

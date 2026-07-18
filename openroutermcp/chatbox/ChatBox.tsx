@@ -146,14 +146,12 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelLoading, setModelLoading] = useState(true);
-  const [model, setModel] = useState<string>(() => loadJSON(LS_MODEL, ""));
+  const [model, setModel] = useState<string>("");
+  const [modelStorageReady, setModelStorageReady] = useState(false);
 
-  const [messages, setMessages] = useState<ChatMessage[]>(() =>
-    loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), [])
-  );
-  const [images, setImages] = useState<Record<string, string>>(() =>
-    loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {})
-  );
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [images, setImages] = useState<Record<string, string>>({});
+  const [chatStorageReady, setChatStorageReady] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [applyingChanges, setApplyingChanges] = useState(false);
@@ -168,7 +166,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   // --- init: load models + attempt to connect to MCP ---
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setModelLoading(true);
     listModels()
       .then((ms) => {
@@ -189,6 +186,18 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   }, []);
 
   useEffect(() => {
+    setModel(loadJSON(LS_MODEL, ""));
+    setModelStorageReady(true);
+  }, []);
+
+  useEffect(() => {
+    setChatStorageReady(false);
+    setMessages(loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), []));
+    setImages(loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {}));
+    setChatStorageReady(true);
+  }, [chatId]);
+
+  useEffect(() => {
     // Wait until the provider has finished its initial handshake (token load +
     // OAuth callback). Reading loadTokens() here would race with the provider's
     // callback exchange on the redirect-return load, wrongly popping the dialog
@@ -198,7 +207,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     if (isAuthorized) {
       void connect();
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOauthOpen(true);
     }
     // Run once when the provider becomes ready.
@@ -208,7 +216,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   // Close the dialog automatically once the handshake completes successfully.
   useEffect(() => {
     if (ready && isAuthorized && status === "connected" && oauthOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOauthOpen(false);
     }
   }, [ready, isAuthorized, status, oauthOpen]);
@@ -217,30 +224,23 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   // Model selection stays global (user preference); messages + images are
   // scoped per chatId so each project keeps its own conversation.
   useEffect(() => {
+    if (!modelStorageReady || !model) return;
     if (model) window.localStorage.setItem(LS_MODEL, model);
-  }, [model]);
+  }, [model, modelStorageReady]);
 
   useEffect(() => {
+    if (!chatStorageReady) return;
     window.localStorage.setItem(storageKey(LS_MESSAGES, chatId), JSON.stringify(messages));
-  }, [messages, chatId]);
+  }, [messages, chatId, chatStorageReady]);
 
   useEffect(() => {
+    if (!chatStorageReady) return;
     try {
       window.localStorage.setItem(storageKey(LS_IMAGES, chatId), JSON.stringify(images));
     } catch {
       /* localStorage may overflow with many/large images; ignore. */
     }
-  }, [images, chatId]);
-
-  // When the scoped chat id changes (e.g. switching projects), load that
-  // conversation's history instead of continuing to show the previous one.
-  const lastChatId = useRef(chatId);
-  useEffect(() => {
-    if (lastChatId.current === chatId) return;
-    lastChatId.current = chatId;
-    setMessages(loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), []));
-    setImages(loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {}));
-  }, [chatId]);
+  }, [images, chatId, chatStorageReady]);
 
   const clearChat = useCallback(() => {
     setMessages([]);

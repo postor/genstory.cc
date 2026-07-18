@@ -1,4 +1,4 @@
-export type AssetType = "Background" | "Character" | "CG";
+export type AssetType = "Background" | "Character" | "CG" | "Voice";
 
 export interface VNAsset {
   id: string;
@@ -45,11 +45,16 @@ export const ASSET_DIR: Record<AssetType, string> = {
   Background: "background",
   Character: "figure",
   CG: "cg",
+  Voice: "voice",
 };
 
-/** Placeholder fill color per asset type (RGB). */
+/** Placeholder fill color per asset type (RGB). Used only for image fallbacks. */
 export const ASSET_COLORS: Record<AssetType, [number, number, number]> = {
   Background: [70, 110, 160],
   Character: [200, 120, 140],
   CG: [120, 160, 120],
+  Voice: [120, 120, 140],
 };
+
+/** Asset types whose compiled output is an image placeholder when no data is present. */
+export const IMAGE_ASSET_TYPES: AssetType[] = ["Background", "Character", "CG"];

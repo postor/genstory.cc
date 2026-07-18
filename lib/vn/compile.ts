@@ -1,4 +1,4 @@
-import { ASSET_COLORS, ASSET_DIR, type VNProject, type VNAsset } from "./types";
+import { ASSET_COLORS, ASSET_DIR, IMAGE_ASSET_TYPES, type VNProject, type VNAsset } from "./types";
 import { makePngBlob } from "./png";
 import { compileSceneStage } from "./stage-compile";
 
@@ -102,8 +102,10 @@ export async function compile(vn: VNProject): Promise<Record<string, Blob>> {
     const file = basename(a.file || `${a.id}.png`);
     let blob: Blob | undefined;
     if (a.dataUrl) blob = await dataUrlToBlob(a.dataUrl);
-    if (!blob) blob = await makePngBlob(320, 240, ASSET_COLORS[a.type], a.name);
-    files[`${dir}/${file}`] = blob;
+    if (!blob && IMAGE_ASSET_TYPES.includes(a.type)) {
+      blob = await makePngBlob(320, 240, ASSET_COLORS[a.type], a.name);
+    }
+    if (blob) files[`${dir}/${file}`] = blob;
   }
   files["background/Title.png"] = await makePngBlob(320, 240, [60, 80, 120], vn.title);
 

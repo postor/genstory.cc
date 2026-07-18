@@ -19,6 +19,10 @@ export function seedRedRidingHood(): VNProject {
       { id: "fig_wolf_fierce", type: "Character", name: "大灰狼·凶狠", file: "characters/wolf_fierce.png" },
       { id: "fig_grandma_weak", type: "Character", name: "外婆·虚弱", file: "characters/grandma_weak.png" },
       { id: "fig_woodcutter_brave", type: "Character", name: "猎人·英勇", file: "characters/woodcutter_brave.png" },
+      { id: "voice_red", type: "Voice", name: "小红帽·配音", file: "voice/red.mp3" },
+      { id: "voice_wolf", type: "Voice", name: "大灰狼·配音", file: "voice/wolf.mp3" },
+      { id: "voice_grandma", type: "Voice", name: "外婆·配音", file: "voice/grandma.mp3" },
+      { id: "voice_woodcutter", type: "Voice", name: "猎人·配音", file: "voice/woodcutter.mp3" },
     ],
     chapters: [
       {

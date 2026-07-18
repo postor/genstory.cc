@@ -52,11 +52,10 @@ export function Tree({
     onSelect?.(id);
   }
 
-  function renderItem(el: TreeViewElement, depth: number): ReactNode {
+  function renderItem(el: TreeViewElement): ReactNode {
     const folder = isFolder(el);
     const isOpen = expanded.includes(el.id);
     const isSelected = selected === el.id;
-    const pad = ["pl-2", "pl-5", "pl-8", "pl-11", "pl-14"][Math.min(depth, 4)];
 
     if (folder) {
       return (
@@ -68,8 +67,7 @@ export function Tree({
               select(el.id);
             }}
             className={cn(
-              "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-sm transition-colors",
-              pad,
+              "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 pl-2 text-sm transition-colors",
               isSelected
                 ? "bg-primary/10 font-medium text-primary"
                 : "text-foreground hover:bg-muted"
@@ -81,7 +79,7 @@ export function Tree({
             <span className="truncate">{el.name}</span>
           </button>
           {isOpen && el.children && (
-            <div>{el.children.map((child) => renderItem(child, depth + 1))}</div>
+            <div className="pl-3">{el.children.map((child) => renderItem(child))}</div>
           )}
         </div>
       );
@@ -93,8 +91,7 @@ export function Tree({
         type="button"
         onClick={() => select(el.id)}
         className={cn(
-          "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 text-sm transition-colors",
-          pad,
+          "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 pl-2 text-sm transition-colors",
           isSelected
             ? "bg-primary/10 font-medium text-primary"
             : "text-foreground hover:bg-muted"
@@ -108,7 +105,7 @@ export function Tree({
 
   return (
     <ScrollArea className={cn("h-full", className)}>
-      <div className="py-1">{elements.map((el) => renderItem(el, 0))}</div>
+      <div className="py-1">{elements.map((el) => renderItem(el))}</div>
     </ScrollArea>
   );
 }

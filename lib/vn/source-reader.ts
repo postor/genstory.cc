@@ -7,7 +7,7 @@ import {
 import type { VNAsset, VNProject, VNScene, VNStageCharacter } from "./types";
 
 function isAssetType(value: string): value is VNAsset["type"] {
-  return value === "Background" || value === "Character" || value === "CG";
+  return value === "Background" || value === "Character" || value === "CG" || value === "Voice";
 }
 
 function isCharacterPosition(

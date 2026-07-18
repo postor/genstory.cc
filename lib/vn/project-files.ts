@@ -152,7 +152,7 @@ export function buildVNProjectFiles(
     const filename = asset.file || `${asset.id}.png`;
     files.push({
       path: `assets/${directory}/${filename}`,
-      content: asset.dataUrl ? "[uploaded image asset]" : "[template image asset]",
+      content: asset.dataUrl ? "[uploaded asset]" : "[template asset]",
       kind: "asset",
     });
   }

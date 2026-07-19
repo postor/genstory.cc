@@ -72,8 +72,8 @@ export interface ChatBoxProps {
   placeholder?: string;
   /** Max agent-loop iterations per send. Defaults to 8. */
   maxToolRounds?: number;
-  /** Optional project/workspace context appended to the system prompt so the
-   *  assistant can answer with awareness of the current project. */
+  /** Lightweight project/workspace metadata appended to the system prompt.
+   *  Full project files should be exposed through projectTools instead. */
   context?: string;
   /** Scope chat history + images to this id (e.g. project id) so different
    *  conversations do not share messages. Omit for a global shared chat. */
@@ -84,7 +84,16 @@ export interface ChatBoxProps {
   onSend?: (text: string) => void;
   /** Applies explicit file edits returned by the assistant after user confirmation. */
   onFileChanges?: (changes: ChatFileChange[]) => void | Promise<void>;
+  /** Local project tools, such as list/read/search files, exposed to the model on demand. */
+  projectTools?: ChatProjectTool[];
   className?: string;
+}
+
+export interface ChatProjectTool {
+  name: string;
+  description: string;
+  inputSchema?: unknown;
+  call: (args: Record<string, unknown>) => unknown | Promise<unknown>;
 }
 
 export interface ChatFileChange {
@@ -147,6 +156,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     onModelChange,
     onSend,
     onFileChanges,
+    projectTools = [],
     className,
   }: ChatBoxProps,
   ref
@@ -182,7 +192,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     () => models.find((item) => item.id === model),
     [model, models]
   );
-  const chatQuotaTokens = contextUsage.history + contextUsage.input;
+  const requestTokens = contextUsage.context + contextUsage.history + contextUsage.input;
+  const projectToolNames = useMemo(
+    () => new Set(projectTools.map((tool) => tool.name)),
+    [projectTools]
+  );
 
   // --- init: load models + attempt to connect to MCP ---
   useEffect(() => {
@@ -283,14 +297,26 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       setOauthOpen(true);
       return;
     }
-    if (tools.length === 0) {
+    if (tools.length === 0 && projectTools.length === 0) {
       setError("尚未连接 MCP 或未发现工具，无法在聊天中调用工具。");
       return;
     }
 
-    const mcpTools: ChatTool[] = tools.map((t) => ({
+    const runtimeTools = [
+      ...tools.map((t) => ({
+        name: t.name,
+        description: t.description || "",
+        inputSchema: t.inputSchema ?? { type: "object", properties: {} },
+      })),
+      ...projectTools.map((t) => ({
+        name: t.name,
+        description: t.description,
+        inputSchema: t.inputSchema ?? { type: "object", properties: {} },
+      })),
+    ];
+    const mcpTools: ChatTool[] = runtimeTools.map((t) => ({
       type: "function",
-      function: { name: t.name, description: t.description || "", parameters: t.inputSchema ?? { type: "object", properties: {} } },
+      function: { name: t.name, description: t.description, parameters: t.inputSchema },
     }));
 
     const userMessage: ChatMessage = { role: "user", content: text };
@@ -310,17 +336,20 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         "你可以通过调用提供的 MCP 工具来获取信息或执行操作。" +
         "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
         "只在确实需要的时调用工具，不要编造工具参数。" +
+        (projectTools.length > 0
+          ? "项目文件不会默认附带在请求中；如果需要了解项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取。"
+          : "") +
         (onFileChanges
           ? "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。"
           : "") +
         (context
-          ? `\n\n以下是用户当前正在编辑的项目上下文，回答时请结合它：\n${context}`
+          ? `\n\n当前项目概况（非完整文件内容）：\n${context}`
           : ""),
     };
 
     try {
       for (let i = 0; i < maxToolRounds; i++) {
-        const apiMessages = tools.length ? [systemMsg, ...history] : history;
+        const apiMessages = runtimeTools.length ? [systemMsg, ...history] : history;
         let streamedContent = "";
         const { content, toolCalls } = await chat(tk, model, apiMessages, mcpTools, {
           onTextDelta: (delta) => {
@@ -350,8 +379,13 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           for (const tc of toolCalls) {
             let resultText: string;
             try {
-              const args = tc.function.arguments ? JSON.parse(tc.function.arguments) : {};
-              const res = await callTool(tc.function.name, args);
+              const args = tc.function.arguments ? JSON.parse(tc.function.arguments) as Record<string, unknown> : {};
+              const localTool = projectToolNames.has(tc.function.name)
+                ? projectTools.find((tool) => tool.name === tc.function.name)
+                : undefined;
+              const res = localTool
+                ? await localTool.call(args)
+                : await callTool(tc.function.name, args);
               // Replace inline image base64 with a stable id reference so the
               // data never enters the chat context sent back to the model.
               const display = extractImages(res, collected);
@@ -391,7 +425,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       setSending(false);
       setStreamingText(false);
     }
-  },     [input, sending, refreshToken, tools, transcript, model, callTool, maxToolRounds, context, onSend, onFileChanges]);
+  },     [input, sending, refreshToken, tools, projectTools, projectToolNames, transcript, model, callTool, maxToolRounds, context, onSend, onFileChanges]);
 
   async function applyPendingChanges() {
     if (!onFileChanges || pendingChanges.length === 0) return;
@@ -512,8 +546,8 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           {sending ? "发送中…" : "发送"}
         </Button>
         <span className="min-w-0 text-xs text-muted-foreground" aria-live="polite">
-          <span className="block">上下文约 {formatContextSize(chatQuotaTokens)}/{formatContextLimit(selectedModel?.contextLength)}</span>
-          <span className="block truncate">项目 {formatContextSize(contextUsage.context)} · 历史 {formatContextSize(contextUsage.history)} · 输入 {formatContextSize(contextUsage.input)}</span>
+          <span className="block">本次请求约 {formatContextSize(requestTokens)}/{formatContextLimit(selectedModel?.contextLength)}</span>
+          <span className="block truncate">聊天历史 {formatContextSize(contextUsage.history)} + 输入 {formatContextSize(contextUsage.input)} · 项目文件按需读取</span>
         </span>
       </div>
 

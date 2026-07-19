@@ -6,12 +6,14 @@ import Link from "next/link";
 import { ArrowLeft, FileDown, FolderPlus, Loader2, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
 import { CodeEditor } from "@/components/ui/code-editor";
 import {
   ChatBox,
   type ChatBoxHandle,
   type ChatFileChange,
+  type ChatProjectTool,
 } from "@/openroutermcp/chatbox";
 import { contentTypeById } from "@/lib/content-types";
 import type { ProjectFileEntry } from "@/lib/file-system/types";
@@ -36,6 +38,7 @@ import {
 } from "@/lib/file-system/browser";
 import {
   getProject,
+  saveProject,
   updateProjectState,
   type Project,
 } from "@/lib/local-projects";
@@ -140,6 +143,8 @@ export default function EditorClient() {
   const [exporting, setExporting] = useState(false);
   const chatRef = useRef<ChatBoxHandle>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const [isTitleEditing, setIsTitleEditing] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
 
   async function loadProject(pid: string) {
     setStatus("loading");
@@ -304,6 +309,57 @@ export default function EditorClient() {
     setContents((previous) => ({ ...previous, [path]: value }));
     setDirtyPaths((previous) => new Set(previous).add(path));
     setSaved(false);
+  }
+
+  function startTitleEditing() {
+    if (!project) return;
+    setTitleDraft(project.title);
+    setIsTitleEditing(true);
+  }
+
+  function cancelTitleEditing() {
+    setTitleDraft(project?.title ?? "");
+    setIsTitleEditing(false);
+  }
+
+  async function commitTitleChange() {
+    if (!project) {
+      setIsTitleEditing(false);
+      return;
+    }
+
+    const nextTitle = titleDraft.trim() || project.title;
+    setTitleDraft(nextTitle);
+    setIsTitleEditing(false);
+    if (nextTitle === project.title) return;
+
+    setSaving(true);
+    setSaved(false);
+    setError("");
+    try {
+      const now = Math.max(project.updatedAt + 1, project.createdAt);
+      await saveProject({
+        ...project,
+        title: nextTitle,
+        updatedAt: now,
+        lastOpenedPath: selectedPath || project.lastOpenedPath,
+      });
+      setProject((previous) =>
+        previous
+          ? {
+              ...previous,
+              title: nextTitle,
+              updatedAt: now,
+              lastOpenedPath: selectedPath || previous.lastOpenedPath,
+            }
+          : previous
+      );
+      setSaved(true);
+    } catch (e) {
+      setError(t("editor.saveFailed") + (e instanceof Error ? e.message : String(e)));
+    } finally {
+      setSaving(false);
+    }
   }
 
   function selectPath(path: string) {
@@ -540,12 +596,74 @@ export default function EditorClient() {
 
   const context = useMemo(() => {
     if (!project) return undefined;
-    const source = Object.entries(contents)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([path, content]) => `## ${path}\n\n${content}`)
-      .join("\n\n");
-    return `# ${project.title}\n模板：${contentTypeById[project.template]?.label[project.lang] ?? project.template}\n\n${source}`;
-  }, [contents, project]);
+    return [
+      `项目：${project.title}`,
+      `模板：${contentTypeById[project.template]?.label[project.lang] ?? project.template}`,
+      selectedPath ? `当前选中：${selectedPath}` : "当前选中：无",
+      `文本文件数：${Object.keys(contents).length}`,
+    ].join("\n");
+  }, [contents, project, selectedPath]);
+
+  const projectTools = useMemo<ChatProjectTool[]>(() => {
+    const sortedEntries = Object.entries(contents).sort(([a], [b]) => a.localeCompare(b));
+    return [
+      {
+        name: "genstory_list_project_files",
+        description: "列出当前 GenStory 项目的文本文件路径。需要了解项目结构时先调用。",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+        call: () => ({
+          selectedPath,
+          files: sortedEntries.map(([path, content]) => ({
+            path,
+            characters: content.length,
+          })),
+        }),
+      },
+      {
+        name: "genstory_read_project_file",
+        description: "读取当前 GenStory 项目中的单个文本文件完整内容。只在确实需要文件内容时调用。",
+        inputSchema: {
+          type: "object",
+          properties: {
+            path: { type: "string", description: "项目内相对路径，例如 AGENTS.md 或 chapter-001/scenes/scene-001/script.md" },
+          },
+          required: ["path"],
+        },
+        call: (args) => {
+          const path = normalizeRelativePath(String(args.path ?? ""));
+          const content = contents[path];
+          if (content === undefined) throw new Error(`文件不存在或不是文本文件：${path}`);
+          return { path, content };
+        },
+      },
+      {
+        name: "genstory_search_project_files",
+        description: "在当前 GenStory 项目的文本文件中搜索关键词，返回匹配文件和片段。",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "要搜索的关键词" },
+          },
+          required: ["query"],
+        },
+        call: (args) => {
+          const query = String(args.query ?? "").trim().toLowerCase();
+          if (!query) return { query, matches: [] };
+          const matches = sortedEntries.flatMap(([path, content]) => {
+            const index = content.toLowerCase().indexOf(query);
+            if (index < 0) return [];
+            const start = Math.max(0, index - 120);
+            const end = Math.min(content.length, index + query.length + 120);
+            return [{ path, excerpt: content.slice(start, end) }];
+          });
+          return { query, matches: matches.slice(0, 20) };
+        },
+      },
+    ];
+  }, [contents, selectedPath]);
 
   return (
     <main className="flex h-svh flex-col overflow-hidden">
@@ -554,9 +672,40 @@ export default function EditorClient() {
           <Button render={<Link href="/projects" />} variant="ghost" size="icon" aria-label={t("editor.back")}>
             <ArrowLeft className="size-4" />
           </Button>
-          <h1 className="text-lg font-bold tracking-tight">
-            {project?.title ?? t("editor.title")}
-          </h1>
+          {project ? (
+            isTitleEditing ? (
+              <Input
+                autoFocus
+                value={titleDraft}
+                onChange={(event) => setTitleDraft(event.target.value)}
+                onFocus={(event) => event.currentTarget.select()}
+                onBlur={() => void commitTitleChange()}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void commitTitleChange();
+                  } else if (event.key === "Escape") {
+                    event.preventDefault();
+                    cancelTitleEditing();
+                  }
+                }}
+                aria-label={t("editor.name")}
+                className="h-9 w-full max-w-80 text-lg font-bold tracking-tight sm:w-80"
+              />
+            ) : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => startTitleEditing()}
+                disabled={saving}
+                className="h-9 max-w-80 justify-start px-2 text-left text-lg font-bold tracking-tight"
+              >
+                <span className="truncate">{project.title}</span>
+              </Button>
+            )
+          ) : (
+            <h1 className="text-lg font-bold tracking-tight">{t("editor.title")}</h1>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <input
@@ -725,6 +874,7 @@ export default function EditorClient() {
                 ref={chatRef}
                 chatId={project?.id}
                 context={context}
+                projectTools={projectTools}
                 onFileChanges={applyChatFileChanges}
                 className="h-full max-w-none"
               />

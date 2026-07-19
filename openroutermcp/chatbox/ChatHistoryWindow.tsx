@@ -6,33 +6,57 @@
 // Renders user/assistant text with inline markdown and tool results with image
 // support (images referenced by id so base64 stays out of the model context).
 
-import { useEffect, useRef } from "react";
-import type { ChatMessage } from "@/lib/openrouter";
+import { useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { cn } from "@/lib/utils";
 import { Md, ToolResult } from "./chatRender";
+import { formatThinkingLabel } from "./thinkingIndicator";
+import { isChatNotice, type ChatTranscriptItem } from "./transcript";
 
 export interface ChatHistoryWindowProps {
-  messages: ChatMessage[];
+  messages: ChatTranscriptItem[];
   loading?: boolean;
   /** id -> data URL map for images referenced by tool results. */
   images?: Record<string, string>;
+  className?: string;
 }
 
-export function ChatHistoryWindow({ messages, loading, images = {} }: ChatHistoryWindowProps) {
+export function ChatHistoryWindow({ messages, loading, images = {}, className }: ChatHistoryWindowProps) {
   const endRef = useRef<HTMLDivElement>(null);
+  const [thinkingFrame, setThinkingFrame] = useState(0);
 
   // Keep the latest content in view: runs on mount and on every change.
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
   }, [messages, loading]);
 
+  useEffect(() => {
+    if (!loading) {
+      return;
+    }
+
+    const timerId = window.setInterval(() => {
+      setThinkingFrame((frame) => frame + 1);
+    }, 450);
+
+    return () => window.clearInterval(timerId);
+  }, [loading]);
+
   return (
-    <ScrollArea className="h-[420px] rounded-lg border bg-muted/40 p-3">
+    <ScrollArea className={cn("min-h-0 flex-1 rounded-lg border bg-muted/40 p-3", className)}>
       <div className="flex flex-col gap-2">
         {messages.length === 0 && !loading && (
           <p className="text-sm text-muted-foreground">还没有对话，发送一条消息开始。</p>
         )}
         {messages.map((m, i) => {
+          if (isChatNotice(m)) {
+            return (
+              <div key={m.id} className="self-center px-2 py-1 text-xs text-muted-foreground">
+                {m.content}
+              </div>
+            );
+          }
+
           if (m.role === "user") {
             return (
               <div
@@ -74,7 +98,7 @@ export function ChatHistoryWindow({ messages, loading, images = {} }: ChatHistor
         })}
         {loading && (
           <div className="max-w-[80%] self-start rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">
-            …（思考中）
+            {formatThinkingLabel(thinkingFrame)}
           </div>
         )}
         <div ref={endRef} />

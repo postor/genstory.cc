@@ -6,7 +6,7 @@ export default function EditorPage() {
   return (
     <Suspense
       fallback={
-        <main className="flex h-[calc(100svh-3.5rem)] items-center justify-center">
+        <main className="flex h-svh items-center justify-center overflow-hidden">
           <p className="text-sm text-muted-foreground">…</p>
         </main>
       }

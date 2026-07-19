@@ -9,6 +9,11 @@ import { useLang } from "@/lib/i18n";
 export function SiteHeader() {
   const { lang, setLang, t } = useLang();
   const pathname = usePathname();
+  const immersiveRoutes = ["/projects/editor", "/projects/preview"];
+
+  if (immersiveRoutes.some((route) => pathname.startsWith(route))) {
+    return null;
+  }
 
   const navItems = [
     { href: "/", label: t("nav.home") },

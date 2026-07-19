@@ -5,3 +5,6 @@ export type { ChatHistoryWindowProps } from "./ChatHistoryWindow";
 export { ModelSelect } from "./ModelSelect";
 export type { ModelSelectProps } from "./ModelSelect";
 export { Md, ToolResult, extractImages, mdComponents } from "./chatRender";
+export { buildContextSizeInput, estimateContextTokens, estimateContextUsage, formatContextLimit, formatContextSize } from "./contextSize";
+export { createModelSwitchNotice, isChatNotice, llmMessagesFromTranscript } from "./transcript";
+export type { ChatNotice, ChatTranscriptItem } from "./transcript";

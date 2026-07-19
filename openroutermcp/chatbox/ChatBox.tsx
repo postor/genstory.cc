@@ -17,7 +17,7 @@
 //
 // Styling uses shadcn primitives + Tailwind utilities only — no inline `style`.
 
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
   chat,
   listModels,
@@ -28,6 +28,7 @@ import {
 import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +40,13 @@ import {
 import { ModelSelect } from "./ModelSelect";
 import { ChatHistoryWindow } from "./ChatHistoryWindow";
 import { extractImages } from "./chatRender";
+import { estimateContextUsage, formatContextLimit, formatContextSize } from "./contextSize";
+import { pickInitialModelId } from "./modelSelection";
+import {
+  createModelSwitchNotice,
+  llmMessagesFromTranscript,
+  type ChatTranscriptItem,
+} from "./transcript";
 
 const LS_MODEL = "chatbox_model";
 const LS_MESSAGES = "chatbox_messages";
@@ -76,6 +84,7 @@ export interface ChatBoxProps {
   onSend?: (text: string) => void;
   /** Applies explicit file edits returned by the assistant after user confirmation. */
   onFileChanges?: (changes: ChatFileChange[]) => void | Promise<void>;
+  className?: string;
 }
 
 export interface ChatFileChange {
@@ -138,6 +147,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     onModelChange,
     onSend,
     onFileChanges,
+    className,
   }: ChatBoxProps,
   ref
 ) {
@@ -150,10 +160,12 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [modelStorageReady, setModelStorageReady] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [transcript, setTranscript] = useState<ChatTranscriptItem[]>([]);
   const [images, setImages] = useState<Record<string, string>>({});
   const [chatStorageReady, setChatStorageReady] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [streamingText, setStreamingText] = useState(false);
   const [applyingChanges, setApplyingChanges] = useState(false);
   const [pendingChanges, setPendingChanges] = useState<ChatFileChange[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -162,6 +174,15 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [oauthOpen, setOauthOpen] = useState(false);
 
   const authorized = isAuthorized && status === "connected";
+  const contextUsage = useMemo(
+    () => estimateContextUsage({ context, messages, input }),
+    [context, messages, input]
+  );
+  const selectedModel = useMemo(
+    () => models.find((item) => item.id === model),
+    [model, models]
+  );
+  const chatQuotaTokens = contextUsage.history + contextUsage.input;
 
   // --- init: load models + attempt to connect to MCP ---
   useEffect(() => {
@@ -172,9 +193,9 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         if (cancelled) return;
         setModels(ms);
         // Models load asynchronously (independent of MCP init). Keep the last
-        // selected model (restored from localStorage) only if it still exists
-        // in the freshly loaded list; otherwise fall back to the first model.
-        setModel((cur) => (cur && ms.some((m) => m.id === cur) ? cur : ms[0]?.id || ""));
+        // selected model (restored from localStorage) only if it still exists;
+        // otherwise prefer the first free model before falling back further.
+        setModel((cur) => pickInitialModelId(ms, cur));
       })
       .catch(() => {
         /* picker falls back to empty list */
@@ -192,7 +213,9 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
   useEffect(() => {
     setChatStorageReady(false);
-    setMessages(loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), []));
+    const storedMessages = loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), []);
+    setMessages(storedMessages);
+    setTranscript(storedMessages);
     setImages(loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {}));
     setChatStorageReady(true);
   }, [chatId]);
@@ -244,6 +267,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
   const clearChat = useCallback(() => {
     setMessages([]);
+    setTranscript([]);
     setImages({});
     setError(null);
   }, []);
@@ -269,11 +293,15 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       function: { name: t.name, description: t.description || "", parameters: t.inputSchema ?? { type: "object", properties: {} } },
     }));
 
-    const history: ChatMessage[] = [...messages, { role: "user", content: text }];
+    const userMessage: ChatMessage = { role: "user", content: text };
+    let displayTranscript: ChatTranscriptItem[] = [...transcript, userMessage];
+    const history: ChatMessage[] = llmMessagesFromTranscript(displayTranscript);
     setMessages(history);
+    setTranscript(displayTranscript);
     setInput("");
     setError(null);
     setSending(true);
+    setStreamingText(false);
     onSend?.(text);
 
     const systemMsg: ChatMessage = {
@@ -293,11 +321,30 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     try {
       for (let i = 0; i < maxToolRounds; i++) {
         const apiMessages = tools.length ? [systemMsg, ...history] : history;
-        const { content, toolCalls } = await chat(tk, model, apiMessages, mcpTools);
+        let streamedContent = "";
+        const { content, toolCalls } = await chat(tk, model, apiMessages, mcpTools, {
+          onTextDelta: (delta) => {
+            streamedContent += delta;
+            setStreamingText(true);
+            setTranscript([
+              ...displayTranscript,
+              { role: "assistant", content: streamedContent },
+            ]);
+          },
+        });
+        const finalContent = content ?? (streamedContent || null);
 
         if (toolCalls.length > 0) {
-          history.push({ role: "assistant", content, tool_calls: toolCalls });
+          setStreamingText(false);
+          const assistantMessage: ChatMessage = {
+            role: "assistant",
+            content: finalContent,
+            tool_calls: toolCalls,
+          };
+          history.push(assistantMessage);
+          displayTranscript = [...displayTranscript, assistantMessage];
           setMessages([...history]);
+          setTranscript(displayTranscript);
 
           const collected: Record<string, string> = {};
           for (const tc of toolCalls) {
@@ -312,32 +359,39 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
             } catch (e) {
               resultText = "工具调用失败: " + (e instanceof Error ? e.message : String(e));
             }
-            history.push({
+            const toolMessage: ChatMessage = {
               role: "tool",
               tool_call_id: tc.id,
               name: tc.function.name,
               content: resultText,
-            });
+            };
+            history.push(toolMessage);
+            displayTranscript = [...displayTranscript, toolMessage];
           }
           if (Object.keys(collected).length > 0) {
             setImages((prev) => ({ ...prev, ...collected }));
           }
           setMessages([...history]);
+          setTranscript(displayTranscript);
           continue;
         }
 
-        history.push({ role: "assistant", content: content ?? "" });
-        const fileChanges = parseFileChanges(content);
+        const assistantMessage: ChatMessage = { role: "assistant", content: finalContent ?? "" };
+        history.push(assistantMessage);
+        displayTranscript = [...displayTranscript, assistantMessage];
+        const fileChanges = parseFileChanges(finalContent);
         if (fileChanges.length > 0) setPendingChanges(fileChanges);
         setMessages([...history]);
+        setTranscript(displayTranscript);
         break;
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setSending(false);
+      setStreamingText(false);
     }
-  },     [input, sending, refreshToken, tools, messages, model, callTool, maxToolRounds, context, onSend, onFileChanges]);
+  },     [input, sending, refreshToken, tools, transcript, model, callTool, maxToolRounds, context, onSend, onFileChanges]);
 
   async function applyPendingChanges() {
     if (!onFileChanges || pendingChanges.length === 0) return;
@@ -379,14 +433,15 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   return (
     <div
       onClick={handleRootClick}
-      className={
-        "flex w-full max-w-[640px] flex-col gap-2.5 rounded-xl border bg-card p-4 " +
-        (authorized ? "cursor-default opacity-100" : "cursor-pointer opacity-70")
-      }
+      className={cn(
+        "flex w-full max-w-[640px] min-h-0 flex-col gap-2.5 rounded-xl border bg-card p-4",
+        authorized ? "cursor-default opacity-100" : "cursor-pointer opacity-70",
+        className
+      )}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold">OpenRouter 聊天</span>
-        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); clearChat(); }} disabled={messages.length === 0}>
+        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); clearChat(); }} disabled={transcript.length === 0}>
           清空聊天
         </Button>
       </div>
@@ -396,13 +451,17 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         value={model}
         onChange={(id) => {
           setModel(id);
+          if (id !== model) {
+            const modelName = models.find((item) => item.id === id)?.name ?? id;
+            setTranscript((previous) => [...previous, createModelSwitchNotice(modelName)]);
+          }
           onModelChange?.(id);
         }}
         loading={modelLoading}
         disabled={!authorized}
       />
 
-      <ChatHistoryWindow messages={messages} loading={sending} images={images} />
+      <ChatHistoryWindow messages={transcript} loading={sending && !streamingText} images={images} />
 
       {pendingChanges.length > 0 && (
         <div className="rounded-md border bg-muted/40 p-3">
@@ -445,13 +504,18 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         disabled={!authorized}
       />
 
-      <Button
-        onClick={(e) => { e.stopPropagation(); void sendChat(); }}
-        disabled={!authorized || sending || !input.trim()}
-        className="self-start"
-      >
-        {sending ? "发送中…" : "发送"}
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          onClick={(e) => { e.stopPropagation(); void sendChat(); }}
+          disabled={!authorized || sending || !input.trim()}
+        >
+          {sending ? "发送中…" : "发送"}
+        </Button>
+        <span className="min-w-0 text-xs text-muted-foreground" aria-live="polite">
+          <span className="block">上下文约 {formatContextSize(chatQuotaTokens)}/{formatContextLimit(selectedModel?.contextLength)}</span>
+          <span className="block truncate">项目 {formatContextSize(contextUsage.context)} · 历史 {formatContextSize(contextUsage.history)} · 输入 {formatContextSize(contextUsage.input)}</span>
+        </span>
+      </div>
 
       <Dialog
         open={oauthOpen}

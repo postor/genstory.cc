@@ -548,8 +548,8 @@ export default function EditorClient() {
   }, [contents, project]);
 
   return (
-    <main className="flex h-[calc(100svh-3.5rem)] flex-col">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
+    <main className="flex h-svh flex-col overflow-hidden">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
         <div className="flex items-center gap-2">
           <Button render={<Link href="/projects" />} variant="ghost" size="icon" aria-label={t("editor.back")}>
             <ArrowLeft className="size-4" />
@@ -622,7 +622,7 @@ export default function EditorClient() {
       </div>
 
       {error && (
-        <div className="flex items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
           <span>{error}</span>
           <Button variant="outline" size="sm" onClick={() => id && void loadProject(id)}>
             {t("projects.reconnect")}
@@ -630,7 +630,7 @@ export default function EditorClient() {
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[260px_1fr_360px]">
+      <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[260px_1fr_360px]">
         <aside className="min-h-0 overflow-auto border-b border-border lg:border-b-0 lg:border-r">
           {status === "ready" ? (
             <Tree
@@ -715,17 +715,18 @@ export default function EditorClient() {
           )}
         </section>
 
-        <aside className="min-h-0 overflow-auto border-t border-border lg:border-l lg:border-t-0">
-          <div className="flex h-full flex-col gap-3 p-4">
+        <aside className="min-h-0 overflow-hidden border-t border-border lg:border-l lg:border-t-0">
+          <div className="flex h-full min-h-0 flex-col gap-3 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("editor.chat")}
             </p>
-            <div className="min-h-0 flex-1 overflow-auto">
+            <div className="min-h-0 flex-1">
               <ChatBox
                 ref={chatRef}
                 chatId={project?.id}
                 context={context}
                 onFileChanges={applyChatFileChanges}
+                className="h-full max-w-none"
               />
             </div>
           </div>

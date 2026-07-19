@@ -1,18 +1,21 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import { Button } from "@/components/ui/button";
 import { getProject } from "@/lib/local-projects";
 import {
   openProjectDirectory,
+  readFile,
   supportsFileSystemAccess,
 } from "@/lib/file-system/browser";
+import { mediaKindForSource } from "@/lib/markdown/image-paths";
+import { collectPreviewSectionMediaReferences } from "@/lib/markdown/preview-media";
 import { compile } from "@/lib/vn/compile";
 import { savePreviewGame } from "@/lib/vn/preview-store";
 import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
@@ -22,24 +25,91 @@ import { contentTypeById } from "@/lib/content-types";
 
 type Status = "loading" | "ready" | "missing" | "error";
 
+function markdownComponentsForSection(sectionUrls: Record<string, string>): Components {
+  return {
+    img: ({ node: _node, src, alt, ...props }) => {
+      void _node;
+      const resolvedSrc =
+        typeof src === "string" ? sectionUrls[src] ?? src : src;
+      return (
+        <>
+          {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            {...props}
+            src={resolvedSrc}
+            alt={alt ?? ""}
+            className="max-w-full rounded-md border bg-background"
+          />
+        </>
+      );
+    },
+    a: ({ node: _node, href, children, title }) => {
+      void _node;
+      const resolvedHref =
+        typeof href === "string" ? sectionUrls[href] ?? href : href;
+      if (typeof href === "string") {
+        const kind = mediaKindForSource(href);
+        if (kind === "video") {
+          return (
+            <video
+              src={resolvedHref}
+              controls
+              title={title}
+              className="my-3 max-h-96 w-full rounded-md border bg-black"
+            >
+              {children}
+            </video>
+          );
+        }
+        if (kind === "audio") {
+          return <audio src={resolvedHref} controls title={title} className="my-3 w-full" />;
+        }
+      }
+      return (
+        <a href={resolvedHref} title={title}>
+          {children}
+        </a>
+      );
+    },
+  };
+}
+
 export default function PreviewClient() {
   const { lang, t } = useLang();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState("");
+  const [projectRoot, setProjectRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const [genericPreview, setGenericPreview] = useState<ProjectPreviewModel | null>(null);
+  const [sectionMediaUrls, setSectionMediaUrls] = useState<Record<string, Record<string, string>>>({});
+  const sectionMediaUrlsRef = useRef<Record<string, Record<string, string>>>({});
+
+  function replaceSectionMediaUrls(nextUrls: Record<string, Record<string, string>>) {
+    for (const urls of Object.values(sectionMediaUrlsRef.current)) {
+      for (const url of Object.values(urls)) URL.revokeObjectURL(url);
+    }
+    sectionMediaUrlsRef.current = nextUrls;
+    queueMicrotask(() => setSectionMediaUrls(nextUrls));
+  }
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!id) {
+        setProjectRoot(null);
+        setGenericPreview(null);
         setStatus("missing");
         return;
       }
       try {
         const p = await getProject(id);
         if (!p) {
+          if (!cancelled) {
+            setProjectRoot(null);
+            setGenericPreview(null);
+          }
           if (!cancelled) setStatus("missing");
           return;
         }
@@ -54,14 +124,22 @@ export default function PreviewClient() {
           const vn = await readVNProjectFromDirectory(root);
           const files = await compile(vn);
           await savePreviewGame(files);
-          if (!cancelled) setGenericPreview(null);
+          if (!cancelled) {
+            setProjectRoot(null);
+            setGenericPreview(null);
+          }
         } else {
           const model = await readProjectPreview(root, p.template);
-          if (!cancelled) setGenericPreview(model);
+          if (!cancelled) {
+            setProjectRoot(root);
+            setGenericPreview(model);
+          }
         }
         if (!cancelled) setStatus("ready");
       } catch (e) {
         if (!cancelled) {
+          setProjectRoot(null);
+          setGenericPreview(null);
           setStatus("error");
           setError(e instanceof Error ? e.message : String(e));
         }
@@ -72,9 +150,55 @@ export default function PreviewClient() {
     };
   }, [id, t]);
 
+  useEffect(() => {
+    if (!projectRoot || !genericPreview) {
+      replaceSectionMediaUrls({});
+      return;
+    }
+
+    const references = collectPreviewSectionMediaReferences(genericPreview.sections);
+    if (references.length === 0) {
+      replaceSectionMediaUrls({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const nextUrls: Record<string, Record<string, string>> = {};
+      const createdUrls: string[] = [];
+      for (const reference of references) {
+        try {
+          const file = await readFile(projectRoot, reference.mediaPath);
+          const url = URL.createObjectURL(file);
+          createdUrls.push(url);
+          (nextUrls[reference.sectionPath] ??= {})[reference.source] = url;
+        } catch {
+          /* Keep missing media as their original markdown paths. */
+        }
+      }
+      if (cancelled) {
+        for (const url of createdUrls) URL.revokeObjectURL(url);
+        return;
+      }
+      replaceSectionMediaUrls(nextUrls);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [genericPreview, projectRoot]);
+
+  useEffect(() => {
+    return () => {
+      for (const urls of Object.values(sectionMediaUrlsRef.current)) {
+        for (const url of Object.values(urls)) URL.revokeObjectURL(url);
+      }
+    };
+  }, []);
+
   return (
-    <main className="flex h-[calc(100svh-3.5rem)] flex-col">
-      <div className="flex items-center justify-between border-b px-4 py-3">
+    <main className="flex h-svh flex-col overflow-hidden">
+      <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
         <div className="flex items-center gap-2">
           <Button
             render={<Link href={`/projects/editor?id=${id}`} />}
@@ -114,19 +238,25 @@ export default function PreviewClient() {
               {genericPreview.title}
             </h1>
             <div className="space-y-8">
-              {genericPreview.sections.map((section) => (
-                <section key={section.path} className="border-t pt-6">
-                  <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                    <h2 className="text-xl font-semibold">{section.title}</h2>
-                    <span className="text-xs text-muted-foreground">{section.path}</span>
-                  </div>
-                  <div className="prose prose-sm max-w-none text-foreground dark:prose-invert [&_a]:text-primary [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {section.body}
-                    </ReactMarkdown>
-                  </div>
-                </section>
-              ))}
+              {genericPreview.sections.map((section) => {
+                const sectionUrls = sectionMediaUrls[section.path] ?? {};
+                return (
+                  <section key={section.path} className="border-t pt-6">
+                    <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+                      <h2 className="text-xl font-semibold">{section.title}</h2>
+                      <span className="text-xs text-muted-foreground">{section.path}</span>
+                    </div>
+                    <div className="prose prose-sm max-w-none text-foreground dark:prose-invert [&_a]:text-primary [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={markdownComponentsForSection(sectionUrls)}
+                      >
+                        {section.body}
+                      </ReactMarkdown>
+                    </div>
+                  </section>
+                );
+              })}
               {genericPreview.sections.length === 0 && (
                 <p className="text-sm text-muted-foreground">{t("editor.empty")}</p>
               )}

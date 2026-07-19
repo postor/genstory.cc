@@ -85,6 +85,7 @@ test("visual novel template contains real OpenWebGal source files", async () => 
   assert.ok(paths.has("chapter-001/scenes/scene-001/script.md"));
   assert.ok(paths.has("chapter-001/scenes/scene-001/stage.yml"));
   assert.ok(paths.has("assets/index.yml"));
+  assert.ok(paths.has("assets/ui/menu-background.png"));
   assert.ok(files.some((file) => file.path.endsWith(".png") && file.kind === "binary"));
 });
 

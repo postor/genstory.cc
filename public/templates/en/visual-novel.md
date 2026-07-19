@@ -43,7 +43,8 @@ One fact, one source.
 │   ├── effects/
 │   ├── bgm/
 │   ├── sfx/
-│   └── voice/
+│   ├── voice/
+│   └── ui/
 │
 └── chapter-001/
     ├── meta.md
@@ -117,6 +118,14 @@ All assets are indexed by:
 ```
 assets/index.yml
 ```
+
+The menu screen background uses the fixed project path:
+
+```text
+assets/ui/menu-background.png
+```
+
+This file is not part of stage state; preview and export compile it to OpenWebGal's `game/background/Title.png`.
 
 Available asset types are open-ended, for example:
 

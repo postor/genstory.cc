@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FileDown, Plus, Trash2, Upload } from "lucide-react";
+import { FileDown, Pencil, Plus, Trash2, Upload } from "lucide-react";
 
 import {
   Card,
@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useLang } from "@/lib/i18n";
 import {
   deleteProject,
@@ -34,6 +35,8 @@ export default function ProjectsPage() {
   const [loading, setLoading] = useState(true);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
 
   async function refresh() {
     try {
@@ -73,6 +76,37 @@ export default function ProjectsPage() {
     try {
       const root = await openProjectDirectory(project.template, project.id);
       await exportProjectDirectoryZip(root, `${project.title || "project"}-source`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  function startTitleEditing(project: Project) {
+    setEditingProjectId(project.id);
+    setTitleDraft(project.title);
+  }
+
+  function cancelTitleEditing() {
+    setEditingProjectId(null);
+    setTitleDraft("");
+  }
+
+  async function commitTitleChange(project: Project) {
+    const nextTitle = titleDraft.trim() || project.title;
+    setEditingProjectId(null);
+    setTitleDraft("");
+    if (nextTitle === project.title) return;
+
+    const now = Math.max(project.updatedAt + 1, project.createdAt);
+    try {
+      await saveProject({ ...project, title: nextTitle, updatedAt: now });
+      setProjects((previous) =>
+        previous.map((item) =>
+          item.id === project.id
+            ? { ...item, title: nextTitle, updatedAt: now }
+            : item
+        )
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     }
@@ -154,7 +188,47 @@ export default function ProjectsPage() {
           {projects.map((project) => (
             <Card key={project.id}>
               <CardHeader className="gap-1">
-                <CardTitle className="truncate">{project.title}</CardTitle>
+                <CardTitle className="min-w-0">
+                  {editingProjectId === project.id ? (
+                    <Input
+                      autoFocus
+                      value={titleDraft}
+                      onChange={(event) => setTitleDraft(event.target.value)}
+                      onFocus={(event) => event.currentTarget.select()}
+                      onBlur={() => void commitTitleChange(project)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          void commitTitleChange(project);
+                        } else if (event.key === "Escape") {
+                          event.preventDefault();
+                          cancelTitleEditing();
+                        }
+                      }}
+                      aria-label={t("editor.name")}
+                      className="h-8 text-base font-semibold"
+                    />
+                  ) : (
+                    <div className="flex min-w-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => startTitleEditing(project)}
+                        className="min-w-0 truncate text-left hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      >
+                        {project.title}
+                      </button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        onClick={() => startTitleEditing(project)}
+                        aria-label={t("projects.editTitle")}
+                      >
+                        <Pencil className="size-3.5" />
+                      </Button>
+                    </div>
+                  )}
+                </CardTitle>
                 <p className="text-xs text-muted-foreground">
                   {t("projects.updatedAt")}{" "}
                   {new Date(project.updatedAt).toLocaleString(

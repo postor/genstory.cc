@@ -7,5 +7,6 @@ test("editor title can enter inline edit mode on click and saves on blur", async
 
   assert.match(source, /onClick=\{\(\) => startTitleEditing\(\)\}/);
   assert.match(source, /onBlur=\{\(\) => void commitTitleChange\(\)\}/);
+  assert.match(source, /<Pencil className="size-4" \/>/);
   assert.match(source, /<Input/);
 });

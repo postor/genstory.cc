@@ -107,7 +107,11 @@ export async function compile(vn: VNProject): Promise<Record<string, Blob>> {
     }
     if (blob) files[`${dir}/${file}`] = blob;
   }
-  files["background/Title.png"] = await makePngBlob(320, 240, [60, 80, 120], vn.title);
+  const titleImageBlob = vn.titleImageDataUrl
+    ? await dataUrlToBlob(vn.titleImageDataUrl)
+    : undefined;
+  files["background/Title.png"] =
+    titleImageBlob ?? (await makePngBlob(320, 240, [60, 80, 120], vn.title));
 
   files["config.txt"] = textBlob(
     [

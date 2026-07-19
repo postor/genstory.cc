@@ -120,6 +120,24 @@ function basename(path: string): string {
   return path.split("/").at(-1) ?? path;
 }
 
+async function fileToDataUrl(file: File): Promise<string> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return `data:${file.type || "application/octet-stream"};base64,${btoa(binary)}`;
+}
+
+async function projectFileDataUrl(
+  root: FileSystemDirectoryHandle,
+  path: string
+): Promise<string | undefined> {
+  try {
+    return await fileToDataUrl(await readFile(root, path));
+  } catch {
+    return undefined;
+  }
+}
+
 async function assetDataUrl(
   root: FileSystemDirectoryHandle,
   asset: VNAsset
@@ -132,11 +150,7 @@ async function assetDataUrl(
   ];
   for (const path of candidates) {
     try {
-      const file = await readFile(root, path);
-      const bytes = new Uint8Array(await file.arrayBuffer());
-      let binary = "";
-      for (const byte of bytes) binary += String.fromCharCode(byte);
-      return `data:${file.type || "application/octet-stream"};base64,${btoa(binary)}`;
+      return await fileToDataUrl(await readFile(root, path));
     } catch {
       // Try the next conventional asset location.
     }
@@ -197,6 +211,7 @@ export async function readVNProjectFromDirectory(
 
   return {
     title: frontmatter(projectMeta).title || "Untitled",
+    titleImageDataUrl: await projectFileDataUrl(root, "assets/ui/menu-background.png"),
     chapters: [...chapters.entries()].map(([id, value]) => ({
       id,
       title: value.title,

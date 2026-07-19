@@ -69,10 +69,17 @@ export function ChatHistoryWindow({ messages, loading, images = {}, className }:
           }
           if (m.role === "tool") {
             return (
-              <div key={i} className="max-w-[90%] self-start rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-800 dark:bg-emerald-950">
-                <div className="mb-1 text-xs font-semibold">🔧 工具返回：{m.name ?? m.tool_call_id}</div>
-                <ToolResult content={m.content ?? ""} images={images} />
-              </div>
+              <details
+                key={i}
+                className="group max-w-[90%] self-start rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm dark:border-emerald-800 dark:bg-emerald-950"
+              >
+                <summary className="cursor-pointer select-none text-xs font-semibold marker:text-emerald-700 dark:marker:text-emerald-300">
+                  🔧 工具返回：{m.name ?? m.tool_call_id}
+                </summary>
+                <div className="mt-2">
+                  <ToolResult content={m.content ?? ""} images={images} />
+                </div>
+              </details>
             );
           }
           if (m.tool_calls && m.tool_call_id === undefined) {

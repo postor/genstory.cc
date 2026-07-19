@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileDown, FolderPlus, Loader2, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, FileDown, FolderPlus, Loader2, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -693,15 +693,27 @@ export default function EditorClient() {
                 className="h-9 w-full max-w-80 text-lg font-bold tracking-tight sm:w-80"
               />
             ) : (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => startTitleEditing()}
-                disabled={saving}
-                className="h-9 max-w-80 justify-start px-2 text-left text-lg font-bold tracking-tight"
-              >
-                <span className="truncate">{project.title}</span>
-              </Button>
+              <div className="flex min-w-0 items-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => startTitleEditing()}
+                  disabled={saving}
+                  className="h-9 max-w-80 justify-start px-2 text-left text-lg font-bold tracking-tight"
+                >
+                  <span className="truncate">{project.title}</span>
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => startTitleEditing()}
+                  disabled={saving}
+                  aria-label={t("projects.editTitle")}
+                >
+                  <Pencil className="size-4" />
+                </Button>
+              </div>
             )
           ) : (
             <h1 className="text-lg font-bold tracking-tight">{t("editor.title")}</h1>

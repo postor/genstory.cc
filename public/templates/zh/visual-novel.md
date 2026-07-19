@@ -43,7 +43,8 @@
 │   ├── effects/
 │   ├── bgm/
 │   ├── sfx/
-│   └── voice/
+│   ├── voice/
+│   └── ui/
 │
 └── chapter-001/
     ├── meta.md
@@ -117,6 +118,14 @@
 ```text
 assets/index.yml
 ```
+
+菜单页背景使用固定项目路径：
+
+```text
+assets/ui/menu-background.png
+```
+
+该文件不写入舞台状态；预览和导出会将其编译为 OpenWebGal 的 `game/background/Title.png`。
 
 可用资产类型保持开放，例如：
 

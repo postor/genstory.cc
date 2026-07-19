@@ -36,6 +36,8 @@ export interface VNChapter {
 
 export interface VNProject {
   title: string;
+  /** Optional title/menu background image, compiled to OpenWebGal background/Title.png. */
+  titleImageDataUrl?: string;
   chapters: VNChapter[];
   assets: VNAsset[];
 }

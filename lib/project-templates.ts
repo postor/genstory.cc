@@ -232,6 +232,7 @@ function visualNovelTemplate(title: string, agents: string): ProjectTemplateFile
     ["assets/backgrounds/bg_home.png", "/project-templates/visual-novel/assets/backgrounds/bg_home.png"],
     ["assets/backgrounds/bg_forest.png", "/project-templates/visual-novel/assets/backgrounds/bg_forest.png"],
     ["assets/backgrounds/bg_grandma.png", "/project-templates/visual-novel/assets/backgrounds/bg_grandma.png"],
+    ["assets/ui/menu-background.png", "/project-templates/visual-novel/assets/backgrounds/bg_forest.png"],
     ["assets/characters/red_normal.png", "/project-templates/visual-novel/assets/characters/red_normal.png"],
     ["assets/characters/red_curious.png", "/project-templates/visual-novel/assets/characters/red_curious.png"],
     ["assets/characters/red_sad.png", "/project-templates/visual-novel/assets/characters/red_sad.png"],

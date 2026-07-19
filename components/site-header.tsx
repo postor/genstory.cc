@@ -5,36 +5,41 @@ import { usePathname } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/lib/i18n";
+import { localizedPath, type PublicLang } from "@/lib/seo";
 
 export function SiteHeader() {
-  const { lang, setLang, t } = useLang();
+  const { lang, setLang } = useLang();
   const pathname = usePathname();
   const immersiveRoutes = ["/projects/editor", "/projects/preview"];
+  const publicLang = getPublicLang(pathname) ?? lang;
+  const labels = headerLabels[publicLang];
 
   if (immersiveRoutes.some((route) => pathname.startsWith(route))) {
     return null;
   }
 
   const navItems = [
-    { href: "/", label: t("nav.home") },
-    { href: "/projects", label: t("nav.projects") },
+    { href: localizedPath(publicLang), label: labels.home },
+    { href: "/projects", label: labels.projects },
   ];
+  const zhHref = getLocalizedHref(pathname, "zh");
+  const enHref = getLocalizedHref(pathname, "en");
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
+        <Link href={localizedPath(publicLang)} className="flex items-center gap-2 font-semibold">
           <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground text-sm">
             G
           </span>
-          {t("site.name")}
+          GenStory
         </Link>
 
         <nav className="flex items-center gap-1">
           {navItems.map((item) => {
             const active =
-              item.href === "/"
-                ? pathname === "/"
+              item.href === localizedPath(publicLang)
+                ? pathname === "/" || pathname === item.href
                 : pathname.startsWith(item.href);
             return (
               <Button
@@ -51,27 +56,57 @@ export function SiteHeader() {
           <div
             className="ml-1 flex items-center rounded-lg border p-0.5"
             role="group"
-            aria-label={t("lang.label")}
+            aria-label={labels.language}
           >
             <Button
-              variant={lang === "zh" ? "default" : "ghost"}
+              render={<Link href={zhHref} />}
+              variant={publicLang === "zh" ? "default" : "ghost"}
               size="xs"
-              aria-pressed={lang === "zh"}
+              aria-pressed={publicLang === "zh"}
               onClick={() => setLang("zh")}
             >
-              {t("lang.zh")}
+              {headerLabels.zh.languageName}
             </Button>
             <Button
-              variant={lang === "en" ? "default" : "ghost"}
+              render={<Link href={enHref} />}
+              variant={publicLang === "en" ? "default" : "ghost"}
               size="xs"
-              aria-pressed={lang === "en"}
+              aria-pressed={publicLang === "en"}
               onClick={() => setLang("en")}
             >
-              {t("lang.en")}
+              {headerLabels.en.languageName}
             </Button>
           </div>
         </nav>
       </div>
     </header>
   );
+}
+
+function getPublicLang(pathname: string): PublicLang | null {
+  const segment = pathname.split("/")[1];
+  return segment === "zh" || segment === "en" ? segment : null;
+}
+
+const headerLabels: Record<
+  PublicLang,
+  { home: string; projects: string; language: string; languageName: string }
+> = {
+  zh: { home: "首页", projects: "项目", language: "语言", languageName: "中文" },
+  en: {
+    home: "Home",
+    projects: "Projects",
+    language: "Language",
+    languageName: "English",
+  },
+};
+
+function getLocalizedHref(pathname: string, nextLang: PublicLang) {
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments[0] === "zh" || segments[0] === "en") {
+    return `/${[nextLang, ...segments.slice(1)].join("/")}`;
+  }
+  if (pathname === "/") return localizedPath(nextLang);
+  if (pathname.startsWith("/projects")) return pathname;
+  return localizedPath(nextLang, pathname);
 }

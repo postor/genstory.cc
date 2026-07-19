@@ -3,6 +3,12 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { OpenRouterMcpProvider } from "@/lib/openrouter-provider/OpenRouterMcpProvider";
 import { LangProvider } from "@/lib/i18n";
 import { SiteHeader } from "@/components/site-header";
+import {
+  ogImagePath,
+  pageLanguageAlternates,
+  siteMetadata,
+  siteUrl,
+} from "@/lib/seo";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -16,8 +22,42 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GenStory",
-  description: "Create books, comics, visual novels and interactive videos — locally, no backend.",
+  metadataBase: new URL(siteUrl),
+  applicationName: siteMetadata.name,
+  title: {
+    default: siteMetadata.zhTitle,
+    template: `%s | ${siteMetadata.name}`,
+  },
+  description: siteMetadata.zhDescription,
+  keywords: siteMetadata.keywords,
+  creator: siteMetadata.name,
+  alternates: {
+    canonical: "/zh",
+    languages: pageLanguageAlternates(),
+  },
+  openGraph: {
+    type: "website",
+    siteName: siteMetadata.name,
+    title: siteMetadata.zhTitle,
+    description: siteMetadata.zhDescription,
+    url: siteUrl,
+    locale: "zh_CN",
+    alternateLocale: ["en_US"],
+    images: [
+      {
+        url: ogImagePath,
+        width: 1200,
+        height: 630,
+        alt: "GenStory local-first story creation workspace",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteMetadata.zhTitle,
+    description: siteMetadata.zhDescription,
+    images: [ogImagePath],
+  },
 };
 
 export default function RootLayout({

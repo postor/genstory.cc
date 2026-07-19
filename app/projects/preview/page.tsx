@@ -1,6 +1,15 @@
 import { Suspense } from "react";
+import type { Metadata } from "next";
 
 import PreviewClient from "./preview-client";
+
+export const metadata: Metadata = {
+  title: "预览项目 - GenStory",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function PreviewPage() {
   return (

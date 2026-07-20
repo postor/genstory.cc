@@ -20,3 +20,39 @@ test("project pages use in-page dialogs instead of native browser popups", async
   assert.match(editorSource, /<PromptModal/);
   assert.match(editorSource, /<InteractionModal/);
 });
+
+test("cloud sync setup uses OAuth provider guidance and official links", async () => {
+  const settingsSource = await readFile(
+    new URL("../settings/settings-client.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(settingsSource, /<Dialog open=\{guideOpen\}/);
+  assert.match(settingsSource, /google-drive/);
+  assert.match(settingsSource, /one-drive/);
+  assert.match(settingsSource, /dropbox/);
+  assert.match(settingsSource, /handleCloudOAuthCallback/);
+  assert.match(settingsSource, /requestGoogleToken/);
+  assert.match(settingsSource, /https:\/\/developers\.google\.com\/drive/);
+  assert.match(settingsSource, /https:\/\/learn\.microsoft\.com\/en-us\/graph/);
+  assert.match(settingsSource, /https:\/\/www\.dropbox\.com\/developers/);
+  assert.match(settingsSource, /target="_blank"/);
+  assert.doesNotMatch(settingsSource, /Presigned|presigned|AmazonS3|Cloudflare/);
+});
+
+test("workspace cloud sync actions are global and use explicit overwrite confirmations", async () => {
+  const projectsSource = await readFile(new URL("./projects-client.tsx", import.meta.url), "utf8");
+
+  assert.match(projectsSource, /projects\.cloudDownload/);
+  assert.match(projectsSource, /projects\.cloudUpload/);
+  assert.match(projectsSource, /projects\.cloudSync/);
+  assert.match(projectsSource, /cloudConfirm === "download"/);
+  assert.match(projectsSource, /cloudConfirm === "upload"/);
+  assert.match(projectsSource, /cloudConfirm === "sync"/);
+  assert.match(projectsSource, /projects\.cloudDownloadDescription/);
+  assert.match(projectsSource, /projects\.cloudUploadDescription/);
+  assert.match(projectsSource, /projects\.cloudSyncTitle/);
+  assert.match(projectsSource, /role="progressbar"/);
+  assert.match(projectsSource, /handleCloudSync/);
+  assert.doesNotMatch(projectsSource, /Presigned|presigned|S3|s3/);
+});

@@ -33,9 +33,9 @@ export const siteMetadata = {
   zhTitle: "GenStory - 在浏览器中创作故事",
   enTitle: "GenStory - Create stories in the browser",
   zhDescription:
-    "GenStory 是一个在浏览器中运行的故事创作工作台，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，可下载项目备份并导出可运行项目。",
+    "GenStory 是一个在浏览器中运行的故事创作工作台，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，可下载项目备份、选择性同步到自己的云盘并导出可运行项目。",
   enDescription:
-    "GenStory is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. Projects stay in your browser and can be exported as source ZIPs or runnable projects.",
+    "GenStory is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. Projects stay in your browser, can be exported as source ZIPs or runnable projects, and can optionally sync to a cloud drive you authorize.",
   keywords: [
     "GenStory",
     "视觉小说编辑器",
@@ -67,6 +67,7 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
     "作品保存在浏览器中",
     "图书、漫画、视觉小说、互动视频和 Phaser 游戏模板",
     "项目备份下载和导入",
+    "可选的 Google Drive、OneDrive 和 Dropbox 同步",
     "视觉小说浏览器预览",
     "OpenWebGal 独立项目导出",
   ],
@@ -74,6 +75,7 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
     "Local-first project files",
     "Book, comic, visual novel, interactive video, and Phaser game templates",
     "Source ZIP backup and import",
+    "Optional Google Drive, OneDrive, and Dropbox sync",
     "Visual novel preview in the browser",
     "Standalone OpenWebGal project export",
   ],
@@ -168,8 +170,8 @@ export const publicPages: Record<
       {
         question: { zh: "GenStory 会把项目上传到服务器吗？", en: "Does GenStory upload my project to a server?" },
         answer: {
-          zh: "不会。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。换设备或清理浏览器数据前，请先下载项目备份。",
-          en: "No. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Download a project backup before changing devices or clearing browser data.",
+          zh: "不会自动上传到 GenStory 服务器。作品内容和素材默认保存在这台设备的浏览器中；如果你在设置页授权 Google Drive、OneDrive 或 Dropbox，项目页可以直接把文件同步到云盘的隔离目录。换设备或清理浏览器数据前，请先下载项目备份或完成一次云盘同步。",
+          en: "Not to GenStory servers. Work and assets stay in this browser by default; if you authorize Google Drive, OneDrive, or Dropbox in Settings, Projects can sync files directly to that provider's isolated app folder. Before changing devices or clearing browser data, download a source ZIP or complete a cloud sync.",
         },
       },
       {
@@ -272,8 +274,8 @@ export const publicPages: Record<
       {
         question: { zh: "清除浏览器数据会影响项目吗？", en: "Does clearing browser data affect projects?" },
         answer: {
-          zh: "会。作品保存在浏览器中，清除网站数据可能会删除本地作品。建议定期下载项目备份；换设备时也需要手动导入备份，不会自动同步。",
-          en: "Yes. Clearing site data can delete work stored in the browser. Download regular project backups, and manually import them on another device because works do not sync automatically.",
+          zh: "会。作品保存在浏览器中，清除网站数据可能会删除本地作品。建议定期下载项目备份，或在设置页授权云盘后手动同步；云盘同步不会自动运行。",
+          en: "Yes. Clearing site data can delete work stored in the browser. Download regular project backups, or authorize a drive in Settings and sync manually; cloud sync is not automatic.",
         },
       },
     ],

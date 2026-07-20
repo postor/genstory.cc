@@ -2,24 +2,57 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FileDown, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import {
+  CloudDownload,
+  CloudUpload,
+  FileDown,
+  Pencil,
+  Plus,
+  RefreshCw,
+  Trash2,
+  Upload,
+} from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InteractionModal } from "@/components/ui/interaction-modal";
-import { useLang } from "@/lib/i18n";
-import { localizePlatformErrorMessage } from "@/lib/platform-errors";
-import { languageInfo } from "@/lib/platform-i18n";
+import {
+  createCloudRemoteStore,
+  type CloudRemoteStore,
+} from "@/lib/cloud-sync/providers";
+import { loadCloudSyncSettings } from "@/lib/cloud-sync/storage";
+import {
+  applyCloudDownloadPlan,
+  prepareCloudDownloadPlan,
+  prepareCloudUploadPlan,
+  uploadLocalWorkspace,
+  type LocalWorkspaceSnapshot,
+} from "@/lib/cloud-sync/sync";
+import type {
+  CloudConflict,
+  CloudDownloadPlan,
+  CloudRemoteFile,
+  CloudSyncPhase,
+  CloudSyncProgress,
+} from "@/lib/cloud-sync/types";
+import { CLOUD_OAUTH_CONFIG, loadCloudToken } from "@/lib/cloud-sync/oauth";
 import {
   deleteProject,
-  saveProject,
   listProjects,
+  saveProject,
   type Project,
 } from "@/lib/local-projects";
 import {
@@ -30,6 +63,26 @@ import {
 } from "@/lib/file-system/browser";
 import { exportProjectDirectoryZip } from "@/lib/project-export";
 import { parseProjectSourceZip } from "@/lib/project-import";
+import { useLang } from "@/lib/i18n";
+import { languageInfo } from "@/lib/platform-i18n";
+import { localizePlatformErrorMessage } from "@/lib/platform-errors";
+
+type CloudAction = "upload" | "download" | "sync";
+
+interface CloudUploadPlan {
+  snapshot: LocalWorkspaceSnapshot;
+  remoteFiles: CloudRemoteFile[];
+  conflicts: CloudConflict[];
+}
+
+const CLOUD_PROGRESS_KEYS: Record<CloudSyncPhase, string> = {
+  authorizing: "projects.cloudPreparing",
+  listing: "projects.cloudPreparing",
+  comparing: "projects.cloudComparing",
+  downloading: "projects.cloudDownloading",
+  writing: "projects.cloudWriting",
+  uploading: "projects.cloudUploading",
+};
 
 export default function ProjectsPage() {
   const { lang, t } = useLang();
@@ -40,7 +93,17 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
-  const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
+  const [projectPendingDelete, setProjectPendingDelete] =
+    useState<Project | null>(null);
+  const [cloudOperation, setCloudOperation] = useState<CloudAction | null>(null);
+  const [cloudProgress, setCloudProgress] =
+    useState<CloudSyncProgress | null>(null);
+  const [cloudFeedback, setCloudFeedback] = useState<string | null>(null);
+  const [cloudConfirm, setCloudConfirm] = useState<CloudAction | null>(null);
+  const [downloadPlan, setDownloadPlan] = useState<CloudDownloadPlan | null>(
+    null
+  );
+  const [uploadPlan, setUploadPlan] = useState<CloudUploadPlan | null>(null);
 
   useEffect(() => {
     document.title = t("meta.projectsTitle");
@@ -48,7 +111,8 @@ export default function ProjectsPage() {
 
   async function refresh() {
     try {
-      setProjects(await listProjects());
+      const nextProjects = await listProjects();
+      setProjects(nextProjects);
     } catch (e) {
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
@@ -94,6 +158,154 @@ export default function ProjectsPage() {
       await exportProjectDirectoryZip(root, `${project.title || "project"}-source`);
     } catch (e) {
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+    }
+  }
+
+  function requireCloudStore(): CloudRemoteStore {
+    const settings = loadCloudSyncSettings();
+    if (!CLOUD_OAUTH_CONFIG[settings.provider].clientId) {
+      throw new Error(t("projects.cloudProviderNotConfigured"));
+    }
+    if (!loadCloudToken(settings.provider)) {
+      throw new Error(t("projects.cloudProviderMissing"));
+    }
+    return createCloudRemoteStore(settings.provider);
+  }
+
+  function resetCloudState() {
+    setCloudProgress(null);
+    setCloudFeedback(null);
+    setError(null);
+  }
+
+  function setCloudError(reason: unknown) {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    setError(t("projects.cloudOperationFailed", { message }));
+  }
+
+  async function prepareCloudUpload() {
+    resetCloudState();
+    setCloudConfirm(null);
+    setDownloadPlan(null);
+    setUploadPlan(null);
+    setCloudOperation("upload");
+    try {
+      if (projects.length === 0) throw new Error(t("projects.cloudNoProjects"));
+      const store = requireCloudStore();
+      const plan = await prepareCloudUploadPlan(store, projects, setCloudProgress);
+      setUploadPlan(plan);
+      setCloudConfirm("upload");
+    } catch (e) {
+      setCloudError(e);
+    } finally {
+      setCloudOperation(null);
+    }
+  }
+
+  async function prepareCloudDownload(nextConfirm: "download" | "sync" = "download") {
+    resetCloudState();
+    setCloudConfirm(null);
+    setDownloadPlan(null);
+    setUploadPlan(null);
+    setCloudOperation(nextConfirm);
+    try {
+      const store = requireCloudStore();
+      const plan = await prepareCloudDownloadPlan(store, projects, setCloudProgress);
+      setDownloadPlan(plan);
+      setCloudConfirm(nextConfirm);
+    } catch (e) {
+      setCloudError(e);
+    } finally {
+      setCloudOperation(null);
+    }
+  }
+
+  async function handleCloudUpload() {
+    const plan = uploadPlan;
+    if (!plan) return;
+    setCloudConfirm(null);
+    setCloudOperation("upload");
+    setCloudProgress(null);
+    setError(null);
+    try {
+      const store = requireCloudStore();
+      await uploadLocalWorkspace(
+        store,
+        plan.snapshot,
+        plan.remoteFiles,
+        setCloudProgress
+      );
+      setCloudFeedback(t("projects.cloudSuccessUpload"));
+      setUploadPlan(null);
+    } catch (e) {
+      setCloudError(e);
+    } finally {
+      setCloudOperation(null);
+      setCloudProgress(null);
+    }
+  }
+
+  async function applyCloudDownload(): Promise<Project[]> {
+    const plan = downloadPlan;
+    if (!plan) return projects;
+    const nextProjects = await applyCloudDownloadPlan(
+      plan,
+      projects,
+      lang,
+      setCloudProgress
+    );
+    setProjects(nextProjects);
+    setLoading(false);
+    return nextProjects;
+  }
+
+  async function handleCloudDownload() {
+    if (!downloadPlan) return;
+    setCloudConfirm(null);
+    setCloudOperation("download");
+    setCloudProgress(null);
+    setError(null);
+    try {
+      await applyCloudDownload();
+      setCloudFeedback(t("projects.cloudSuccessDownload"));
+      setDownloadPlan(null);
+    } catch (e) {
+      setCloudError(e);
+    } finally {
+      setCloudOperation(null);
+      setCloudProgress(null);
+    }
+  }
+
+  async function handleCloudSync() {
+    if (!downloadPlan) return;
+    setCloudConfirm(null);
+    setCloudOperation("sync");
+    setCloudProgress(null);
+    setCloudFeedback(null);
+    setError(null);
+    try {
+      const store = requireCloudStore();
+      const nextProjects = await applyCloudDownload();
+      if (nextProjects.length === 0) throw new Error(t("projects.cloudNoProjects"));
+      const plan = await prepareCloudUploadPlan(
+        store,
+        nextProjects,
+        setCloudProgress
+      );
+      await uploadLocalWorkspace(
+        store,
+        plan.snapshot,
+        plan.remoteFiles,
+        setCloudProgress
+      );
+      setCloudFeedback(t("projects.cloudSuccessSync"));
+      setDownloadPlan(null);
+    } catch (e) {
+      setCloudError(e);
+    } finally {
+      setCloudOperation(null);
+      setCloudProgress(null);
     }
   }
 
@@ -157,6 +369,69 @@ export default function ProjectsPage() {
     }
   }
 
+  function progressText() {
+    if (!cloudProgress) return t("projects.cloudPreparing");
+    const completed = Math.min(
+      cloudProgress.total,
+      Math.floor(cloudProgress.completed)
+    );
+    const total = cloudProgress.total;
+    return t(CLOUD_PROGRESS_KEYS[cloudProgress.phase], { completed, total });
+  }
+
+  function conflictPreview(conflicts: CloudConflict[], label: string) {
+    const preview = conflicts.slice(0, 5);
+    const moreCount = Math.max(0, conflicts.length - preview.length);
+    if (preview.length === 0) return null;
+    return (
+      <div className="rounded-lg border bg-muted/40 p-3 text-xs">
+        <p className="mb-2 font-medium">{label}</p>
+        <ul className="space-y-1 text-muted-foreground">
+          {preview.map((conflict) => (
+            <li key={`${conflict.direction}:${conflict.path}`} className="break-all">
+              {conflict.projectTitle} / {conflict.path}
+            </li>
+          ))}
+        </ul>
+        {moreCount > 0 ? (
+          <p className="mt-2 text-muted-foreground">
+            {t("projects.cloudConflictMore", { count: moreCount })}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
+  const progressValue =
+    cloudProgress && cloudProgress.total > 0
+      ? Math.min(100, Math.round((cloudProgress.completed / cloudProgress.total) * 100))
+      : 0;
+  const downloadConflictCount = downloadPlan?.conflicts.length ?? 0;
+  const uploadConflictCount = uploadPlan?.conflicts.length ?? 0;
+  const syncUploadConflictCount = downloadPlan?.uploadConflicts.length ?? 0;
+  const downloadDescription = downloadPlan
+    ? downloadConflictCount > 0
+      ? t("projects.cloudDownloadDescription", { count: downloadConflictCount })
+      : t("projects.cloudDownloadNoConflict")
+    : "";
+  const uploadDescription = [
+    t("projects.cloudUploadDescription"),
+    uploadConflictCount > 0
+      ? t("projects.cloudUploadConflictCount", { count: uploadConflictCount })
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+  const syncDescription = [
+    downloadDescription,
+    t("projects.cloudSyncDescription"),
+    syncUploadConflictCount > 0
+      ? t("projects.cloudUploadConflictCount", { count: syncUploadConflictCount })
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -165,8 +440,14 @@ export default function ProjectsPage() {
           <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
             {t("projects.storageNote")}
           </p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            {t("settings.cloud.title")} ·{" "}
+            <Link href="/settings" className="underline underline-offset-4">
+              {t("nav.settings")}
+            </Link>
+          </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <input
             ref={importInputRef}
             type="file"
@@ -183,6 +464,33 @@ export default function ProjectsPage() {
             <Upload className="size-4" />
             {importing ? t("projects.importing") : t("projects.import")}
           </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void prepareCloudDownload()}
+            disabled={cloudOperation !== null || importing}
+          >
+            <CloudDownload className="size-4" />
+            {t("projects.cloudDownload")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void prepareCloudUpload()}
+            disabled={cloudOperation !== null || importing}
+          >
+            <CloudUpload className="size-4" />
+            {t("projects.cloudUpload")}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void prepareCloudDownload("sync")}
+            disabled={cloudOperation !== null || importing}
+          >
+            <RefreshCw className="size-4" />
+            {t("projects.cloudSync")}
+          </Button>
           <Button render={<Link href="/projects/new" />}>
             <Plus className="size-4" />
             {t("projects.new")}
@@ -193,6 +501,11 @@ export default function ProjectsPage() {
       {error && (
         <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
+        </p>
+      )}
+      {cloudFeedback && (
+        <p className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+          {cloudFeedback}
         </p>
       )}
 
@@ -302,6 +615,76 @@ export default function ProjectsPage() {
         cancelLabel={t("common.cancel")}
         onConfirm={() => void confirmDeleteProject()}
       />
+      <InteractionModal
+        open={cloudConfirm === "upload"}
+        onOpenChange={(open) => {
+          if (!open) setCloudConfirm(null);
+        }}
+        title={t("projects.cloudUploadTitle")}
+        description={uploadDescription}
+        confirmLabel={t("projects.cloudUploadConfirm")}
+        confirmVariant="destructive"
+        confirmDisabled={!uploadPlan}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleCloudUpload()}
+      >
+        {uploadPlan
+          ? conflictPreview(
+              uploadPlan.conflicts,
+              t("projects.cloudUploadConflictCount", {
+                count: uploadPlan.conflicts.length,
+              })
+            )
+          : null}
+      </InteractionModal>
+      <InteractionModal
+        open={cloudConfirm === "download"}
+        onOpenChange={(open) => {
+          if (!open) setCloudConfirm(null);
+        }}
+        title={t("projects.cloudDownloadTitle")}
+        description={downloadDescription}
+        confirmLabel={t("projects.cloudDownloadConfirm")}
+        confirmVariant={downloadConflictCount > 0 ? "destructive" : "default"}
+        confirmDisabled={!downloadPlan}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleCloudDownload()}
+      >
+        {downloadPlan
+          ? conflictPreview(downloadPlan.conflicts, t("projects.cloudConflictPreview"))
+          : null}
+      </InteractionModal>
+      <InteractionModal
+        open={cloudConfirm === "sync"}
+        onOpenChange={(open) => {
+          if (!open) setCloudConfirm(null);
+        }}
+        title={t("projects.cloudSyncTitle")}
+        description={syncDescription}
+        confirmLabel={t("projects.cloudSyncConfirm")}
+        confirmVariant="destructive"
+        confirmDisabled={!downloadPlan}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleCloudSync()}
+      >
+        {downloadPlan
+          ? conflictPreview(downloadPlan.conflicts, t("projects.cloudConflictPreview"))
+          : null}
+      </InteractionModal>
+      <Dialog open={cloudOperation !== null}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("settings.cloud.title")}</DialogTitle>
+            <DialogDescription>{progressText()}</DialogDescription>
+          </DialogHeader>
+          <progress
+            role="progressbar"
+            className="h-2 w-full"
+            max={100}
+            value={progressValue}
+          />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

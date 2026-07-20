@@ -21,6 +21,7 @@ export function SiteHeader() {
   const navItems = [
     { href: localizedPath(publicLang), label: labels.home },
     { href: "/projects", label: labels.projects },
+    { href: "/settings", label: labels.settings },
   ];
   const zhHref = getLocalizedHref(pathname, "zh");
   const enHref = getLocalizedHref(pathname, "en");
@@ -90,12 +91,13 @@ function getPublicLang(pathname: string): PublicLang | null {
 
 const headerLabels: Record<
   PublicLang,
-  { home: string; projects: string; language: string; languageName: string }
+  { home: string; projects: string; settings: string; language: string; languageName: string }
 > = {
-  zh: { home: "首页", projects: "项目", language: "语言", languageName: "中文" },
+  zh: { home: "首页", projects: "项目", settings: "设置", language: "语言", languageName: "中文" },
   en: {
     home: "Home",
     projects: "Projects",
+    settings: "Settings",
     language: "Language",
     languageName: "English",
   },
@@ -107,6 +109,6 @@ function getLocalizedHref(pathname: string, nextLang: PublicLang) {
     return `/${[nextLang, ...segments.slice(1)].join("/")}`;
   }
   if (pathname === "/") return localizedPath(nextLang);
-  if (pathname.startsWith("/projects")) return pathname;
+  if (pathname.startsWith("/projects") || pathname.startsWith("/settings")) return pathname;
   return localizedPath(nextLang, pathname);
 }

@@ -1,6 +1,7 @@
 import { listProjectFiles, readFile } from "@/lib/file-system/browser";
+import { buildSourceZip } from "@/lib/project-zip";
 import type { ProjectPreviewModel } from "@/lib/project-source";
-import { zipStore, type ZipEntry } from "@/lib/vn/zip";
+import { zipStore } from "@/lib/vn/zip";
 
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -21,8 +22,15 @@ export async function exportProjectDirectoryZip(
   root: FileSystemDirectoryHandle,
   title: string
 ): Promise<void> {
+  const zip = await buildProjectDirectoryZip(root);
+  triggerDownload(zip, `${safeFilename(title)}.zip`);
+}
+
+export async function buildProjectDirectoryZip(
+  root: FileSystemDirectoryHandle
+): Promise<Blob> {
   const entries = await listProjectFiles(root);
-  const zipEntries: ZipEntry[] = [];
+  const zipEntries = [];
   for (const entry of entries) {
     if (entry.kind !== "file") continue;
     zipEntries.push({
@@ -30,8 +38,7 @@ export async function exportProjectDirectoryZip(
       blob: await readFile(root, entry.path),
     });
   }
-  const zip = await zipStore(zipEntries);
-  triggerDownload(zip, `${safeFilename(title)}.zip`);
+  return buildSourceZip(zipEntries);
 }
 
 function escapeHtml(value: string): string {

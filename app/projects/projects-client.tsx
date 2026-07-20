@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InteractionModal } from "@/components/ui/interaction-modal";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { languageInfo } from "@/lib/platform-i18n";
@@ -39,6 +40,7 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
+  const [projectPendingDelete, setProjectPendingDelete] = useState<Project | null>(null);
 
   useEffect(() => {
     document.title = t("meta.projectsTitle");
@@ -73,11 +75,17 @@ export default function ProjectsPage() {
     };
   }, [lang]);
 
-  async function handleDelete(project: Project) {
-    if (!window.confirm(t("projects.confirmDelete"))) return;
-    await removeProjectDirectory(project.template, project.id);
-    await deleteProject(project.id);
-    void refresh();
+  async function confirmDeleteProject() {
+    if (!projectPendingDelete) return;
+    const project = projectPendingDelete;
+    setProjectPendingDelete(null);
+    try {
+      await removeProjectDirectory(project.template, project.id);
+      await deleteProject(project.id);
+      await refresh();
+    } catch (e) {
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+    }
   }
 
   async function handleDownloadSource(project: Project) {
@@ -267,7 +275,7 @@ export default function ProjectsPage() {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => handleDelete(project)}
+                  onClick={() => setProjectPendingDelete(project)}
                 >
                   <Trash2 className="size-4" />
                   {t("projects.delete")}
@@ -277,6 +285,23 @@ export default function ProjectsPage() {
           ))}
         </div>
       )}
+
+      <InteractionModal
+        open={projectPendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setProjectPendingDelete(null);
+        }}
+        title={t("projects.deleteTitle")}
+        description={
+          projectPendingDelete
+            ? t("projects.deleteDescription", { title: projectPendingDelete.title })
+            : ""
+        }
+        confirmLabel={t("projects.deleteConfirm")}
+        confirmVariant="destructive"
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void confirmDeleteProject()}
+      />
     </main>
   );
 }

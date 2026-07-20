@@ -7,6 +7,7 @@ import { ArrowLeft, FileDown, FolderPlus, Loader2, Pencil, Play, RefreshCw, Save
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { InteractionModal, PromptModal } from "@/components/ui/interaction-modal";
 import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
 import { CodeEditor } from "@/components/ui/code-editor";
 import {
@@ -113,6 +114,12 @@ function buildTree(
 }
 
 type EditorStatus = "loading" | "ready" | "missing" | "error";
+type EntryKind = "file" | "directory" | null;
+
+interface EntryDialogState {
+  path: string;
+  kind: EntryKind;
+}
 
 export default function EditorClient() {
   const { lang, t } = useLang();
@@ -147,6 +154,9 @@ export default function EditorClient() {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [createDirectoryState, setCreateDirectoryState] = useState<EntryDialogState | null>(null);
+  const [newDirectoryName, setNewDirectoryName] = useState("");
+  const [deleteEntryState, setDeleteEntryState] = useState<EntryDialogState | null>(null);
 
   useEffect(() => {
     document.title = t("meta.editorTitle");
@@ -481,13 +491,17 @@ export default function EditorClient() {
 
   async function handleCreateDirectory() {
     if (!root) return;
-    const name = window.prompt(t("editor.enterFolderName"));
+    const dialogState = createDirectoryState;
+    if (!dialogState) return;
+    const name = newDirectoryName.trim();
     if (!name) return;
     setError("");
     try {
-      const path = resolveNewEntryPath(selectedPath, selectedKind, name);
+      const path = resolveNewEntryPath(dialogState.path, dialogState.kind, name);
       await ensurePermission(root, true);
       await createDirectory(root, path);
+      setCreateDirectoryState(null);
+      setNewDirectoryName("");
       await reloadFiles(path, "directory");
     } catch (e) {
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
@@ -495,34 +509,37 @@ export default function EditorClient() {
   }
 
   async function handleDeleteSelected() {
-    if (!root || !selectedPath) return;
-    if (!window.confirm(t("editor.confirmDeleteEntry"))) return;
+    if (!root) return;
+    const dialogState = deleteEntryState;
+    if (!dialogState?.path) return;
     setError("");
     try {
-      if (dirtyPaths.has(selectedPath)) {
+      const targetPath = dialogState.path;
+      setDeleteEntryState(null);
+      if (dirtyPaths.has(targetPath)) {
         setDirtyPaths((previous) => {
           const next = new Set(previous);
-          next.delete(selectedPath);
+          next.delete(targetPath);
           return next;
         });
       }
       await ensurePermission(root, true);
-      await deleteEntry(root, selectedPath, true);
+      await deleteEntry(root, targetPath, true);
       setContents((previous) => {
         const next = { ...previous };
         for (const path of Object.keys(next)) {
-          if (path === selectedPath || path.startsWith(`${selectedPath}/`)) delete next[path];
+          if (path === targetPath || path.startsWith(`${targetPath}/`)) delete next[path];
         }
         return next;
       });
       setDirtyPaths((previous) => {
         const next = new Set(previous);
         for (const path of [...next]) {
-          if (path === selectedPath || path.startsWith(`${selectedPath}/`)) next.delete(path);
+          if (path === targetPath || path.startsWith(`${targetPath}/`)) next.delete(path);
         }
         return next;
       });
-      await reloadFiles(parentDirectoryPath(selectedPath), "directory");
+      await reloadFiles(parentDirectoryPath(targetPath), "directory");
     } catch (e) {
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
@@ -682,6 +699,11 @@ export default function EditorClient() {
     ];
   }, [contents, selectedPath, t]);
 
+  const createDirectoryTarget = createDirectoryState
+    ? uploadTargetDirectory(createDirectoryState.path, createDirectoryState.kind) ||
+      t("editor.projectRoot")
+    : t("editor.projectRoot");
+
   return (
     <main className="flex h-svh flex-col overflow-hidden">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
@@ -754,14 +776,25 @@ export default function EditorClient() {
                 <Upload className="size-4" />
                 {t("editor.uploadFiles")}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => void handleCreateDirectory()}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setNewDirectoryName("");
+                  setCreateDirectoryState({ path: selectedPath, kind: selectedKind });
+                }}
+              >
                 <FolderPlus className="size-4" />
                 {t("editor.newFolder")}
               </Button>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => void handleDeleteSelected()}
+                onClick={() =>
+                  setDeleteEntryState(
+                    selectedPath ? { path: selectedPath, kind: selectedKind } : null
+                  )
+                }
                 disabled={!selectedPath}
               >
                 <Trash2 className="size-4" />
@@ -918,6 +951,47 @@ export default function EditorClient() {
           </div>
         </aside>
       </div>
+
+      <PromptModal
+        open={createDirectoryState !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateDirectoryState(null);
+            setNewDirectoryName("");
+          }
+        }}
+        title={t("editor.newFolderTitle")}
+        description={t("editor.newFolderDescription")}
+        inputLabel={t("editor.newFolderNameLabel")}
+        inputPlaceholder={t("editor.newFolderNamePlaceholder")}
+        value={newDirectoryName}
+        onValueChange={setNewDirectoryName}
+        confirmLabel={t("editor.newFolderConfirm")}
+        confirmDisabled={!newDirectoryName.trim()}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleCreateDirectory()}
+      >
+        <p className="text-xs text-muted-foreground">
+          {t("editor.newFolderLocation", { path: createDirectoryTarget })}
+        </p>
+      </PromptModal>
+
+      <InteractionModal
+        open={deleteEntryState !== null}
+        onOpenChange={(open) => {
+          if (!open) setDeleteEntryState(null);
+        }}
+        title={t("editor.deleteEntryTitle")}
+        description={
+          deleteEntryState
+            ? t("editor.deleteEntryDescription", { path: deleteEntryState.path })
+            : ""
+        }
+        confirmLabel={t("editor.deleteEntryConfirm")}
+        confirmVariant="destructive"
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleDeleteSelected()}
+      />
     </main>
   );
 }

@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { InteractionModal } from "@/components/ui/interaction-modal";
 import { contentTypes, type ContentTypeId } from "@/lib/content-types";
 import {
   listProjects,
@@ -42,6 +43,10 @@ export default function NewClient() {
   const [title, setTitle] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [notice, setNotice] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
 
   useEffect(() => {
     document.title = t("meta.newTitle");
@@ -55,7 +60,10 @@ export default function NewClient() {
 
   async function handleSubmit() {
     if (!template) {
-      window.alert(t("create.noTemplate"));
+      setNotice({
+        title: t("create.noTemplateTitle"),
+        description: t("create.noTemplateDescription"),
+      });
       return;
     }
     setSubmitting(true);
@@ -87,7 +95,15 @@ export default function NewClient() {
     } catch (e) {
       setSubmitting(false);
       if (e instanceof DOMException && e.name === "AbortError") return;
-      window.alert(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+      setNotice({
+        title: t("create.createFailedTitle"),
+        description: t("create.createFailedDescription", {
+          message: localizePlatformErrorMessage(
+            e instanceof Error ? e.message : String(e),
+            lang
+          ),
+        }),
+      });
     }
   }
 
@@ -150,6 +166,17 @@ export default function NewClient() {
           {t("create.submit")}
         </Button>
       </div>
+
+      <InteractionModal
+        open={notice !== null}
+        onOpenChange={(open) => {
+          if (!open) setNotice(null);
+        }}
+        title={notice?.title ?? ""}
+        description={notice?.description}
+        confirmLabel={t("common.ok")}
+        onConfirm={() => setNotice(null)}
+      />
     </main>
   );
 }

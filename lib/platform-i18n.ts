@@ -75,7 +75,7 @@ export const publicHomeCopy = {
     heroTitle: "GenStory",
     heroSubtitle: "在浏览器中创作故事和游戏",
     heroBody:
-      "在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。你可以下载项目备份，也可以导出可运行项目。",
+      "在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。可随时备份，也可以导出可运行项目。",
     ctaCreate: "开始创作",
     ctaBrowseTypes: "探索创作类型",
     pillarsTitle: "为长期创作设计",
@@ -84,7 +84,7 @@ export const publicHomeCopy = {
     pillars: [
       {
         title: "保存在你的浏览器里",
-        body: "作品内容和素材直接保存在这台设备的浏览器中。换设备或清理浏览器数据前，请先下载项目备份。",
+        body: "作品内容和素材直接保存在这台设备的浏览器中。换设备或清理浏览器数据前，请先备份。",
       },
       {
         title: "结构化创作",
@@ -92,7 +92,7 @@ export const publicHomeCopy = {
       },
       {
         title: "备份与发布",
-        body: "下载项目备份后可以继续编辑；视觉小说和 Phaser 游戏还可以在浏览器中预览并导出运行包。",
+        body: "备份后可以继续编辑；视觉小说和 Phaser 游戏还可以在浏览器中预览并导出运行包。",
       },
     ],
     workflows: [
@@ -105,7 +105,7 @@ export const publicHomeCopy = {
     heroTitle: "GenStory",
     heroSubtitle: "Create stories and games in the browser",
     heroBody:
-      "Create books, comics, visual novels, interactive videos, and Phaser games in the browser. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Download project backups or export runnable projects when ready.",
+      "Create books, comics, visual novels, interactive videos, and Phaser games in the browser. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Back up your work or export runnable projects when ready.",
     ctaCreate: "Start creating",
     ctaBrowseTypes: "Explore creation types",
     pillarsTitle: "Designed for long-running creative work",
@@ -114,7 +114,7 @@ export const publicHomeCopy = {
     pillars: [
       {
         title: "Saved in your browser",
-        body: "Your work and assets stay in this browser on this device. Download a project backup before changing devices or clearing browser data.",
+        body: "Your work and assets stay in this browser on this device. Back up before changing devices or clearing browser data.",
       },
       {
         title: "Structured creation",

@@ -1,5 +1,4 @@
 // The .ts suffix keeps the native Node strip-types test runner resolvable.
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { normalizeRelativePath } from "./paths.ts";
 
 type EntryKind = "file" | "directory";

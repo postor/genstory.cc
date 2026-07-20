@@ -2,13 +2,9 @@ import type { Lang } from "./i18n.ts";
 import type { ContentTypeId } from "./content-types";
 import type { ProjectTemplateFile } from "./file-system/types";
 // The .ts suffix keeps the native Node strip-types test runner resolvable.
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { buildVNProjectFiles } from "./vn/project-files.ts";
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { seedRedRidingHood } from "./vn/seed.ts";
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { seedComicRedRidingHood } from "./comic/seed.ts";
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { buildComicProjectFiles } from "./comic/project-files.ts";
 
 const FALLBACK_AGENTS = `# GenStory 项目约束
@@ -50,7 +46,7 @@ function meta(type: ContentTypeId, title: string): string {
     "",
     `# ${title}`,
     "",
-    "这是一个由 GenStory 模板创建的本地项目。",
+    "这是一个由 GenStory 模板创建的作品。",
     "",
   ].join("\n");
 }

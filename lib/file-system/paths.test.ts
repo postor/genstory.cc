@@ -25,6 +25,7 @@ test("builds a stable project path from type and project id", () => {
 });
 
 test("rejects path identity segments that can escape the project root", () => {
+  // @ts-expect-error Deliberately passes an invalid content type to verify runtime validation.
   assert.throws(() => projectRelativePath("../book", "project-123"), /单一路径段/);
   assert.throws(() => projectRelativePath("book", "../project-123"), /单一路径段/);
   assert.throws(() => projectRelativePath("book", "project/123"), /单一路径段/);

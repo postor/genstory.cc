@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, BookOpen } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Film,
+  Gamepad2,
+  Image,
+  MessageCircle,
+  type LucideIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -11,11 +19,19 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-
 } from "@/components/ui/card";
 import { contentTypes } from "@/lib/content-types";
 import { useLang } from "@/lib/i18n";
 import { listProjects, type Project } from "@/lib/local-projects";
+import { localizedPath, publicPages, type PublicPageSlug } from "@/lib/seo";
+
+const typeIcons: Record<PublicPageSlug, LucideIcon> = {
+  book: BookOpen,
+  comic: Image,
+  "visual-novel": MessageCircle,
+  "interactive-video": Film,
+  "phaser-game": Gamepad2,
+};
 
 export function LocalProjectSummary() {
   const { lang, t } = useLang();
@@ -39,6 +55,10 @@ export function LocalProjectSummary() {
     <section aria-label={t("nav.projects")} className="space-y-6">
       {contentTypes.map((section) => {
         const localProjects = projectsByType.get(section.id) ?? [];
+        const slug = section.id as PublicPageSlug;
+        const page = publicPages[slug];
+        const Icon = typeIcons[slug];
+        const detailHref = localizedPath(lang, slug);
         return (
           <section key={section.id} className="border-t pt-6">
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
@@ -87,19 +107,36 @@ export function LocalProjectSummary() {
                   </Card>
                 ))
               ) : (
-                <Card className="border-dashed bg-muted/30">
-                  <CardContent className="space-y-3 p-4">
-                    <p className="font-semibold">{t("home.emptyCategoryTitle")}</p>
-                    <p className="text-sm leading-5 text-muted-foreground">
-                      {t("home.emptyCategoryBody")}
-                    </p>
-                    <Button
-                      render={<Link href={`/projects/new?template=${section.id}`} />}
-                      size="sm"
-                    >
-                      <BookOpen className="size-4" />
-                      {t("home.sectionCreate")}
-                    </Button>
+                <Card className="bg-muted/20">
+                  <CardHeader className="flex-row items-center gap-2 p-4 pb-2">
+                    <Icon className="size-5 shrink-0 text-muted-foreground" />
+                    <CardTitle className="min-w-0 text-base">
+                      <Link href={detailHref} className="hover:underline">
+                        {page.kicker[lang]}
+                      </Link>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 p-4 pt-0">
+                    <CardDescription className="leading-6">
+                      {page.description[lang]}
+                    </CardDescription>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        render={<Link href={`/projects/new?template=${section.id}`} />}
+                        size="sm"
+                      >
+                        <BookOpen className="size-4" />
+                        {t("home.sectionCreate")}
+                      </Button>
+                      <Button
+                        render={<Link href={detailHref} />}
+                        size="sm"
+                        variant="outline"
+                      >
+                        {t("home.sectionDetails")}
+                        <ArrowRight className="size-4" />
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               )}
@@ -109,5 +146,4 @@ export function LocalProjectSummary() {
       })}
     </section>
   );
-
 }

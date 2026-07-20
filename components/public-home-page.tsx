@@ -3,13 +3,8 @@ import {
   ArrowRight,
   BookOpen,
   Download,
-  Film,
   FileText,
   FolderOpen,
-  Gamepad2,
-  Image,
-  MessageCircle,
-  type LucideIcon,
 } from "lucide-react";
 
 import { LocalProjectSummary } from "@/components/local-project-summary";
@@ -18,18 +13,10 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
-
 } from "@/components/ui/card";
-import {
-  type PublicLang,
-  type PublicPageSlug,
-  localizedPath,
-  publicPageSlugs,
-  publicPages,
-} from "@/lib/seo";
+import { type PublicLang } from "@/lib/seo";
 
 const copy = {
   zh: {
@@ -39,9 +26,6 @@ const copy = {
       "在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。你可以下载项目备份，也可以导出可运行项目。",
     ctaCreate: "开始创作",
     ctaBrowseTypes: "探索创作类型",
-    workTypesTitle: "探索创作类型",
-    workTypesBody: "从适合的项目结构开始，了解每种作品类型的编辑、预览和导出方式。",
-    openPage: "查看介绍",
     pillarsTitle: "为长期创作设计",
     workflowTitle: "从创作到导出",
     localProjects: "我的作品",
@@ -72,9 +56,6 @@ const copy = {
       "Create books, comics, visual novels, interactive videos, and Phaser games in the browser. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Download project backups or export runnable projects when ready.",
     ctaCreate: "Start creating",
     ctaBrowseTypes: "Explore creation types",
-    workTypesTitle: "Explore creation types",
-    workTypesBody: "Start with the project structure that fits your work, then learn how each type is edited, previewed, and exported.",
-    openPage: "View overview",
     pillarsTitle: "Designed for long-running creative work",
     workflowTitle: "From creation to export",
     localProjects: "My works",
@@ -98,18 +79,9 @@ const copy = {
       "Preview it, download a backup, or export a runnable package.",
     ],
   },
-
 } satisfies Record<PublicLang, Record<string, unknown>>;
 
 const featureIcons = [FolderOpen, FileText, Download];
-
-const typeIcons: Record<PublicPageSlug, LucideIcon> = {
-  book: BookOpen,
-  comic: Image,
-  "visual-novel": MessageCircle,
-  "interactive-video": Film,
-  "phaser-game": Gamepad2,
-};
 
 export function PublicHomePage({ lang }: { lang: PublicLang }) {
   const t = copy[lang];
@@ -165,50 +137,6 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
         </div>
       </section>
 
-      <section id="work-types" className="mb-10 scroll-mt-20">
-        <div className="mb-4 max-w-3xl">
-          <h2 className="text-2xl font-semibold tracking-tight">
-            {t.workTypesTitle as string}
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {t.workTypesBody as string}
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {publicPageSlugs.map((slug) => {
-            const page = publicPages[slug];
-            const Icon = typeIcons[slug];
-            const href = localizedPath(lang, slug);
-            return (
-              <Card key={slug}>
-                <CardHeader className="flex-row items-center gap-2">
-                  <Icon className="size-5 shrink-0 text-muted-foreground" />
-                  <CardTitle className="min-w-0">
-                    <Link href={href} className="hover:underline">
-                      {page.kicker[lang]}
-                    </Link>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CardDescription className="leading-6">
-                    {page.description[lang]}
-                  </CardDescription>
-                </CardContent>
-                <CardFooter>
-                  <Link
-                    href={href}
-                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
-                  >
-                    {t.openPage as string}
-                    <ArrowRight className="size-4" />
-                  </Link>
-                </CardFooter>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
-
       <section className="mb-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <h2 className="text-2xl font-semibold tracking-tight">
@@ -233,7 +161,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
         </div>
       </section>
 
-      <section className="mb-6">
+      <section id="work-types" className="mb-6 scroll-mt-20">
         <h2 className="text-2xl font-semibold tracking-tight">
           {t.localProjects as string}
         </h2>
@@ -241,5 +169,4 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
       <LocalProjectSummary />
     </main>
   );
-
 }

@@ -60,6 +60,18 @@ export function estimateContextUsage({
   };
 }
 
+export function estimateMessagesTokens(messages: ChatMessage[]): number {
+  return estimateContextTokens(buildContextSizeInput({ messages }));
+}
+
+export function estimateRequestContextUsage(
+  input: ContextSizeInput & { fixedTokens?: number }
+): ContextTokenBreakdown {
+  const usage = estimateContextUsage(input);
+  const fixedTokens = input.fixedTokens ?? 0;
+  return { ...usage, total: usage.total + fixedTokens };
+}
+
 export function formatContextSize(tokens: number): string {
   if (tokens < 1000) return `${tokens} tokens`;
   const value = tokens / 1000;
@@ -69,4 +81,14 @@ export function formatContextSize(tokens: number): string {
 
 export function formatContextLimit(tokens: number | undefined): string {
   return tokens ? formatContextSize(tokens) : "上限未知";
+}
+
+export function formatContextBreakdown(
+  usage: Pick<ContextTokenBreakdown, "context" | "history" | "input">
+): string {
+  return [
+    `项目概况 ${formatContextSize(usage.context)}`,
+    `聊天历史 ${formatContextSize(usage.history)}`,
+    `输入 ${formatContextSize(usage.input)}`,
+  ].join(" + ");
 }

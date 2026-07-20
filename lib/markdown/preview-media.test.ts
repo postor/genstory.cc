@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { collectPreviewSectionMediaReferences } from "./preview-media.ts";
 
 test("resolves markdown media against each preview section path", () => {

@@ -1,5 +1,4 @@
 import type { ContentTypeId } from "./content-types";
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { normalizeRelativePath } from "./file-system/paths.ts";
 
 
@@ -22,7 +21,7 @@ function findEndOfCentralDirectory(bytes: Uint8Array): number {
       return index;
     }
   }
-  throw new Error("未找到 ZIP 中央目录，无法导入项目源码");
+  throw new Error("未找到 ZIP 目录，无法导入项目备份");
 }
 
 function readString(bytes: Uint8Array, start: number, length: number): string {
@@ -91,7 +90,7 @@ export async function parseProjectSourceZip(blob: Blob): Promise<ImportedProject
 
   for (let index = 0; index < totalEntries; index += 1) {
     if (view.getUint32(cursor, true) !== 0x02014b50) {
-      throw new Error("ZIP 中央目录损坏，无法导入项目源码");
+      throw new Error("ZIP 目录损坏，无法导入项目备份");
     }
     const method = view.getUint16(cursor + 10, true);
     const compressedSize = view.getUint32(cursor + 20, true);
@@ -103,10 +102,10 @@ export async function parseProjectSourceZip(blob: Blob): Promise<ImportedProject
     cursor += 46 + fileNameLength + extraLength + commentLength;
     if (!rawPath || rawPath.endsWith("/") || rawPath.startsWith("__MACOSX/")) continue;
     if (method !== 0) {
-      throw new Error("当前只能导入 GenStory 导出的未压缩 source ZIP");
+      throw new Error("只能导入 GenStory 导出的项目备份 ZIP");
     }
     if (view.getUint32(localOffset, true) !== 0x04034b50) {
-      throw new Error("ZIP 本地文件头损坏，无法导入项目源码");
+      throw new Error("ZIP 文件损坏，无法导入项目备份");
     }
     const localNameLength = view.getUint16(localOffset + 26, true);
     const localExtraLength = view.getUint16(localOffset + 28, true);
@@ -121,17 +120,17 @@ export async function parseProjectSourceZip(blob: Blob): Promise<ImportedProject
   const strippedPaths = stripCommonRoot(rawFiles.map((file) => file.path));
   const files = rawFiles.map((file, index) => {
     const path = strippedPaths[index];
-    if (!path) throw new Error("源码 ZIP 包含空路径，无法恢复为 GenStory 项目");
+    if (!path) throw new Error("项目备份包含空路径，无法恢复作品");
     return {
       path: normalizeRelativePath(path),
       blob: file.blob,
     };
   });
   const metaFile = files.find((file) => file.path === "meta.md");
-  if (!metaFile) throw new Error("源码 ZIP 缺少 meta.md，无法恢复为 GenStory 项目");
+  if (!metaFile) throw new Error("项目备份缺少作品信息（meta.md），无法恢复作品");
   const meta = await metaFile.blob.text();
   if (!files.some((file) => file.path === "AGENTS.md")) {
-    throw new Error("源码 ZIP 缺少 AGENTS.md，无法恢复创作约束");
+    throw new Error("项目备份缺少创作规则文件，无法恢复作品");
   }
   return {
     title: parseTitle(meta),

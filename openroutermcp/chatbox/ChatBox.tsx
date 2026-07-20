@@ -27,6 +27,7 @@ import {
 } from "@/lib/openrouter";
 import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import {
@@ -40,9 +41,23 @@ import {
 import { ModelSelect } from "./ModelSelect";
 import { ChatHistoryWindow } from "./ChatHistoryWindow";
 import { extractImages } from "./chatRender";
-import { estimateContextUsage, formatContextLimit, formatContextSize } from "./contextSize";
+import {
+  estimateContextUsage,
+  estimateContextTokens,
+  formatContextBreakdown,
+  formatContextLimit,
+  formatContextSize,
+} from "./contextSize";
+import {
+  buildCompressedLlmMessages,
+  buildCompressionPrompt,
+  fingerprintMessages,
+  planContextCompression,
+  type ChatCompressionState,
+} from "./contextCompression";
 import { pickInitialModelId } from "./modelSelection";
 import {
+  createContextCompressionNotice,
   createModelSwitchNotice,
   llmMessagesFromTranscript,
   type ChatTranscriptItem,
@@ -51,6 +66,8 @@ import {
 const LS_MODEL = "chatbox_model";
 const LS_MESSAGES = "chatbox_messages";
 const LS_IMAGES = "chatbox_images";
+const LS_AUTO_COMPRESS = "chatbox_auto_compress";
+const LS_COMPRESSION = "chatbox_context_compression";
 
 /** Namespace a storage key by an optional chat/project id. */
 function storageKey(base: string, chatId?: string): string {
@@ -172,6 +189,10 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [transcript, setTranscript] = useState<ChatTranscriptItem[]>([]);
   const [images, setImages] = useState<Record<string, string>>({});
+  const [compression, setCompression] = useState<ChatCompressionState | null>(null);
+  const [autoCompress, setAutoCompress] = useState(false);
+  const [compressionStorageReady, setCompressionStorageReady] = useState(false);
+  const [compressing, setCompressing] = useState(false);
   const [chatStorageReady, setChatStorageReady] = useState(false);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -226,11 +247,25 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   }, []);
 
   useEffect(() => {
+    setAutoCompress(loadJSON<boolean>(LS_AUTO_COMPRESS, false));
+    setCompressionStorageReady(true);
+  }, []);
+
+  useEffect(() => {
     setChatStorageReady(false);
-    const storedMessages = loadJSON<ChatMessage[]>(storageKey(LS_MESSAGES, chatId), []);
-    setMessages(storedMessages);
-    setTranscript(storedMessages);
+    const storedTranscript = loadJSON<ChatTranscriptItem[]>(
+      storageKey(LS_MESSAGES, chatId),
+      []
+    );
+    setMessages(llmMessagesFromTranscript(storedTranscript));
+    setTranscript(storedTranscript);
     setImages(loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {}));
+    setCompression(
+      loadJSON<ChatCompressionState | null>(
+        storageKey(LS_COMPRESSION, chatId),
+        null
+      )
+    );
     setChatStorageReady(true);
   }, [chatId]);
 
@@ -267,8 +302,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
   useEffect(() => {
     if (!chatStorageReady) return;
-    window.localStorage.setItem(storageKey(LS_MESSAGES, chatId), JSON.stringify(messages));
-  }, [messages, chatId, chatStorageReady]);
+    window.localStorage.setItem(
+      storageKey(LS_MESSAGES, chatId),
+      JSON.stringify(transcript)
+    );
+  }, [transcript, chatId, chatStorageReady]);
 
   useEffect(() => {
     if (!chatStorageReady) return;
@@ -279,12 +317,121 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     }
   }, [images, chatId, chatStorageReady]);
 
+  useEffect(() => {
+    if (!compressionStorageReady) return;
+    window.localStorage.setItem(LS_AUTO_COMPRESS, JSON.stringify(autoCompress));
+  }, [autoCompress, compressionStorageReady]);
+
+  useEffect(() => {
+    if (!chatStorageReady) return;
+    const key = storageKey(LS_COMPRESSION, chatId);
+    if (compression) {
+      window.localStorage.setItem(key, JSON.stringify(compression));
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  }, [compression, chatId, chatStorageReady]);
+
   const clearChat = useCallback(() => {
     setMessages([]);
     setTranscript([]);
     setImages({});
+    setCompression(null);
     setError(null);
   }, []);
+
+  const compressHistory = useCallback(
+    async (
+      token: string,
+      nextTranscript: ChatTranscriptItem[],
+      fixedTokens = 0,
+      force = false
+    ) => {
+      const llmMessages = llmMessagesFromTranscript(nextTranscript);
+      const currentCompression =
+        compression &&
+        fingerprintMessages(
+          llmMessages.slice(0, compression.coveredMessageCount)
+        ) === compression.sourceFingerprint
+          ? compression
+          : null;
+      const plan = planContextCompression({
+        messages: llmMessages,
+        context,
+        fixedTokens,
+        modelLimit: selectedModel?.contextLength,
+        existingCoveredMessageCount: currentCompression?.coveredMessageCount ?? 0,
+        force,
+      });
+
+      if (!force && !plan.shouldCompress) {
+        return {
+          messages: buildCompressedLlmMessages({
+            summary: currentCompression?.summary,
+            recentMessages: plan.recentMessages,
+          }),
+          compression: currentCompression,
+          compressionApplied: false,
+        };
+      }
+
+      if (plan.summarySourceMessages.length === 0) {
+        return {
+          messages: buildCompressedLlmMessages({
+            summary: currentCompression?.summary,
+            recentMessages: plan.recentMessages,
+          }),
+          compression: currentCompression,
+          compressionApplied: false,
+        };
+      }
+
+      setCompressing(true);
+      try {
+        const result = await chat(
+          token,
+          model,
+          buildCompressionPrompt({
+            previousSummary: currentCompression?.summary,
+            messages: plan.summarySourceMessages,
+          })
+        );
+        const summary = result.content?.trim();
+        if (!summary) throw new Error("上下文压缩未返回摘要");
+
+        const nextCompression: ChatCompressionState = {
+          summary,
+          coveredMessageCount: plan.coveredMessageCount,
+          sourceFingerprint: fingerprintMessages(
+            llmMessages.slice(0, plan.coveredMessageCount)
+          ),
+          updatedAt: Date.now(),
+        };
+        setCompression(nextCompression);
+        return {
+          messages: buildCompressedLlmMessages({
+            summary,
+            recentMessages: plan.recentMessages,
+          }),
+          compression: nextCompression,
+          compressionApplied: true,
+        };
+      } catch (error) {
+        return {
+          messages: buildCompressedLlmMessages({
+            summary: currentCompression?.summary,
+            recentMessages: plan.recentMessages,
+          }),
+          compression: currentCompression,
+          compressionApplied: false,
+          error: error instanceof Error ? error : new Error(String(error)),
+        };
+      } finally {
+        setCompressing(false);
+      }
+    },
+    [compression, context, model, selectedModel?.contextLength]
+  );
 
   const sendChat = useCallback(
     async (presetText?: string) => {
@@ -321,7 +468,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
     const userMessage: ChatMessage = { role: "user", content: text };
     let displayTranscript: ChatTranscriptItem[] = [...transcript, userMessage];
-    const history: ChatMessage[] = llmMessagesFromTranscript(displayTranscript);
+    let history: ChatMessage[] = llmMessagesFromTranscript(displayTranscript);
     setMessages(history);
     setTranscript(displayTranscript);
     setInput("");
@@ -337,7 +484,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
         "只在确实需要的时调用工具，不要编造工具参数。" +
         (projectTools.length > 0
-          ? "项目文件不会默认附带在请求中；如果需要了解项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取。"
+          ? "项目正文和素材不会默认附带在请求中；当前项目概况会随请求发送。如果需要了解项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取。"
           : "") +
         (onFileChanges
           ? "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。"
@@ -348,6 +495,30 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     };
 
     try {
+      if (autoCompress) {
+        const compressed = await compressHistory(
+          tk,
+          displayTranscript,
+          estimateContextTokens(systemMsg.content ?? "") +
+            estimateContextTokens(JSON.stringify(mcpTools))
+        );
+        history = compressed.messages;
+        if (compressed.error) {
+          setError(`上下文压缩失败，已改用最近历史：${compressed.error.message}`);
+        }
+        if (compressed.compressionApplied && compressed.compression) {
+          displayTranscript = [
+            ...displayTranscript,
+            createContextCompressionNotice({
+              coveredMessageCount: compressed.compression.coveredMessageCount,
+              summaryTokens: estimateContextTokens(compressed.compression.summary),
+            }),
+          ];
+          setTranscript(displayTranscript);
+        }
+        setMessages(history);
+      }
+
       for (let i = 0; i < maxToolRounds; i++) {
         const apiMessages = runtimeTools.length ? [systemMsg, ...history] : history;
         let streamedContent = "";
@@ -425,7 +596,23 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       setSending(false);
       setStreamingText(false);
     }
-  },     [input, sending, refreshToken, tools, projectTools, projectToolNames, transcript, model, callTool, maxToolRounds, context, onSend, onFileChanges]);
+  }, [
+    autoCompress,
+    callTool,
+    compressHistory,
+    context,
+    input,
+    maxToolRounds,
+    model,
+    onFileChanges,
+    onSend,
+    projectToolNames,
+    projectTools,
+    refreshToken,
+    sending,
+    tools,
+    transcript,
+  ]);
 
   async function applyPendingChanges() {
     if (!onFileChanges || pendingChanges.length === 0) return;
@@ -538,17 +725,77 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         disabled={!authorized}
       />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          onClick={(e) => { e.stopPropagation(); void sendChat(); }}
-          disabled={!authorized || sending || !input.trim()}
-        >
-          {sending ? "发送中…" : "发送"}
-        </Button>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <span className="min-w-0 text-xs text-muted-foreground" aria-live="polite">
           <span className="block">本次请求约 {formatContextSize(requestTokens)}/{formatContextLimit(selectedModel?.contextLength)}</span>
-          <span className="block truncate">聊天历史 {formatContextSize(contextUsage.history)} + 输入 {formatContextSize(contextUsage.input)} · 项目文件按需读取</span>
+          <span className="block truncate">{formatContextBreakdown(contextUsage)}</span>
+          {compression && (
+            <span className="block truncate">
+              已压缩 {compression.coveredMessageCount} 条早期消息，摘要{" "}
+              {formatContextSize(estimateContextTokens(compression.summary))}
+            </span>
+          )}
         </span>
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <input
+              id="chatbox-auto-compress"
+              type="checkbox"
+              checked={autoCompress}
+              onChange={(event) => setAutoCompress(event.target.checked)}
+              disabled={!authorized || sending || compressing}
+              className="size-4 accent-primary"
+            />
+            <Label htmlFor="chatbox-auto-compress" className="cursor-pointer text-xs">
+              自动压缩
+            </Label>
+          </div>
+          {!autoCompress && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async (event) => {
+                event.stopPropagation();
+                const tk = await refreshToken();
+                if (!tk) {
+                  setError("未找到可用令牌，请先完成 OAuth 授权。");
+                  setOauthOpen(true);
+                  return;
+                }
+                const result = await compressHistory(tk, transcript, 0, true);
+                if (result.error) {
+                  setError(`上下文压缩失败：${result.error.message}`);
+                  return;
+                }
+                setMessages(result.messages);
+                const nextCompression = result.compression;
+                if (result.compressionApplied && nextCompression) {
+                  setTranscript((previous) => [
+                    ...previous,
+                    createContextCompressionNotice({
+                      coveredMessageCount: nextCompression.coveredMessageCount,
+                      summaryTokens: estimateContextTokens(nextCompression.summary),
+                    }),
+                  ]);
+                }
+              }}
+              disabled={
+                !authorized ||
+                sending ||
+                compressing ||
+                llmMessagesFromTranscript(transcript).length === 0
+              }
+            >
+              {compressing ? "压缩中…" : "压缩上下文"}
+            </Button>
+          )}
+          <Button
+            onClick={(e) => { e.stopPropagation(); void sendChat(); }}
+            disabled={!authorized || sending || !input.trim()}
+          >
+            {sending ? "发送中…" : "发送"}
+          </Button>
+        </div>
       </div>
 
       <Dialog

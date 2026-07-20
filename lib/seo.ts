@@ -330,7 +330,7 @@ export const publicPages: Record<
       {
         question: { zh: "互动视频的媒体文件如何管理？", en: "How are interactive video media files managed?" },
         answer: {
-          zh: "媒体资产在 assets/index.yml 中使用逻辑 ID 登记，项目正文通过这些 ID 引用镜头、视频和配音。",
+          zh: "媒体资产在 assets/index.yml 中使用逻辑 ID 登记，项目内容通过这些 ID 引用镜头、视频和配音。",
           en: "Media assets are registered with logical IDs in assets/index.yml, and project files reference shots, video, and voice through those IDs.",
         },
       },

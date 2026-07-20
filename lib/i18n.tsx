@@ -28,6 +28,7 @@ const zh: Dict = {
   "home.ctaBrowse": "浏览项目",
   "home.sectionCreate": "创建我的作品",
   "home.sectionMore": "查看更多",
+  "home.sectionDetails": "查看详情",
   "home.emptyCategoryTitle": "还没有作品",
   "home.emptyCategoryBody":
     "创建后会显示在这里。作品会保存在这台设备的浏览器中，建议定期下载项目备份。",
@@ -101,8 +102,8 @@ const zh: Dict = {
   "editor.saveFailed": "无法保存到浏览器：",
   "editor.noBoundProject": "作品数据暂时无法访问，请重新连接或恢复项目。",
   "editor.chatDataNote":
-    "创作助手会将你发送的消息，以及它读取的项目内容，发送给你选择的模型服务。",
-  "editor.binaryFile": "这是二进制文件，当前仅支持图片预览。",
+    "创作助手会将你发送的消息、当前项目概况，以及它按需读取的项目内容，发送给你选择的模型服务。",
+  "editor.binaryFile": "这是暂不支持预览的二进制文件。",
   "editor.folderSelected": "已选中目录。可以上传文件、新建子目录或删除该目录。",
   "editor.applyChanges": "应用变更",
   "editor.discardChanges": "丢弃",
@@ -154,6 +155,7 @@ const en: Dict = {
   "home.ctaBrowse": "Browse projects",
   "home.sectionCreate": "Create my work",
   "home.sectionMore": "View more",
+  "home.sectionDetails": "View details",
   "home.emptyCategoryTitle": "No works yet",
   "home.emptyCategoryBody":
     "Created works appear here. They stay in this browser on this device, so regular project backups are recommended.",
@@ -229,8 +231,8 @@ const en: Dict = {
   "editor.saveFailed": "Could not save to the browser: ",
   "editor.noBoundProject": "The work data is temporarily unavailable. Reconnect or restore the work.",
   "editor.chatDataNote":
-    "The creation assistant sends your messages and any project content it reads to the model service you choose.",
-  "editor.binaryFile": "This is a binary file. Image preview is supported here.",
+    "The creation assistant sends your messages, the current project overview, and any project content it reads on demand to the model service you choose.",
+  "editor.binaryFile": "This binary file cannot be previewed here.",
   "editor.folderSelected": "Folder selected. You can upload files, create a child folder, or delete this folder.",
   "editor.applyChanges": "Apply changes",
   "editor.discardChanges": "Discard",

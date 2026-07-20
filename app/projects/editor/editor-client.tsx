@@ -65,7 +65,7 @@ function isImagePath(path: string): boolean {
 
 function mediaKindForPath(path: string): "image" | "video" | "audio" | null {
   if (isImagePath(path)) return "image";
-  if (/\.(mp4|webm|ogg|mov|m4v)$/i.test(path)) return "video";
+  if (/\.(mp4|webm|ogv|mov|m4v)$/i.test(path)) return "video";
   if (/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(path)) return "audio";
   return null;
 }

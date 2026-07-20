@@ -18,7 +18,7 @@ const STORE = "projects";
 function openDB(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     if (typeof indexedDB === "undefined") {
-      reject(new Error("当前环境不支持 IndexedDB"));
+      reject(new Error("当前浏览器不支持保存作品，请换用现代桌面浏览器"));
       return;
     }
     const req = indexedDB.open(DB_NAME, DB_VERSION);

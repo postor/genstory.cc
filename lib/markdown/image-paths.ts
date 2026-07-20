@@ -1,11 +1,10 @@
 // The .ts suffix keeps the native Node strip-types test runner resolvable.
-// @ts-expect-error TS5097: required by the native Node test runner.
 import { normalizeRelativePath } from "../file-system/paths.ts";
 
 const IMAGE_EXT_RE = /\.(png|jpe?g|gif|webp|avif|bmp|ico)$/i;
-const VIDEO_EXT_RE = /\.(mp4|webm|ogg|mov|m4v)$/i;
+const VIDEO_EXT_RE = /\.(mp4|webm|ogv|mov|m4v)$/i;
 const AUDIO_EXT_RE = /\.(mp3|wav|ogg|m4a|aac|flac)$/i;
-const MEDIA_EXT_RE = /\.(png|jpe?g|gif|webp|avif|bmp|ico|mp4|webm|ogg|mov|m4v|mp3|wav|m4a|aac|flac)$/i;
+const MEDIA_EXT_RE = /\.(png|jpe?g|gif|webp|avif|bmp|ico|mp4|webm|ogv|mov|m4v|mp3|wav|ogg|m4a|aac|flac)$/i;
 const SCHEME_RE = /^[a-z][a-z0-9+.-]*:/i;
 const MARKDOWN_IMAGE_RE = /!\[[^\]]*\]\(\s*(<[^>]+>|[^)\s]+)(?:\s+["'][^)]*["'])?\s*\)/g;
 const MARKDOWN_LINK_RE = /(?<!!)\[[^\]]*\]\(\s*(<[^>]+>|[^)\s]+)(?:\s+["'][^)]*["'])?\s*\)/g;

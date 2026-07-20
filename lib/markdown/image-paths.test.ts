@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-// @ts-expect-error TS5097: required by the native Node test runner.
 import {
   collectMarkdownImageSources,
   collectMarkdownMediaSources,
@@ -76,6 +75,8 @@ test("resolves markdown-relative media paths inside the project", () => {
   );
   assert.equal(mediaKindForSource("../../../assets/videos/vid_forest.mp4"), "video");
   assert.equal(mediaKindForSource("../../../assets/bgm/theme.mp3"), "audio");
+  assert.equal(mediaKindForSource("../../../assets/bgm/theme.ogg"), "audio");
+  assert.equal(mediaKindForSource("../../../assets/videos/intro.ogv"), "video");
 
 });
 

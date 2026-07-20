@@ -27,7 +27,7 @@ export function supportsFileSystemAccess(): boolean {
 
 export async function getBrowserFileSystemRoot(): Promise<FileSystemDirectoryHandle> {
   if (!supportsFileSystemAccess()) {
-    throw new Error("当前浏览器不支持 Origin Private File System");
+    throw new Error("当前浏览器不支持在浏览器中保存作品");
   }
   const storage = navigator.storage as StorageManagerWithDirectory;
   return storage.getDirectory!();

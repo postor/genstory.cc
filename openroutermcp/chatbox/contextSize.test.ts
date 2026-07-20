@@ -1,7 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { buildContextSizeInput, estimateContextTokens, estimateContextUsage, formatContextLimit, formatContextSize } from "./contextSize.ts";
+import {
+  buildContextSizeInput,
+  estimateContextTokens,
+  estimateContextUsage,
+  formatContextBreakdown,
+  formatContextLimit,
+  formatContextSize,
+} from "./contextSize.ts";
 
 test("estimates context size from system context, chat history, and current input", () => {
   const messages = [
@@ -39,4 +46,11 @@ test("formats context size for compact live display", () => {
   assert.equal(formatContextSize(1200), "1.2k tokens");
   assert.equal(formatContextLimit(128000), "128k tokens");
   assert.equal(formatContextLimit(undefined), "上限未知");
+});
+
+test("formats every context component that contributes to the request total", () => {
+  assert.equal(
+    formatContextBreakdown({ context: 4, history: 5, input: 4 }),
+    "项目概况 4 tokens + 聊天历史 5 tokens + 输入 4 tokens"
+  );
 });

@@ -163,7 +163,7 @@ export function CodeEditor({
         <span>Markdown</span>
         <span>UTF-8</span>
         <span>{lineCount ?? value.split("\n").length} 行</span>
-        {dirty ? <span>● 未保存</span> : <span>已保存</span>}
+        {dirty ? <span>● 有未保存修改</span> : <span>已保存到浏览器</span>}
         {preview && <span>预览模式</span>}
       </div>
     </div>

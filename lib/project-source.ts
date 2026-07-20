@@ -8,7 +8,7 @@ export interface ProjectPreviewSection {
 }
 
 export interface ProjectPreviewModel {
-  type: Exclude<ContentTypeId, "visual-novel">;
+  type: Exclude<ContentTypeId, "visual-novel" | "phaser-game">;
   title: string;
   sections: ProjectPreviewSection[];
 }
@@ -61,7 +61,7 @@ async function safeText(
 
 export async function readProjectPreview(
   root: FileSystemDirectoryHandle,
-  type: Exclude<ContentTypeId, "visual-novel">
+  type: Exclude<ContentTypeId, "visual-novel" | "phaser-game">
 ): Promise<ProjectPreviewModel> {
   const [projectMeta, entries] = await Promise.all([
     safeText(root, "meta.md"),

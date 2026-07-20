@@ -48,3 +48,20 @@ test("rejects zip files without project metadata", async () => {
 
   await assert.rejects(parseProjectSourceZip(zip), /meta\.md/);
 });
+
+test("imports a Phaser source zip by its project metadata", async () => {
+  const zip = await zipStore([
+    { path: "AGENTS.md", blob: new Blob(["# Rules\n"]) },
+    {
+      path: "meta.md",
+      blob: new Blob(['---\ntitle: "Arcade"\ntype: phaser-game\n---\n']),
+    },
+    { path: "index.html", blob: new Blob(["<!doctype html>"]) },
+    { path: "src/scenes/menu-scene.js", blob: new Blob(["class MenuScene {}\n"]) },
+  ]);
+
+  const imported = await parseProjectSourceZip(zip);
+
+  assert.equal(imported.template, "phaser-game");
+  assert.equal(imported.title, "Arcade");
+});

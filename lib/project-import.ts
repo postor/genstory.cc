@@ -53,7 +53,13 @@ function parseTitle(meta: string): string {
 
 function inferTemplate(paths: string[], meta: string): ContentTypeId {
   const type = meta.match(/^type:\s*([a-z-]+)\s*$/m)?.[1];
-  if (type === "book" || type === "comic" || type === "visual-novel" || type === "interactive-video") {
+  if (
+    type === "book" ||
+    type === "comic" ||
+    type === "visual-novel" ||
+    type === "interactive-video" ||
+    type === "phaser-game"
+  ) {
     return type;
   }
   if (paths.some((path) => /chapter-[^/]+\/scenes\/[^/]+\/stage\.ya?ml$/i.test(path))) {
@@ -64,6 +70,12 @@ function inferTemplate(paths: string[], meta: string): ContentTypeId {
   }
   if (paths.some((path) => /chapter-[^/]+\/segments\/[^/]+\/script\.md$/i.test(path))) {
     return "interactive-video";
+  }
+  if (
+    paths.includes("index.html") &&
+    paths.some((path) => /^src\/scenes\/[^/]+\.js$/i.test(path))
+  ) {
+    return "phaser-game";
   }
   return "book";
 }

@@ -14,6 +14,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **Styling**: Avoid bespoke/custom styles. Prefer shadcn/ui's original components and design tokens. For anything without a shadcn primitive, use Tailwind utility classes that match the shadcn look. **Never use the inline `style` attribute** — express all styling via shadcn components or Tailwind classes. When building UI, reuse shadcn primitives (Dialog, Button, Input, Select, Textarea, ScrollArea, …) instead of re-implementing them with custom CSS. A custom re-implementation of a shadcn primitive (e.g. a hand-rolled modal that mimics `Dialog`) is considered redundant and should be removed in favor of the original.
 <!-- END:project-rules -->
 
+<!-- BEGIN:delivery-quality-rules -->
+# 交付质量规则
+
+- **禁止半成品交付**：不要用“只生成几个源码文件”“只接入一个入口”“只做静态占位预览”或其他缩水方案应付完整需求。实现前先梳理需求涉及的完整链路、验收标准和依赖；实现后逐项验证。
+- **功能必须闭环**：新增项目类型或模板时，按实际需要完整覆盖类型注册、创建初始化、编辑/读取、预览/运行、导出/导入、资产处理、文档和测试；不能默默跳过其中一环并将其称为完成。
+- **占位必须明确**：只有用户明确要求暂不生成的资源（例如音频、图片）才可以保留注释或空资源位；这不等于省略场景、交互、状态流转或运行入口。
+- **遇到阻塞要明示**：如果完整实现需要外部资源、产品决策或额外权限，必须明确说明缺口和影响，先请求确认，不得擅自降级为半吊子实现。
+<!-- END:delivery-quality-rules -->
+
 <!-- BEGIN:visual-novel-rules -->
 # 视觉小说项目规则
 

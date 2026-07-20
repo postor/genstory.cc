@@ -473,6 +473,254 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
   return files;
 }
 
+function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectTemplateFile[] {
+  const isZh = lang === "zh";
+  const menuTitle = isZh ? "开始游戏" : "Start Game";
+  const testTitle = isZh ? "测试游戏" : "Test Game";
+  const instructions = isZh
+    ? "方向键移动，空格跳跃，Esc 返回菜单"
+    : "Arrow keys move, Space jumps, Esc returns to menu";
+  const gameTitle = title.trim() || (isZh ? "Phaser 游戏模板" : "Phaser Game Template");
+  const htmlLang = isZh ? "zh-CN" : "en";
+  const gameTitleLiteral = JSON.stringify(gameTitle);
+  const menuTitleLiteral = JSON.stringify(menuTitle);
+  const testTitleLiteral = JSON.stringify(testTitle);
+  const instructionsLiteral = JSON.stringify(instructions);
+
+  return [
+    text("AGENTS.md", agents),
+    text("meta.md", meta("phaser-game", title)),
+    text(
+      "README.md",
+      [
+        `# ${title}`,
+        "",
+        isZh
+          ? "这是一个不依赖生成图片和音频也能运行的 Phaser 3 游戏模板。"
+          : "This Phaser 3 game template runs without generated images or audio.",
+        "",
+        isZh
+          ? "默认示例主题：小红帽；请把它替换为你自己的游戏设定。"
+          : "Default example theme: Little Red Riding Hood; replace it with your own game canon.",
+        "",
+        isZh
+          ? "入口是 index.html；菜单场景会进入可操作的测试游戏场景。"
+          : "The entry point is index.html; the menu scene opens the playable test-game scene.",
+        "",
+        `- ${isZh ? "菜单场景" : "Menu scene"}: src/scenes/menu-scene.js`,
+        `- ${isZh ? "测试游戏场景" : "Test game scene"}: src/scenes/test-game-scene.js`,
+        `- ${isZh ? "资产计划和 AI prompt" : "Asset plan and AI prompts"}: assets/index.yml`,
+        "",
+        isZh
+          ? "后续生成图片或音频时，先在 assets/index.yml 登记逻辑 ID，再把资源接入对应场景。"
+          : "When images or audio are generated later, register a logical ID in assets/index.yml before wiring it into a scene.",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "index.html",
+      [
+        "<!doctype html>",
+        `<html lang="${htmlLang}">`,
+        "<head>",
+        '  <meta charset="utf-8">',
+        '  <meta name="viewport" content="width=device-width, initial-scale=1">',
+        `  <title>${gameTitle}</title>`,
+        '  <link rel="stylesheet" href="src/styles.css">',
+        "</head>",
+        "<body>",
+        '  <main id="game" aria-label="Phaser game"></main>',
+        '  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>',
+        '  <script src="src/config.js"></script>',
+        '  <script src="src/scenes/menu-scene.js"></script>',
+        '  <script src="src/scenes/test-game-scene.js"></script>',
+        '  <script src="src/main.js"></script>',
+        "</body>",
+        "</html>",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "src/styles.css",
+      [
+        ":root {",
+        "  color-scheme: dark;",
+        '  font-family: Inter, ui-sans-serif, system-ui, sans-serif;',
+        "  background: #08111f;",
+        "}",
+        "",
+        "html, body {",
+        "  margin: 0;",
+        "  min-height: 100%;",
+        "  background: #08111f;",
+        "}",
+        "",
+        "body {",
+        "  display: grid;",
+        "  min-height: 100vh;",
+        "  place-items: center;",
+        "}",
+        "",
+        "#game {",
+        "  width: min(960px, 100vw);",
+        "  aspect-ratio: 16 / 9;",
+        "  overflow: hidden;",
+        "  border: 1px solid #23314d;",
+        "  box-shadow: 0 24px 80px rgb(0 0 0 / 35%);",
+        "}",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "src/config.js",
+      [
+        "window.GENSTORY_PHASER_CONFIG = {",
+        "  type: Phaser.AUTO,",
+        "  parent: \"game\",",
+        "  width: 960,",
+        "  height: 540,",
+        "  backgroundColor: \"#08111f\",",
+        "  physics: {",
+        '    default: "arcade",',
+        "    arcade: { gravity: { y: 900 }, debug: false },",
+        "  },",
+        "};",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "src/scenes/menu-scene.js",
+      [
+        "/**",
+        " * AI image prompt (future asset: menu background):",
+        " * A deep-blue sci-fi arcade game menu, soft geometric glow, no text, 16:9.",
+        " * Keep this prompt with the logical asset ID menu_background in assets/index.yml.",
+        " */",
+        "class MenuScene extends Phaser.Scene {",
+        '  constructor() { super("MenuScene"); }',
+        "",
+        "  preload() {",
+        "    // Future image hook: this.load.image(\"menu_background\", \"assets/images/menu-background.png\");",
+        "    // Future audio hook: this.load.audio(\"menu_music\", \"assets/audio/menu-music.ogg\");",
+        "  }",
+        "",
+        "  create() {",
+        '    this.cameras.main.setBackgroundColor("#101b35");',
+        `    this.add.text(480, 142, ${gameTitleLiteral}, {`,
+        "      fontFamily: \"Inter, system-ui, sans-serif\",",
+        "      fontSize: \"42px\",",
+        "      color: \"#f8fafc\",",
+        "    }).setOrigin(0.5);",
+        "",
+        `    this.add.text(480, 212, ${JSON.stringify(isZh ? "无媒体占位也可运行" : "Runs before media generation")}, {`,
+        "      fontSize: \"18px\",",
+        "      color: \"#a5b4fc\",",
+        "    }).setOrigin(0.5);",
+        "",
+        '    const button = this.add.rectangle(480, 320, 248, 64, 0x4f46e5, 1).setInteractive({ useHandCursor: true });',
+        `    const label = this.add.text(480, 320, ${menuTitleLiteral}, { fontSize: "24px", color: "#ffffff" }).setOrigin(0.5);`,
+        '    button.on("pointerover", () => button.setFillStyle(0x6366f1));',
+        '    button.on("pointerout", () => button.setFillStyle(0x4f46e5));',
+        '    button.on("pointerup", () => this.scene.start("TestGameScene"));',
+        '    this.input.keyboard.once("keydown-ENTER", () => this.scene.start("TestGameScene"));',
+        `    this.add.text(480, 420, ${instructionsLiteral}, { fontSize: "16px", color: "#cbd5e1" }).setOrigin(0.5);`,
+        "    void label;",
+        "",
+        "    // Audio prompt: a calm looping arcade menu theme, 90 BPM, no vocals.",
+        "  }",
+        "}",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "src/scenes/test-game-scene.js",
+      [
+        "/**",
+        " * AI image prompt (future asset: player sprite):",
+        " * A friendly small robot hero with a red scarf, readable silhouette, side view, transparent background.",
+        " */",
+        "class TestGameScene extends Phaser.Scene {",
+        '  constructor() { super("TestGameScene"); }',
+        "",
+        "  preload() {",
+        "    // Future image hook: this.load.image(\"player_sprite\", \"assets/images/player.png\");",
+        "    // Future audio hook: this.load.audio(\"jump_sfx\", \"assets/audio/jump.ogg\");",
+        "  }",
+        "",
+        "  create() {",
+        '    this.cameras.main.setBackgroundColor("#0f172a");',
+        `    this.add.text(32, 28, ${testTitleLiteral}, { fontSize: "28px", color: "#f8fafc" });`,
+        `    this.add.text(32, 68, ${instructionsLiteral}, { fontSize: "16px", color: "#cbd5e1" });`,
+        "",
+        "    this.player = this.add.circle(150, 360, 22, 0xf97316);",
+        "    this.physics.add.existing(this.player);",
+        "    this.player.body.setCollideWorldBounds(true);",
+        "",
+        "    this.platforms = this.physics.add.staticGroup();",
+        "    for (const [x, y, width] of [[480, 500, 860], [230, 390, 180], [710, 330, 180]]) {",
+        "      this.platforms.add(this.add.rectangle(x, y, width, 24, 0x334155));",
+        "    }",
+        "    this.physics.add.collider(this.player, this.platforms);",
+        "    this.cursors = this.input.keyboard.createCursorKeys();",
+        "    this.input.keyboard.on(" + '"keydown-ESC"' + ", () => this.scene.start(" + '"MenuScene"' + "));",
+        "",
+        "    // Audio prompt: a short warm synth blip for jumping, clean and loop-free.",
+        "  }",
+        "",
+        "  update() {",
+        "    const body = this.player.body;",
+        "    body.setVelocityX(0);",
+        "    if (this.cursors.left.isDown) body.setVelocityX(-260);",
+        "    if (this.cursors.right.isDown) body.setVelocityX(260);",
+        "    if (this.cursors.space.isDown && body.blocked.down) body.setVelocityY(-560);",
+        "  }",
+        "}",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "src/main.js",
+      [
+        "const gameConfig = {",
+        "  ...window.GENSTORY_PHASER_CONFIG,",
+        "  scene: [MenuScene, TestGameScene],",
+        "};",
+        "",
+        "new Phaser.Game(gameConfig);",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "assets/index.yml",
+      [
+        "# Logical asset plan. No image or audio binaries are generated yet.",
+        "assets:",
+        "  - id: menu_background",
+        "    type: Background",
+        "    status: planned",
+        "    file: assets/images/menu-background.png",
+        `    prompt: ${JSON.stringify(isZh ? "深蓝色街机游戏菜单背景，柔和几何光晕，无文字，16:9。" : "Deep-blue arcade game menu background, soft geometric glow, no text, 16:9.")}`,
+        "  - id: player_sprite",
+        "    type: Character",
+        "    status: planned",
+        "    file: assets/images/player.png",
+        `    prompt: ${JSON.stringify(isZh ? "友好的小型机器人英雄，红色围巾，侧面视图，轮廓清晰，透明背景。" : "Friendly small robot hero with a red scarf, side view, readable silhouette, transparent background.")}`,
+        "  - id: menu_music",
+        "    type: BGM",
+        "    status: planned",
+        "    file: assets/audio/menu-music.ogg",
+        `    prompt: ${JSON.stringify(isZh ? "平静的街机菜单循环音乐，90 BPM，无人声。" : "Calm looping arcade menu theme, 90 BPM, no vocals.")}`,
+        "  - id: jump_sfx",
+        "    type: SFX",
+        "    status: planned",
+        "    file: assets/audio/jump.ogg",
+        `    prompt: ${JSON.stringify(isZh ? "短促温暖的合成器跳跃音效，干净，不循环。" : "Short warm synth jump sound, clean and non-looping.")}`,
+        "",
+      ].join("\n")
+    ),
+  ];
+}
+
 function buildIVAssetIndex(assets: IVAsset[]): string {
   const lines = ["# 镜头与视频方案（Shot & Video Plan）", "assets:"];
   for (const asset of assets) {
@@ -504,5 +752,6 @@ export async function getProjectTemplate(
   if (type === "visual-novel") return visualNovelTemplate(title, agents);
   if (type === "book") return bookTemplate(title, lang, agents);
   if (type === "interactive-video") return interactiveVideoTemplate(title, lang, agents);
+  if (type === "phaser-game") return phaserGameTemplate(title, lang, agents);
   return simpleTemplate(type, title, lang, agents);
 }

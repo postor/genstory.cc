@@ -1,6 +1,8 @@
 # GenStory
 
-GenStory is a local-first creative writing workspace for books, comics, visual novels, and interactive video projects. The app is a static Next.js export: there is no backend, API route, or server-side project filesystem. Project source files live in the browser Origin Private File System (OPFS), and IndexedDB stores only the project index and UI state.
+GenStory is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. The app is a static Next.js export: there is no backend, API route, or server-side project filesystem. Project source files live in the browser Origin Private File System (OPFS), and IndexedDB stores only the project index and UI state.
+
+[SEO plan](./docs/seo-plan.md) documents the public URL structure, keyword map, bilingual metadata, structured data, sitemap policy, and post-launch search monitoring.
 
 # What Local Means
 

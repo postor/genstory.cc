@@ -20,6 +20,8 @@ import { compile } from "@/lib/vn/compile";
 import { savePreviewGame } from "@/lib/vn/preview-store";
 import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
 import { readProjectPreview, type ProjectPreviewModel } from "@/lib/project-source";
+import { buildPhaserPreviewHtml } from "@/lib/phaser/preview";
+import { readPhaserProjectFromDirectory } from "@/lib/phaser/source-reader";
 import { useLang } from "@/lib/i18n";
 import { contentTypeById } from "@/lib/content-types";
 
@@ -83,6 +85,7 @@ export default function PreviewClient() {
   const [error, setError] = useState("");
   const [projectRoot, setProjectRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const [genericPreview, setGenericPreview] = useState<ProjectPreviewModel | null>(null);
+  const [runtimePreviewHtml, setRuntimePreviewHtml] = useState<string | null>(null);
   const [sectionMediaUrls, setSectionMediaUrls] = useState<Record<string, Record<string, string>>>({});
   const sectionMediaUrlsRef = useRef<Record<string, Record<string, string>>>({});
 
@@ -100,6 +103,7 @@ export default function PreviewClient() {
       if (!id) {
         setProjectRoot(null);
         setGenericPreview(null);
+        setRuntimePreviewHtml(null);
         setStatus("missing");
         return;
       }
@@ -109,6 +113,7 @@ export default function PreviewClient() {
           if (!cancelled) {
             setProjectRoot(null);
             setGenericPreview(null);
+            setRuntimePreviewHtml(null);
           }
           if (!cancelled) setStatus("missing");
           return;
@@ -127,12 +132,22 @@ export default function PreviewClient() {
           if (!cancelled) {
             setProjectRoot(null);
             setGenericPreview(null);
+            setRuntimePreviewHtml(null);
+          }
+        } else if (p.template === "phaser-game") {
+          const files = await readPhaserProjectFromDirectory(root);
+          const html = buildPhaserPreviewHtml(files, p.title);
+          if (!cancelled) {
+            setProjectRoot(null);
+            setGenericPreview(null);
+            setRuntimePreviewHtml(html);
           }
         } else {
           const model = await readProjectPreview(root, p.template);
           if (!cancelled) {
             setProjectRoot(root);
             setGenericPreview(model);
+            setRuntimePreviewHtml(null);
           }
         }
         if (!cancelled) setStatus("ready");
@@ -140,6 +155,7 @@ export default function PreviewClient() {
         if (!cancelled) {
           setProjectRoot(null);
           setGenericPreview(null);
+          setRuntimePreviewHtml(null);
           setStatus("error");
           setError(e instanceof Error ? e.message : String(e));
         }
@@ -263,7 +279,14 @@ export default function PreviewClient() {
             </div>
           </article>
         )}
-        {status === "ready" && !genericPreview && (
+        {status === "ready" && runtimePreviewHtml && (
+          <iframe
+            srcDoc={runtimePreviewHtml}
+            title="Phaser game preview"
+            className="h-full w-full border-0"
+          />
+        )}
+        {status === "ready" && !genericPreview && !runtimePreviewHtml && (
           <iframe
             src="/webgal/index.html"
             title="OpenWebGal preview"

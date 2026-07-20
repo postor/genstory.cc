@@ -7,8 +7,8 @@ import {
   pageLanguageAlternates,
   pageUrl,
   publicLanguages,
+  siteFeatureList,
   siteMetadata,
-  siteUrl,
 
 } from "@/lib/seo";
 
@@ -29,6 +29,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: isZh ? siteMetadata.zhTitle : siteMetadata.enTitle,
     description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
+    other: {
+      "content-language": isZh ? "zh-CN" : "en",
+    },
     alternates: {
       canonical: pageUrl(lang),
       languages: pageLanguageAlternates(),
@@ -62,34 +65,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function LocalizedHome({ params }: Props) {
   const lang = normalizePublicLang((await params).lang);
   const isZh = lang === "zh";
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: siteMetadata.name,
-    url: siteUrl,
-    applicationCategory: "CreativeWorkApplication",
-    operatingSystem: "Web browser",
-    inLanguage: isZh ? "zh-CN" : "en",
-    description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: siteMetadata.name,
+      url: pageUrl(lang),
+      inLanguage: isZh ? "zh-CN" : "en",
+      description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
     },
-    featureList: isZh
-      ? [
-          "本地优先项目文件",
-          "图书、漫画、视觉小说和互动视频模板",
-          "源码 ZIP 备份和导入",
-          "OpenWebGal 预览和导出",
-        ]
-      : [
-          "Local-first project files",
-          "Book, comic, visual novel, and interactive video templates",
-          "Source ZIP backup and import",
-          "OpenWebGal preview and export",
-        ],
-  };
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: siteMetadata.name,
+      url: pageUrl(lang),
+      applicationCategory: "CreativeWorkApplication",
+      operatingSystem: "Web browser",
+      inLanguage: isZh ? "zh-CN" : "en",
+      description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+      featureList: siteFeatureList[lang],
+    },
+  ];
 
   return (
     <>

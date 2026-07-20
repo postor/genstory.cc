@@ -43,6 +43,7 @@ import {
   type Project,
 } from "@/lib/local-projects";
 import { exportVNZipFromDirectory } from "@/lib/vn/export";
+import { exportPhaserProjectZip } from "@/lib/phaser/export";
 import {
   exportProjectDirectoryZip,
   exportReadableProjectZip,
@@ -583,6 +584,8 @@ export default function EditorClient() {
     try {
       if (project.template === "visual-novel") {
         await exportVNZipFromDirectory(root, `${project.title || "openwebgal"}.zip`);
+      } else if (project.template === "phaser-game") {
+        await exportPhaserProjectZip(root, project.title);
       } else {
         const preview = await readProjectPreview(root, project.template);
         await exportReadableProjectZip(preview, project.title);
@@ -756,7 +759,11 @@ export default function EditorClient() {
               </Button>
               <Button variant="outline" size="sm" onClick={() => void handleExport()} disabled={exporting}>
                 {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
-                {project.template === "visual-novel" ? t("vn.exportOpenwebgal") : t("editor.export")}
+                {project.template === "visual-novel"
+                  ? t("vn.exportOpenwebgal")
+                  : project.template === "phaser-game"
+                    ? t("phaser.export")
+                    : t("editor.export")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => void handleDownloadSource()} disabled={exporting}>
                 {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
@@ -880,6 +887,9 @@ export default function EditorClient() {
           <div className="flex h-full min-h-0 flex-col gap-3 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("editor.chat")}
+            </p>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {t("editor.chatDataNote")}
             </p>
             <div className="min-h-0 flex-1">
               <ChatBox

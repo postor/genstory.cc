@@ -34,7 +34,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
         url: pageUrl(lang, slug),
         lastModified: now,
         changeFrequency: "monthly",
-        priority: slug === "visual-novel" || slug === "openwebgal" ? 0.9 : 0.8,
+        priority:
+          slug === "visual-novel" ||
+          slug === "phaser-game"
+            ? 0.9
+            : 0.8,
         alternates: {
           languages: pageLanguageAlternates(slug),
         },

@@ -27,7 +27,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:h-14 sm:flex-nowrap sm:py-0 sm:px-6">
         <Link href={localizedPath(publicLang)} className="flex items-center gap-2 font-semibold">
           <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground text-sm">
             G
@@ -35,7 +35,7 @@ export function SiteHeader() {
           GenStory
         </Link>
 
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-1 max-[400px]:w-full max-[400px]:justify-end">
           {navItems.map((item) => {
             const active =
               item.href === localizedPath(publicLang)

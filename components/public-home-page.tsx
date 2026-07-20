@@ -1,5 +1,16 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Download, FileText, FolderOpen } from "lucide-react";
+import {
+  ArrowRight,
+  BookOpen,
+  Download,
+  Film,
+  FileText,
+  FolderOpen,
+  Gamepad2,
+  Image,
+  MessageCircle,
+  type LucideIcon,
+} from "lucide-react";
 
 import { LocalProjectSummary } from "@/components/local-project-summary";
 import { Button } from "@/components/ui/button";
@@ -7,71 +18,84 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 
 } from "@/components/ui/card";
-import { type PublicLang, localizedPath } from "@/lib/seo";
+import {
+  type PublicLang,
+  type PublicPageSlug,
+  localizedPath,
+  publicPageSlugs,
+  publicPages,
+} from "@/lib/seo";
 
 const copy = {
   zh: {
     heroTitle: "GenStory",
-    heroSubtitle: "本地优先的故事创作工作台",
+    heroSubtitle: "在浏览器中创作故事和游戏",
     heroBody:
-      "在浏览器里创作图书、漫画、视觉小说和互动视频。项目正文与资产保存在本地浏览器，支持源码 ZIP 备份和 OpenWebGal 导出。",
+      "在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。你可以下载项目备份，也可以导出可运行项目。",
     ctaCreate: "开始创作",
-    ctaVn: "了解视觉小说",
+    ctaBrowseTypes: "探索创作类型",
+    workTypesTitle: "探索创作类型",
+    workTypesBody: "从适合的项目结构开始，了解每种作品类型的编辑、预览和导出方式。",
+    openPage: "查看介绍",
     pillarsTitle: "为长期创作设计",
     workflowTitle: "从创作到导出",
-    localProjects: "本地项目",
+    localProjects: "我的作品",
     pillars: [
       {
-        title: "本地优先",
-        body: "项目文件写入浏览器 OPFS，应用可以作为静态站部署，不需要后端保存你的作品。",
+        title: "保存在你的浏览器里",
+        body: "作品内容和素材直接保存在这台设备的浏览器中。换设备或清理浏览器数据前，请先下载项目备份。",
       },
       {
         title: "结构化创作",
-        body: "用章节、场景、脚本、舞台状态和资产索引组织故事，减少重复设定和长期维护成本。",
+        body: "按章节、场景、脚本和素材组织故事，方便持续创作和维护。",
       },
       {
-        title: "可备份可发布",
-        body: "源码 ZIP 用于恢复编辑，OpenWebGal ZIP 用于视觉小说预览和独立运行。",
+        title: "备份与发布",
+        body: "下载项目备份后可以继续编辑；视觉小说和 Phaser 游戏还可以在浏览器中预览并导出运行包。",
       },
     ],
     workflows: [
-      "选择图书、漫画或视觉小说模板。",
-      "在浏览器中编辑真实项目文件。",
-      "预览作品并导出源码或运行项目。",
+      "选择图书、漫画、视觉小说、互动视频或 Phaser 游戏模板。",
+      "直接在浏览器中编辑作品内容。",
+      "预览作品，下载备份或导出运行包。",
     ],
   },
   en: {
     heroTitle: "GenStory",
-    heroSubtitle: "Local-first story creation workspace",
+    heroSubtitle: "Create stories and games in the browser",
     heroBody:
-      "Create books, comics, visual novels, and interactive videos in the browser. Project text and assets stay local, with source ZIP backups and OpenWebGal export support.",
+      "Create books, comics, visual novels, interactive videos, and Phaser games in the browser. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Download project backups or export runnable projects when ready.",
     ctaCreate: "Start creating",
-    ctaVn: "Explore visual novels",
+    ctaBrowseTypes: "Explore creation types",
+    workTypesTitle: "Explore creation types",
+    workTypesBody: "Start with the project structure that fits your work, then learn how each type is edited, previewed, and exported.",
+    openPage: "View overview",
     pillarsTitle: "Designed for long-running creative work",
     workflowTitle: "From creation to export",
-    localProjects: "Local projects",
+    localProjects: "My works",
     pillars: [
       {
-        title: "Local-first",
-        body: "Project files are written to browser OPFS, so the app can ship as a static site without storing your work on a backend.",
+        title: "Saved in your browser",
+        body: "Your work and assets stay in this browser on this device. Download a project backup before changing devices or clearing browser data.",
       },
       {
         title: "Structured creation",
-        body: "Organize stories with chapters, scenes, scripts, stage state, and asset indexes to reduce duplicated lore and maintenance work.",
+        body: "Organize stories with chapters, scenes, scripts, and assets so they remain easy to grow and maintain.",
       },
       {
         title: "Backup and publish",
-        body: "Source ZIPs restore editable projects, while OpenWebGal ZIPs run exported visual novels independently.",
+        body: "Project backups can be imported for continued editing, while visual novels and Phaser games preview and export as runnable packages.",
       },
     ],
     workflows: [
-      "Choose a book, comic, or visual novel template.",
-      "Edit real project files directly in the browser.",
-      "Preview the work and export source or runnable projects.",
+      "Choose a book, comic, visual novel, interactive video, or Phaser game template.",
+      "Edit your work directly in the browser.",
+      "Preview it, download a backup, or export a runnable package.",
     ],
   },
 
@@ -79,13 +103,23 @@ const copy = {
 
 const featureIcons = [FolderOpen, FileText, Download];
 
+const typeIcons: Record<PublicPageSlug, LucideIcon> = {
+  book: BookOpen,
+  comic: Image,
+  "visual-novel": MessageCircle,
+  "interactive-video": Film,
+  "phaser-game": Gamepad2,
+};
+
 export function PublicHomePage({ lang }: { lang: PublicLang }) {
   const t = copy[lang];
   const createHref = "/projects/new";
-  const vnHref = localizedPath(lang, "visual-novel");
 
   return (
-    <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+    <main
+      lang={lang === "zh" ? "zh-CN" : "en"}
+      className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6"
+    >
       <section className="mb-10 border-b pb-10">
         <div className="grid gap-8 lg:grid-cols-[1fr_20rem] lg:items-end">
           <div className="max-w-3xl">
@@ -103,8 +137,12 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
                 <BookOpen className="size-4" />
                 {t.ctaCreate as string}
               </Button>
-              <Button render={<Link href={vnHref} />} size="lg" variant="outline">
-                {t.ctaVn as string}
+              <Button
+                render={<Link href="#work-types" />}
+                size="lg"
+                variant="outline"
+              >
+                {t.ctaBrowseTypes as string}
                 <ArrowRight className="size-4" />
               </Button>
             </div>
@@ -127,6 +165,50 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
         </div>
       </section>
 
+      <section id="work-types" className="mb-10 scroll-mt-20">
+        <div className="mb-4 max-w-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {t.workTypesTitle as string}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            {t.workTypesBody as string}
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {publicPageSlugs.map((slug) => {
+            const page = publicPages[slug];
+            const Icon = typeIcons[slug];
+            const href = localizedPath(lang, slug);
+            return (
+              <Card key={slug}>
+                <CardHeader className="flex-row items-center gap-2">
+                  <Icon className="size-5 shrink-0 text-muted-foreground" />
+                  <CardTitle className="min-w-0">
+                    <Link href={href} className="hover:underline">
+                      {page.kicker[lang]}
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="leading-6">
+                    {page.description[lang]}
+                  </CardDescription>
+                </CardContent>
+                <CardFooter>
+                  <Link
+                    href={href}
+                    className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
+                  >
+                    {t.openPage as string}
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </CardFooter>
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="mb-10">
         <div className="mb-4 flex items-end justify-between gap-4">
           <h2 className="text-2xl font-semibold tracking-tight">
@@ -138,9 +220,9 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
             const Icon = featureIcons[index] ?? FileText;
             return (
               <Card key={item.title}>
-                <CardHeader>
-                  <Icon className="size-5 text-muted-foreground" />
-                  <CardTitle>{item.title}</CardTitle>
+                <CardHeader className="flex-row items-center gap-2">
+                  <Icon className="size-5 shrink-0 text-muted-foreground" />
+                  <CardTitle className="min-w-0">{item.title}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <CardDescription className="leading-6">{item.body}</CardDescription>

@@ -144,7 +144,12 @@ export default function ProjectsPage() {
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold tracking-tight">{t("projects.title")}</h1>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+            {t("projects.storageNote")}
+          </p>
+        </div>
         <div className="flex gap-2">
           <input
             ref={importInputRef}

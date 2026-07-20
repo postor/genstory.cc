@@ -7,6 +7,7 @@ import {
   ogImagePath,
   pageLanguageAlternates,
   pageUrl,
+  publicPageKeywords,
   publicLanguages,
   publicPageSlugs,
   publicPages,
@@ -40,6 +41,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: page.title[lang],
     description: page.description[lang],
+    keywords: publicPageKeywords[rawSlug][lang],
+    other: {
+      "content-language": lang === "zh" ? "zh-CN" : "en",
+    },
     alternates: {
       canonical: pageUrl(lang, path),
       languages: pageLanguageAlternates(path),
@@ -74,19 +79,53 @@ export default async function PublicTopic({ params }: Props) {
   const lang = normalizePublicLang(rawLang);
   if (!isPublicPageSlug(rawSlug)) notFound();
   const page = publicPages[rawSlug];
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    inLanguage: lang === "zh" ? "zh-CN" : "en",
-    mainEntity: page.faqs.map((item) => ({
-      "@type": "Question",
-      name: item.question[lang],
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: item.answer[lang],
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "@id": `${pageUrl(lang, rawSlug)}#webpage`,
+      url: pageUrl(lang, rawSlug),
+      name: page.title[lang],
+      description: page.description[lang],
+      inLanguage: lang === "zh" ? "zh-CN" : "en",
+      isPartOf: {
+        "@type": "WebSite",
+        name: "GenStory",
+        url: pageUrl(lang),
       },
-    })),
-  };
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        {
+          "@type": "ListItem",
+          position: 1,
+          name: lang === "zh" ? "首页" : "Home",
+          item: pageUrl(lang),
+        },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: page.kicker[lang],
+          item: pageUrl(lang, rawSlug),
+        },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      inLanguage: lang === "zh" ? "zh-CN" : "en",
+      mainEntity: page.faqs.map((item) => ({
+        "@type": "Question",
+        name: item.question[lang],
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer[lang],
+        },
+      })),
+    },
+  ];
 
   return (
     <>

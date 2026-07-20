@@ -14,6 +14,7 @@ import {
   type PublicLang,
   type PublicPageSlug,
   localizedPath,
+  publicPageSlugs,
   publicPages,
 
 } from "@/lib/seo";
@@ -31,10 +32,14 @@ export function PublicTopicPage({
   const createLabel = lang === "zh" ? "开始创作" : "Start creating";
   const homeLabel = lang === "zh" ? "返回首页" : "Back home";
   const sectionLabel = lang === "zh" ? "核心能力" : "Core workflow";
+  const relatedLabel = lang === "zh" ? "探索其他创作类型" : "Explore other creation types";
   const faqLabel = lang === "zh" ? "常见问题" : "FAQ";
 
   return (
-    <main className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6">
+    <main
+      lang={lang === "zh" ? "zh-CN" : "en"}
+      className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6"
+    >
       <section className="border-b pb-10">
         <p className="mb-3 text-sm font-medium text-muted-foreground">
           {page.kicker[lang]}
@@ -91,6 +96,35 @@ export function PublicTopicPage({
             </Card>
           ))}
         </div>
+      </section>
+
+      <section className="border-t pb-10 pt-10">
+        <h2 className="mb-4 text-2xl font-semibold tracking-tight">{relatedLabel}</h2>
+        <nav aria-label={relatedLabel} className="grid gap-4 sm:grid-cols-2">
+          {publicPageSlugs
+            .filter((otherSlug) => otherSlug !== slug)
+            .map((otherSlug) => (
+              <Link
+                key={otherSlug}
+                href={localizedPath(lang, otherSlug)}
+                className="group block rounded-xl focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <Card className="h-full transition-colors group-hover:border-primary/50 group-hover:bg-muted/30">
+                  <CardHeader className="gap-2">
+                    <CardTitle className="flex items-center justify-between gap-4">
+                      <span>{publicPages[otherSlug].kicker[lang]}</span>
+                      <ArrowRight className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-foreground" />
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <CardDescription className="leading-6">
+                      {publicPages[otherSlug].intro[lang]}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              </Link>
+            ))}
+        </nav>
       </section>
     </main>
   );

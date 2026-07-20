@@ -89,6 +89,26 @@ test("visual novel template contains real OpenWebGal source files", async () => 
   assert.ok(files.some((file) => file.path.endsWith(".png") && file.kind === "binary"));
 });
 
+test("Phaser template contains runnable menu and test game scenes without generated media", async () => {
+  const files = await getProjectTemplate("phaser-game", "zh", "测试游戏");
+  const paths = new Set(files.map((file) => file.path));
+  const text = files
+    .filter((file) => file.kind === "text")
+    .map((file) => file.content ?? "")
+    .join("\n");
+
+  assert.ok(paths.has("index.html"));
+  assert.ok(paths.has("src/main.js"));
+  assert.ok(paths.has("src/scenes/menu-scene.js"));
+  assert.ok(paths.has("src/scenes/test-game-scene.js"));
+  assert.ok(paths.has("assets/index.yml"));
+  assert.equal(files.some((file) => file.kind === "binary"), false);
+  assert.match(text, /MenuScene/);
+  assert.match(text, /TestGameScene/);
+  assert.match(text, /prompt:/);
+  assert.match(text, /audio|音频/i);
+});
+
 test("all content types expose the same template lookup contract", async () => {
   const results = await Promise.all(
     contentTypes.map((item) => getProjectTemplate(item.id as ContentTypeId, "en", "Story"))

@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 
 import { PublicHomePage } from "@/components/public-home-page";
-import { pageLanguageAlternates, pageUrl, siteMetadata, siteUrl } from "@/lib/seo";
+import {
+  pageLanguageAlternates,
+  pageUrl,
+  siteFeatureList,
+  siteMetadata,
+  siteUrl,
+} from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: siteMetadata.zhTitle,
@@ -13,26 +19,32 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "WebApplication",
-    name: siteMetadata.name,
-    url: siteUrl,
-    applicationCategory: "CreativeWorkApplication",
-    operatingSystem: "Web browser",
-    description: siteMetadata.zhDescription,
-    offers: {
-      "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: siteMetadata.name,
+      url: pageUrl("zh"),
+      inLanguage: "zh-CN",
+      description: siteMetadata.zhDescription,
     },
-    featureList: [
-      "本地优先项目文件",
-      "图书、漫画、视觉小说和互动视频模板",
-      "源码 ZIP 备份和导入",
-      "OpenWebGal 预览和导出",
-    ],
-  };
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      name: siteMetadata.name,
+      url: siteUrl,
+      applicationCategory: "CreativeWorkApplication",
+      operatingSystem: "Web browser",
+      inLanguage: "zh-CN",
+      description: siteMetadata.zhDescription,
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+      },
+      featureList: siteFeatureList.zh,
+    },
+  ];
 
   return (
     <>

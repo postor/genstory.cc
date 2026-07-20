@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run sync-webgal && next dev",
-    "build": "npm run sync-webgal && next build",
+    "dev": "npm run sync-phaser && npm run sync-webgal && next dev",
+    "build": "npm run sync-phaser && npm run sync-webgal && next build",
     "start": "next start",
     "lint": "eslint",
+    "sync-phaser": "node scripts/sync-phaser.mjs",
     "sync-webgal": "node scripts/sync-webgal.mjs"
   },
   "dependencies": {
@@ -18,6 +19,7 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.24.0",
     "next": "16.2.10",
+    "phaser": "^3.90.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",

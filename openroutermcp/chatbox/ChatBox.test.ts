@@ -10,5 +10,17 @@ test("chatbox exposes an opt-in automatic compression toggle and a manual fallba
   assert.match(source, /onChange=\{\(event\) => setAutoCompress\(event\.target\.checked\)\}/);
   assert.match(source, /\{!autoCompress && \(/);
   assert.match(source, /llmMessagesFromTranscript\(transcript\)\.length === 0/);
-  assert.match(source, /压缩上下文/);
+  assert.match(source, /t\("chat\.compressContext"\)/);
+  assert.match(source, /aria-label=\{t\("chat\.compressionOptionsLabel"\)\}/);
+  assert.match(source, /<PopoverPopup[\s\S]*t\("chat\.autoCompress"\)[\s\S]*t\("chat\.compressContext"\)[\s\S]*<\/PopoverPopup>/);
+  assert.doesNotMatch(source, /formatContextBreakdown/);
+
+  const contextStatusIndex = source.indexOf('<span className="font-medium text-foreground">{t("chat.context")}</span>');
+  const contextSettingsIndex = source.indexOf('aria-label={t("chat.compressionOptionsLabel")}');
+  const sendButtonIndex = source.indexOf('{sending ? t("chat.sending") : t("chat.send")}');
+  assert.ok(contextStatusIndex > -1);
+  assert.ok(contextSettingsIndex > -1);
+  assert.ok(sendButtonIndex > -1);
+  assert.ok(contextStatusIndex < contextSettingsIndex);
+  assert.ok(contextSettingsIndex < sendButtonIndex);
 });

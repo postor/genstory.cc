@@ -10,12 +10,17 @@ const TYPE_NAMES: Record<ContentTypeId, Record<Lang, string>> = {
   "phaser-game": { zh: "Phaser 游戏", en: "Phaser Game" },
 };
 
+const TITLE_PREFIXERS: Record<Lang, (typeName: string) => string> = {
+  zh: (typeName) => `新的${typeName}`,
+  en: (typeName) => `New ${typeName}`,
+};
+
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 export function defaultProjectTitlePrefix(type: ContentTypeId, lang: Lang): string {
-  return lang === "zh" ? `新的${TYPE_NAMES[type][lang]}` : `New ${TYPE_NAMES[type][lang]}`;
+  return TITLE_PREFIXERS[lang](TYPE_NAMES[type][lang]);
 }
 
 export function nextDefaultProjectTitle(

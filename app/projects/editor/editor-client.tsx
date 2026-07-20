@@ -54,6 +54,7 @@ import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
 import type { VNProject } from "@/lib/vn/types";
 import { VNEditor } from "./vn-editor";
 import { useLang } from "@/lib/i18n";
+import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 
 function isTextPath(path: string): boolean {
   return /\.(md|markdown|ya?ml|txt|json|js|ts|tsx|jsx|css|html|svg)$/i.test(path);
@@ -114,7 +115,7 @@ function buildTree(
 type EditorStatus = "loading" | "ready" | "missing" | "error";
 
 export default function EditorClient() {
-  const { t } = useLang();
+  const { lang, t } = useLang();
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -146,6 +147,10 @@ export default function EditorClient() {
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+
+  useEffect(() => {
+    document.title = t("meta.editorTitle");
+  }, [t]);
 
   async function loadProject(pid: string) {
     setStatus("loading");
@@ -198,7 +203,7 @@ export default function EditorClient() {
       });
     } catch (e) {
       setStatus("error");
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
 
@@ -357,7 +362,10 @@ export default function EditorClient() {
       );
       setSaved(true);
     } catch (e) {
-      setError(t("editor.saveFailed") + (e instanceof Error ? e.message : String(e)));
+      setError(
+        t("editor.saveFailed") +
+          localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang)
+      );
     } finally {
       setSaving(false);
     }
@@ -416,7 +424,10 @@ export default function EditorClient() {
       setSaved(true);
       return true;
     } catch (e) {
-      setError(t("editor.saveFailed") + (e instanceof Error ? e.message : String(e)));
+      setError(
+        t("editor.saveFailed") +
+          localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang)
+      );
       return false;
     } finally {
       setSaving(false);
@@ -462,7 +473,7 @@ export default function EditorClient() {
       const written = await writeFilesToDirectory(root, target, Array.from(fileList));
       await reloadFiles(written.at(-1) ?? selectedPath, "file");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       if (uploadInputRef.current) uploadInputRef.current.value = "";
     }
@@ -479,7 +490,7 @@ export default function EditorClient() {
       await createDirectory(root, path);
       await reloadFiles(path, "directory");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
 
@@ -513,7 +524,7 @@ export default function EditorClient() {
       });
       await reloadFiles(parentDirectoryPath(selectedPath), "directory");
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
 
@@ -531,7 +542,7 @@ export default function EditorClient() {
     const normalized = changes.map((change) => {
       const path = normalizeRelativePath(change.path);
       if (!isTextPath(path)) {
-        throw new Error(`聊天变更只能写入文本文件：${path}`);
+        throw new Error(t("editor.chatChangeTextOnly", { path }));
       }
       return { ...change, path };
     });
@@ -572,7 +583,7 @@ export default function EditorClient() {
     try {
       await exportProjectDirectoryZip(root, `${project.title || "project"}-source`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       setExporting(false);
     }
@@ -591,7 +602,7 @@ export default function EditorClient() {
         await exportReadableProjectZip(preview, project.title);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       setExporting(false);
     }
@@ -599,20 +610,23 @@ export default function EditorClient() {
 
   const context = useMemo(() => {
     if (!project) return undefined;
+    const templateName = contentTypeById[project.template]?.label[lang] ?? project.template;
     return [
-      `项目：${project.title}`,
-      `模板：${contentTypeById[project.template]?.label[project.lang] ?? project.template}`,
-      selectedPath ? `当前选中：${selectedPath}` : "当前选中：无",
-      `文本文件数：${Object.keys(contents).length}`,
+      t("editor.contextProject", { title: project.title }),
+      t("editor.contextTemplate", { template: templateName }),
+      selectedPath
+        ? t("editor.contextSelected", { path: selectedPath })
+        : t("editor.contextSelectedNone"),
+      t("editor.contextTextFileCount", { count: Object.keys(contents).length }),
     ].join("\n");
-  }, [contents, project, selectedPath]);
+  }, [contents, lang, project, selectedPath, t]);
 
   const projectTools = useMemo<ChatProjectTool[]>(() => {
     const sortedEntries = Object.entries(contents).sort(([a], [b]) => a.localeCompare(b));
     return [
       {
         name: "genstory_list_project_files",
-        description: "列出当前 GenStory 项目的文本文件路径。需要了解项目结构时先调用。",
+        description: t("editor.toolListFilesDesc"),
         inputSchema: {
           type: "object",
           properties: {},
@@ -627,28 +641,28 @@ export default function EditorClient() {
       },
       {
         name: "genstory_read_project_file",
-        description: "读取当前 GenStory 项目中的单个文本文件完整内容。只在确实需要文件内容时调用。",
+        description: t("editor.toolReadFileDesc"),
         inputSchema: {
           type: "object",
           properties: {
-            path: { type: "string", description: "项目内相对路径，例如 AGENTS.md 或 chapter-001/scenes/scene-001/script.md" },
+            path: { type: "string", description: t("editor.toolReadFilePathDesc") },
           },
           required: ["path"],
         },
         call: (args) => {
           const path = normalizeRelativePath(String(args.path ?? ""));
           const content = contents[path];
-          if (content === undefined) throw new Error(`文件不存在或不是文本文件：${path}`);
+          if (content === undefined) throw new Error(t("editor.toolMissingTextFile", { path }));
           return { path, content };
         },
       },
       {
         name: "genstory_search_project_files",
-        description: "在当前 GenStory 项目的文本文件中搜索关键词，返回匹配文件和片段。",
+        description: t("editor.toolSearchFilesDesc"),
         inputSchema: {
           type: "object",
           properties: {
-            query: { type: "string", description: "要搜索的关键词" },
+            query: { type: "string", description: t("editor.toolSearchQueryDesc") },
           },
           required: ["query"],
         },
@@ -666,7 +680,7 @@ export default function EditorClient() {
         },
       },
     ];
-  }, [contents, selectedPath]);
+  }, [contents, selectedPath, t]);
 
   return (
     <main className="flex h-svh flex-col overflow-hidden">

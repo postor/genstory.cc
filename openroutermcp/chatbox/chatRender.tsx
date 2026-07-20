@@ -9,6 +9,8 @@
 // replace that chat dialog. Styling uses Tailwind utility classes only — no
 // inline `style`.
 
+/* eslint-disable @next/next/no-img-element -- Tool results render data URLs and local image refs. */
+
 import Markdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -45,7 +47,17 @@ export function Md({ content }: { content: string }) {
 }
 
 // Render a tool result's content, showing images (by ref) and text blocks.
-export function ToolResult({ content, images }: { content: string; images: Record<string, string> }) {
+export function ToolResult({
+  content,
+  images,
+  missingImageLabel = "（图片不存在或已清除）",
+  imageAlt = "工具返回图片",
+}: {
+  content: string;
+  images: Record<string, string>;
+  missingImageLabel?: string;
+  imageAlt?: string;
+}) {
   let parsed: unknown = null;
   try {
     parsed = JSON.parse(content);
@@ -72,7 +84,7 @@ export function ToolResult({ content, images }: { content: string; images: Recor
             if (!src) {
               return (
                 <span key={idx} className="text-xs text-muted-foreground">
-                  （图片不存在或已清除）
+                  {missingImageLabel}
                 </span>
               );
             }
@@ -80,7 +92,7 @@ export function ToolResult({ content, images }: { content: string; images: Recor
               <img
                 key={idx}
                 src={src}
-                alt="工具返回图片"
+                alt={imageAlt}
                 className="my-1 block max-w-full rounded-md"
               />
             );

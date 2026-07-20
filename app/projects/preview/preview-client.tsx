@@ -23,6 +23,7 @@ import { readProjectPreview, type ProjectPreviewModel } from "@/lib/project-sour
 import { buildPhaserPreviewHtml } from "@/lib/phaser/preview";
 import { readPhaserProjectFromDirectory } from "@/lib/phaser/source-reader";
 import { useLang } from "@/lib/i18n";
+import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { contentTypeById } from "@/lib/content-types";
 
 type Status = "loading" | "ready" | "missing" | "error";
@@ -88,6 +89,10 @@ export default function PreviewClient() {
   const [runtimePreviewHtml, setRuntimePreviewHtml] = useState<string | null>(null);
   const [sectionMediaUrls, setSectionMediaUrls] = useState<Record<string, Record<string, string>>>({});
   const sectionMediaUrlsRef = useRef<Record<string, Record<string, string>>>({});
+
+  useEffect(() => {
+    document.title = t("meta.previewTitle");
+  }, [t]);
 
   function replaceSectionMediaUrls(nextUrls: Record<string, Record<string, string>>) {
     for (const urls of Object.values(sectionMediaUrlsRef.current)) {
@@ -157,14 +162,14 @@ export default function PreviewClient() {
           setGenericPreview(null);
           setRuntimePreviewHtml(null);
           setStatus("error");
-          setError(e instanceof Error ? e.message : String(e));
+          setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
         }
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [id, t]);
+  }, [id, lang, t]);
 
   useEffect(() => {
     if (!projectRoot || !genericPreview) {

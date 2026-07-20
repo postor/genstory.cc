@@ -10,6 +10,7 @@ import {
   CardTitle,
 
 } from "@/components/ui/card";
+import { languageInfo, publicTopicChrome } from "@/lib/platform-i18n";
 import {
   type PublicLang,
   type PublicPageSlug,
@@ -29,15 +30,11 @@ export function PublicTopicPage({
 
 }) {
   const page = publicPages[slug];
-  const createLabel = lang === "zh" ? "开始创作" : "Start creating";
-  const homeLabel = lang === "zh" ? "返回首页" : "Back home";
-  const sectionLabel = lang === "zh" ? "核心能力" : "Core workflow";
-  const relatedLabel = lang === "zh" ? "探索其他创作类型" : "Explore other creation types";
-  const faqLabel = lang === "zh" ? "常见问题" : "FAQ";
+  const chrome = publicTopicChrome[lang];
 
   return (
     <main
-      lang={lang === "zh" ? "zh-CN" : "en"}
+      lang={languageInfo[lang].htmlLang}
       className="mx-auto w-full max-w-5xl px-4 py-8 sm:px-6"
     >
       <section className="border-b pb-10">
@@ -53,17 +50,17 @@ export function PublicTopicPage({
         <div className="mt-6 flex flex-wrap gap-3">
           <Button render={<Link href="/projects/new" />} size="lg">
             <BookOpen className="size-4" />
-            {createLabel}
+            {chrome.create}
           </Button>
           <Button render={<Link href={localizedPath(lang)} />} size="lg" variant="outline">
-            {homeLabel}
+            {chrome.home}
             <ArrowRight className="size-4" />
           </Button>
         </div>
       </section>
 
       <section className="py-10">
-        <h2 className="mb-4 text-2xl font-semibold tracking-tight">{sectionLabel}</h2>
+        <h2 className="mb-4 text-2xl font-semibold tracking-tight">{chrome.coreWorkflow}</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {page.sections.map((section) => (
             <Card key={section.title[lang]}>
@@ -81,7 +78,7 @@ export function PublicTopicPage({
       </section>
 
       <section className="border-t py-10">
-        <h2 className="mb-4 text-2xl font-semibold tracking-tight">{faqLabel}</h2>
+        <h2 className="mb-4 text-2xl font-semibold tracking-tight">{chrome.faq}</h2>
         <div className="space-y-3">
           {page.faqs.map((item) => (
             <Card key={item.question[lang]}>
@@ -99,8 +96,8 @@ export function PublicTopicPage({
       </section>
 
       <section className="border-t pb-10 pt-10">
-        <h2 className="mb-4 text-2xl font-semibold tracking-tight">{relatedLabel}</h2>
-        <nav aria-label={relatedLabel} className="grid gap-4 sm:grid-cols-2">
+        <h2 className="mb-4 text-2xl font-semibold tracking-tight">{chrome.relatedTypes}</h2>
+        <nav aria-label={chrome.relatedTypes} className="grid gap-4 sm:grid-cols-2">
           {publicPageSlugs
             .filter((otherSlug) => otherSlug !== slug)
             .map((otherSlug) => (

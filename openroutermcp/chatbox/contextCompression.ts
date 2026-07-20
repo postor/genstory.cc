@@ -1,4 +1,5 @@
 import type { ChatMessage } from "@/lib/openrouter";
+import type { Lang } from "@/lib/i18n";
 import { estimateContextTokens, estimateContextUsage } from "./contextSize.ts";
 
 export interface ChatCompressionState {
@@ -46,6 +47,42 @@ export const DEFAULT_COMPRESSION_BUDGET: CompressionBudget = {
   unknownLimitTriggerTokens: 24000,
   minRecentTurns: 8,
 };
+
+const COMPRESSION_COPY = {
+  zh: {
+    savedSummaryIntro:
+      "以下是较早聊天历史的压缩摘要。它保留事实、决策、文件状态和未解决问题；如果它与最近消息冲突，以最近消息为准。",
+    promptSystem:
+      "请压缩聊天历史，输出中文摘要。目标是让后续模型在不读取原始早期消息的情况下继续工作。\n" +
+      "必须保留：用户目标、视觉小说 canon、角色状态、时间线、项目文件事实、已做决策、工具结果、待办、未解决问题、用户偏好。\n" +
+      "必须遵守：不要加入新的剧情、不要改写已确立事件、不要编造文件内容、不要写渲染指令。\n" +
+      "格式使用简洁 Markdown，控制在 1200 字以内。",
+    previousSummary: "此前摘要：",
+    newHistory: "需要压缩的新增聊天历史：",
+    toolCalls: "工具调用",
+  },
+  en: {
+    savedSummaryIntro:
+      "The following is a compressed summary of earlier chat history. It preserves facts, decisions, file state, and unresolved questions. If it conflicts with recent messages, recent messages take priority.",
+    promptSystem:
+      "Compress the chat history into an English summary so the next model can continue without reading the original earlier messages.\n" +
+      "Must preserve: user goals, visual novel canon, character state, timeline, project file facts, decisions made, tool results, todos, unresolved questions, and user preferences.\n" +
+      "Must obey: do not add new story facts, do not rewrite established events, do not invent file contents, and do not write rendering instructions.\n" +
+      "Use concise Markdown and keep it under 1200 words.",
+    previousSummary: "Previous summary:",
+    newHistory: "New chat history to compress:",
+    toolCalls: "Tool calls",
+  },
+} satisfies Record<
+  Lang,
+  {
+    savedSummaryIntro: string;
+    promptSystem: string;
+    previousSummary: string;
+    newHistory: string;
+    toolCalls: string;
+  }
+>;
 
 function mergeBudget(
   modelLimit: number | undefined,
@@ -154,16 +191,16 @@ export function planContextCompression(
 export function buildCompressedLlmMessages(input: {
   summary?: string;
   recentMessages: ChatMessage[];
+  lang?: Lang;
 }): ChatMessage[] {
   const summary = input.summary?.trim();
   if (!summary) return input.recentMessages;
+  const copy = COMPRESSION_COPY[input.lang ?? "zh"];
 
   return [
     {
       role: "system",
-      content:
-        "以下是较早聊天历史的压缩摘要。它保留事实、决策、文件状态和未解决问题；如果它与最近消息冲突，以最近消息为准。\n\n" +
-        summary,
+      content: `${copy.savedSummaryIntro}\n\n${summary}`,
     },
     ...input.recentMessages,
   ];
@@ -182,29 +219,27 @@ export function fingerprintMessages(messages: ChatMessage[]): string {
 export function buildCompressionPrompt(input: {
   previousSummary?: string;
   messages: ChatMessage[];
+  lang?: Lang;
 }): ChatMessage[] {
+  const copy = COMPRESSION_COPY[input.lang ?? "zh"];
   return [
     {
       role: "system",
-      content:
-        "请压缩聊天历史，输出中文摘要。目标是让后续模型在不读取原始早期消息的情况下继续工作。\n" +
-        "必须保留：用户目标、视觉小说 canon、角色状态、时间线、项目文件事实、已做决策、工具结果、待办、未解决问题、用户偏好。\n" +
-        "必须遵守：不要加入新的剧情、不要改写已确立事件、不要编造文件内容、不要写渲染指令。\n" +
-        "格式使用简洁 Markdown，控制在 1200 字以内。",
+      content: copy.promptSystem,
     },
     {
       role: "user",
       content:
         (input.previousSummary?.trim()
-          ? `此前摘要：\n${input.previousSummary.trim()}\n\n`
+          ? `${copy.previousSummary}\n${input.previousSummary.trim()}\n\n`
           : "") +
-        "需要压缩的新增聊天历史：\n" +
+        `${copy.newHistory}\n` +
         input.messages
           .map((message) => {
             const content =
               typeof message.content === "string" ? message.content : "";
             const toolCalls = message.tool_calls?.length
-              ? `\n工具调用: ${JSON.stringify(message.tool_calls)}`
+              ? `\n${copy.toolCalls}: ${JSON.stringify(message.tool_calls)}`
               : "";
             const toolName = message.name ? ` ${message.name}` : "";
             return `【${message.role}${toolName}】\n${content}${toolCalls}`;

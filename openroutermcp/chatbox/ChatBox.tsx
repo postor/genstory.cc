@@ -25,10 +25,13 @@ import {
   type ChatTool,
   type ModelInfo,
 } from "@/lib/openrouter";
+import { SlidersHorizontal } from "lucide-react";
 import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useLang, type Lang } from "@/lib/i18n";
+import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -38,14 +41,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Popover,
+  PopoverPopup,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ModelSelect } from "./ModelSelect";
 import { ChatHistoryWindow } from "./ChatHistoryWindow";
 import { extractImages } from "./chatRender";
 import {
   estimateContextUsage,
   estimateContextTokens,
-  formatContextBreakdown,
-  formatContextLimit,
+  formatContextLimitForLang,
   formatContextSize,
 } from "./contextSize";
 import {
@@ -68,6 +77,54 @@ const LS_MESSAGES = "chatbox_messages";
 const LS_IMAGES = "chatbox_images";
 const LS_AUTO_COMPRESS = "chatbox_auto_compress";
 const LS_COMPRESSION = "chatbox_context_compression";
+
+const CHAT_SYSTEM_COPY = {
+  zh: {
+    tools:
+      "你可以通过调用提供的 MCP 工具来获取信息或执行操作。" +
+      "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
+      "只在确实需要的时调用工具，不要编造工具参数。",
+    projectTools:
+      "项目正文和素材不会默认附带在请求中；当前项目概况会随请求发送。如果需要了解项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取。",
+    fileChanges:
+      "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。",
+    contextHeader: "当前项目概况（非完整文件内容）：",
+  },
+  en: {
+    tools:
+      "You can call the provided MCP tools to gather information or perform actions. " +
+      "When the user's request needs a tool, call the most appropriate tool; after the tool returns, continue your answer based on the result. " +
+      "Only call tools when they are actually needed, and do not invent tool arguments.",
+    projectTools:
+      "Project content and assets are not included by default; the current project overview is sent with the request. If you need project content, first call genstory_list_project_files, genstory_read_project_file, or genstory_search_project_files to read it precisely.",
+    fileChanges:
+      '\n\nIf you need to modify project files, append a JSON code block at the end of your answer in this format: ```json\n{"fileChanges":[{"path":"chapter-001/pages/page-001.md","content":"complete file content","description":"change description"}]}\n```. path must be project-relative, and content must contain the complete file content.',
+    contextHeader: "Current project overview (not complete file content):",
+  },
+} satisfies Record<
+  Lang,
+  {
+    tools: string;
+    projectTools: string;
+    fileChanges: string;
+    contextHeader: string;
+  }
+>;
+
+function buildChatSystemPrompt(input: {
+  lang: Lang;
+  hasProjectTools: boolean;
+  canChangeFiles: boolean;
+  context?: string;
+}): string {
+  const copy = CHAT_SYSTEM_COPY[input.lang];
+  return (
+    copy.tools +
+    (input.hasProjectTools ? copy.projectTools : "") +
+    (input.canChangeFiles ? copy.fileChanges : "") +
+    (input.context ? `\n\n${copy.contextHeader}\n${input.context}` : "")
+  );
+}
 
 /** Namespace a storage key by an optional chat/project id. */
 function storageKey(base: string, chatId?: string): string {
@@ -166,7 +223,7 @@ export interface ChatBoxHandle {
 
 export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   {
-    placeholder = "输入消息，Enter 发送",
+    placeholder,
     maxToolRounds = 8,
     context,
     chatId,
@@ -178,6 +235,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   }: ChatBoxProps,
   ref
 ) {
+  const { lang, t } = useLang();
   const { status, isAuthorized, ready, tools, connect, callTool, refreshToken, authorize } =
     useOpenRouterMcp();
 
@@ -369,6 +427,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           messages: buildCompressedLlmMessages({
             summary: currentCompression?.summary,
             recentMessages: plan.recentMessages,
+            lang,
           }),
           compression: currentCompression,
           compressionApplied: false,
@@ -380,6 +439,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           messages: buildCompressedLlmMessages({
             summary: currentCompression?.summary,
             recentMessages: plan.recentMessages,
+            lang,
           }),
           compression: currentCompression,
           compressionApplied: false,
@@ -394,10 +454,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           buildCompressionPrompt({
             previousSummary: currentCompression?.summary,
             messages: plan.summarySourceMessages,
+            lang,
           })
         );
         const summary = result.content?.trim();
-        if (!summary) throw new Error("上下文压缩未返回摘要");
+        if (!summary) throw new Error(t("chat.emptySummary"));
 
         const nextCompression: ChatCompressionState = {
           summary,
@@ -412,6 +473,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           messages: buildCompressedLlmMessages({
             summary,
             recentMessages: plan.recentMessages,
+            lang,
           }),
           compression: nextCompression,
           compressionApplied: true,
@@ -421,6 +483,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           messages: buildCompressedLlmMessages({
             summary: currentCompression?.summary,
             recentMessages: plan.recentMessages,
+            lang,
           }),
           compression: currentCompression,
           compressionApplied: false,
@@ -430,7 +493,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         setCompressing(false);
       }
     },
-    [compression, context, model, selectedModel?.contextLength]
+    [compression, context, lang, model, selectedModel?.contextLength, t]
   );
 
   const sendChat = useCallback(
@@ -440,12 +503,12 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
     const tk = await refreshToken();
     if (!tk) {
-      setError("未找到可用令牌，请先完成 OAuth 授权。");
+      setError(t("chat.noToken"));
       setOauthOpen(true);
       return;
     }
     if (tools.length === 0 && projectTools.length === 0) {
-      setError("尚未连接 MCP 或未发现工具，无法在聊天中调用工具。");
+      setError(t("chat.noTools"));
       return;
     }
 
@@ -479,19 +542,12 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
     const systemMsg: ChatMessage = {
       role: "system",
-      content:
-        "你可以通过调用提供的 MCP 工具来获取信息或执行操作。" +
-        "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
-        "只在确实需要的时调用工具，不要编造工具参数。" +
-        (projectTools.length > 0
-          ? "项目正文和素材不会默认附带在请求中；当前项目概况会随请求发送。如果需要了解项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取。"
-          : "") +
-        (onFileChanges
-          ? "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。"
-          : "") +
-        (context
-          ? `\n\n当前项目概况（非完整文件内容）：\n${context}`
-          : ""),
+      content: buildChatSystemPrompt({
+        lang,
+        hasProjectTools: projectTools.length > 0,
+        canChangeFiles: Boolean(onFileChanges),
+        context,
+      }),
     };
 
     try {
@@ -504,7 +560,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         );
         history = compressed.messages;
         if (compressed.error) {
-          setError(`上下文压缩失败，已改用最近历史：${compressed.error.message}`);
+          setError(t("chat.compressionFallback", { message: compressed.error.message }));
         }
         if (compressed.compressionApplied && compressed.compression) {
           displayTranscript = [
@@ -512,7 +568,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
             createContextCompressionNotice({
               coveredMessageCount: compressed.compression.coveredMessageCount,
               summaryTokens: estimateContextTokens(compressed.compression.summary),
-            }),
+            }, lang),
           ];
           setTranscript(displayTranscript);
         }
@@ -561,9 +617,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
               // data never enters the chat context sent back to the model.
               const display = extractImages(res, collected);
               resultText = JSON.stringify(display, null, 2);
-            } catch (e) {
-              resultText = "工具调用失败: " + (e instanceof Error ? e.message : String(e));
-            }
+                } catch (e) {
+                  resultText = t("chat.toolCallFailed", {
+                    message: e instanceof Error ? e.message : String(e),
+                  });
+                }
             const toolMessage: ChatMessage = {
               role: "tool",
               tool_call_id: tc.id,
@@ -591,7 +649,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         break;
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       setSending(false);
       setStreamingText(false);
@@ -602,6 +660,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     compressHistory,
     context,
     input,
+    lang,
     maxToolRounds,
     model,
     onFileChanges,
@@ -610,6 +669,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     projectTools,
     refreshToken,
     sending,
+    t,
     tools,
     transcript,
   ]);
@@ -622,7 +682,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       await onFileChanges(pendingChanges);
       setPendingChanges([]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       setApplyingChanges(false);
     }
@@ -661,9 +721,9 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       )}
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-semibold">OpenRouter 聊天</span>
+        <span className="text-sm font-semibold">{t("chat.title")}</span>
         <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); clearChat(); }} disabled={transcript.length === 0}>
-          清空聊天
+          {t("chat.clear")}
         </Button>
       </div>
 
@@ -674,7 +734,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           setModel(id);
           if (id !== model) {
             const modelName = models.find((item) => item.id === id)?.name ?? id;
-            setTranscript((previous) => [...previous, createModelSwitchNotice(modelName)]);
+            setTranscript((previous) => [...previous, createModelSwitchNotice(modelName, lang)]);
           }
           onModelChange?.(id);
         }}
@@ -686,7 +746,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
       {pendingChanges.length > 0 && (
         <div className="rounded-md border bg-muted/40 p-3">
-          <p className="mb-2 text-xs font-semibold">待应用文件变更</p>
+          <p className="mb-2 text-xs font-semibold">{t("chat.pendingChanges")}</p>
           <div className="mb-3 space-y-1">
             {pendingChanges.map((change) => (
               <div key={change.path} className="text-xs">
@@ -699,10 +759,10 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           </div>
           <div className="flex gap-2">
             <Button size="sm" onClick={() => void applyPendingChanges()} disabled={applyingChanges}>
-              {applyingChanges ? "应用中…" : "应用变更"}
+              {applyingChanges ? t("chat.applyingChanges") : t("chat.applyChanges")}
             </Button>
             <Button size="sm" variant="outline" onClick={() => setPendingChanges([])} disabled={applyingChanges}>
-              丢弃
+              {t("chat.discard")}
             </Button>
           </div>
         </div>
@@ -710,91 +770,117 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
       {error && <p className="whitespace-pre-wrap text-xs text-destructive">{error}</p>}
 
-      <Textarea
-        value={input}
-        ref={textareaRef}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) {
-            e.preventDefault();
-            void sendChat();
-          }
-        }}
-        rows={3}
-        placeholder={authorized ? placeholder : "请先完成 OAuth 授权（点击此处）"}
-        disabled={!authorized}
-      />
-
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <span className="min-w-0 text-xs text-muted-foreground" aria-live="polite">
-          <span className="block">本次请求约 {formatContextSize(requestTokens)}/{formatContextLimit(selectedModel?.contextLength)}</span>
-          <span className="block truncate">{formatContextBreakdown(contextUsage)}</span>
-          {compression && (
-            <span className="block truncate">
-              已压缩 {compression.coveredMessageCount} 条早期消息，摘要{" "}
-              {formatContextSize(estimateContextTokens(compression.summary))}
+      <div className="rounded-lg border bg-background transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/20">
+        <Textarea
+          value={input}
+          ref={textareaRef}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              void sendChat();
+            }
+          }}
+          rows={3}
+          placeholder={authorized ? (placeholder ?? t("chat.placeholder")) : t("chat.authPlaceholder")}
+          disabled={!authorized}
+          className="min-h-24 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
+        />
+        <div className="border-t px-3 pt-2 text-xs" aria-live="polite">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="font-medium text-foreground">{t("chat.context")}</span>
+            <span className="text-muted-foreground">
+              {formatContextSize(requestTokens)} / {formatContextLimitForLang(selectedModel?.contextLength, lang)}
+              {compression ? ` · ${t("chat.compressedCount", { count: compression.coveredMessageCount })}` : ""}
             </span>
-          )}
-        </span>
-        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <input
-              id="chatbox-auto-compress"
-              type="checkbox"
-              checked={autoCompress}
-              onChange={(event) => setAutoCompress(event.target.checked)}
-              disabled={!authorized || sending || compressing}
-              className="size-4 accent-primary"
-            />
-            <Label htmlFor="chatbox-auto-compress" className="cursor-pointer text-xs">
-              自动压缩
-            </Label>
           </div>
-          {!autoCompress && (
+        </div>
+        <div className="flex items-center justify-end gap-2 px-3 pb-2 pt-2">
+            <Popover>
+              <PopoverTrigger
+                render={
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!authorized}
+                    aria-label={t("chat.compressionOptionsLabel")}
+                  />
+                }
+              >
+                <SlidersHorizontal data-icon="inline-start" />
+                {t("chat.compress")}
+              </PopoverTrigger>
+              <PopoverPortal>
+                <PopoverPositioner side="top" align="end" sideOffset={6} className="w-72">
+                  <PopoverPopup onClick={(e) => e.stopPropagation()} className="p-3">
+                    <div className="flex flex-col gap-3">
+                      <div>
+                        <p className="text-sm font-medium">{t("chat.compressionOptions")}</p>
+                        <p className="text-xs text-muted-foreground">{t("chat.compressionDescription")}</p>
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2">
+                        <Label htmlFor="chatbox-auto-compress" className="cursor-pointer text-xs">
+                          {t("chat.autoCompress")}
+                        </Label>
+                        <input
+                          id="chatbox-auto-compress"
+                          type="checkbox"
+                          checked={autoCompress}
+                          onChange={(event) => setAutoCompress(event.target.checked)}
+                          disabled={!authorized || sending || compressing}
+                          className="size-4 accent-primary"
+                        />
+                      </div>
+                      {!autoCompress && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={async (event) => {
+                            event.stopPropagation();
+                            const tk = await refreshToken();
+                            if (!tk) {
+                              setError(t("chat.noToken"));
+                              setOauthOpen(true);
+                              return;
+                            }
+                            const result = await compressHistory(tk, transcript, 0, true);
+                            if (result.error) {
+                              setError(t("chat.compressionFailed", { message: result.error.message }));
+                              return;
+                            }
+                            setMessages(result.messages);
+                            const nextCompression = result.compression;
+                            if (result.compressionApplied && nextCompression) {
+                              setTranscript((previous) => [
+                                ...previous,
+                                createContextCompressionNotice({
+                                  coveredMessageCount: nextCompression.coveredMessageCount,
+                                  summaryTokens: estimateContextTokens(nextCompression.summary),
+                                }, lang),
+                              ]);
+                            }
+                          }}
+                          disabled={
+                            !authorized ||
+                            sending ||
+                            compressing ||
+                            llmMessagesFromTranscript(transcript).length === 0
+                          }
+                        >
+                          {compressing ? t("chat.compressing") : t("chat.compressContext")}
+                        </Button>
+                      )}
+                    </div>
+                  </PopoverPopup>
+                </PopoverPositioner>
+              </PopoverPortal>
+            </Popover>
             <Button
-              variant="outline"
-              size="sm"
-              onClick={async (event) => {
-                event.stopPropagation();
-                const tk = await refreshToken();
-                if (!tk) {
-                  setError("未找到可用令牌，请先完成 OAuth 授权。");
-                  setOauthOpen(true);
-                  return;
-                }
-                const result = await compressHistory(tk, transcript, 0, true);
-                if (result.error) {
-                  setError(`上下文压缩失败：${result.error.message}`);
-                  return;
-                }
-                setMessages(result.messages);
-                const nextCompression = result.compression;
-                if (result.compressionApplied && nextCompression) {
-                  setTranscript((previous) => [
-                    ...previous,
-                    createContextCompressionNotice({
-                      coveredMessageCount: nextCompression.coveredMessageCount,
-                      summaryTokens: estimateContextTokens(nextCompression.summary),
-                    }),
-                  ]);
-                }
-              }}
-              disabled={
-                !authorized ||
-                sending ||
-                compressing ||
-                llmMessagesFromTranscript(transcript).length === 0
-              }
+              onClick={(e) => { e.stopPropagation(); void sendChat(); }}
+              disabled={!authorized || sending || !input.trim()}
             >
-              {compressing ? "压缩中…" : "压缩上下文"}
+              {sending ? t("chat.sending") : t("chat.send")}
             </Button>
-          )}
-          <Button
-            onClick={(e) => { e.stopPropagation(); void sendChat(); }}
-            disabled={!authorized || sending || !input.trim()}
-          >
-            {sending ? "发送中…" : "发送"}
-          </Button>
         </div>
       </div>
 
@@ -807,14 +893,14 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       >
         <DialogContent onClick={(e) => e.stopPropagation()} showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>需要授权</DialogTitle>
+            <DialogTitle>{t("chat.authTitle")}</DialogTitle>
             <DialogDescription>
-              该聊天需要连接 OpenRouter MCP 才能调用工具。是否跳转到授权页面完成 OAuth 登录？
+              {t("chat.authDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOauthOpen(false)}>
-              取消
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={() => {
@@ -822,7 +908,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                 authorize(); // redirects the browser to the OAuth page
               }}
             >
-              前往授权
+              {t("chat.authorize")}
             </Button>
           </DialogFooter>
         </DialogContent>

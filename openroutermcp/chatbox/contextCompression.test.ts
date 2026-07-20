@@ -109,6 +109,16 @@ test("injects a saved summary before the recent raw message window", () => {
   ]);
 });
 
+test("builds an english compression prompt when requested", () => {
+  const prompt = buildCompressionPrompt({
+    lang: "en",
+    messages: [msg("user", "Where is Red Riding Hood?")],
+  });
+
+  assert.match(prompt[0].content ?? "", /Compress the chat history/);
+  assert.match(prompt[1].content ?? "", /New chat history to compress/);
+});
+
 test("compression prompt preserves canon and forbids invented story facts", () => {
   const prompt = buildCompressionPrompt({
     previousSummary: "此前摘要",

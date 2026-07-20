@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { PublicHomePage } from "@/components/public-home-page";
+import { languageInfo, localizedSiteMetadata } from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
   ogImagePath,
@@ -24,13 +25,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lang = normalizePublicLang((await params).lang);
-  const isZh = lang === "zh";
+  const locale = languageInfo[lang];
+  const metadata = localizedSiteMetadata[lang];
 
   return {
-    title: isZh ? siteMetadata.zhTitle : siteMetadata.enTitle,
-    description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
+    title: metadata.title,
+    description: metadata.description,
     other: {
-      "content-language": isZh ? "zh-CN" : "en",
+      "content-language": locale.contentLanguage,
     },
     alternates: {
       canonical: pageUrl(lang),
@@ -39,11 +41,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       type: "website",
       siteName: siteMetadata.name,
-      title: isZh ? siteMetadata.zhTitle : siteMetadata.enTitle,
-      description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
+      title: metadata.title,
+      description: metadata.description,
       url: pageUrl(lang),
-      locale: isZh ? "zh_CN" : "en_US",
-      alternateLocale: [isZh ? "en_US" : "zh_CN"],
+      locale: locale.ogLocale,
+      alternateLocale: [locale.alternateOgLocale],
       images: [
         {
           url: ogImagePath,
@@ -55,8 +57,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     },
     twitter: {
       card: "summary_large_image",
-      title: isZh ? siteMetadata.zhTitle : siteMetadata.enTitle,
-      description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
+      title: metadata.title,
+      description: metadata.description,
       images: [ogImagePath],
     },
   };
@@ -64,15 +66,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function LocalizedHome({ params }: Props) {
   const lang = normalizePublicLang((await params).lang);
-  const isZh = lang === "zh";
+  const locale = languageInfo[lang];
+  const metadata = localizedSiteMetadata[lang];
   const jsonLd = [
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
       name: siteMetadata.name,
       url: pageUrl(lang),
-      inLanguage: isZh ? "zh-CN" : "en",
-      description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
+      inLanguage: locale.schemaLanguage,
+      description: metadata.description,
     },
     {
       "@context": "https://schema.org",
@@ -81,8 +84,8 @@ export default async function LocalizedHome({ params }: Props) {
       url: pageUrl(lang),
       applicationCategory: "CreativeWorkApplication",
       operatingSystem: "Web browser",
-      inLanguage: isZh ? "zh-CN" : "en",
-      description: isZh ? siteMetadata.zhDescription : siteMetadata.enDescription,
+      inLanguage: locale.schemaLanguage,
+      description: metadata.description,
       offers: {
         "@type": "Offer",
         price: "0",

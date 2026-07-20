@@ -13,6 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLang } from "@/lib/i18n";
+import { localizePlatformErrorMessage } from "@/lib/platform-errors";
+import { languageInfo } from "@/lib/platform-i18n";
 import {
   deleteProject,
   saveProject,
@@ -38,11 +40,15 @@ export default function ProjectsPage() {
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
 
+  useEffect(() => {
+    document.title = t("meta.projectsTitle");
+  }, [t]);
+
   async function refresh() {
     try {
       setProjects(await listProjects());
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       setLoading(false);
     }
@@ -55,7 +61,9 @@ export default function ProjectsPage() {
         const list = await listProjects();
         if (!cancelled) setProjects(list);
       } catch (e) {
-        if (!cancelled) setError(e instanceof Error ? e.message : String(e));
+        if (!cancelled) {
+          setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -63,7 +71,7 @@ export default function ProjectsPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [lang]);
 
   async function handleDelete(project: Project) {
     if (!window.confirm(t("projects.confirmDelete"))) return;
@@ -77,7 +85,7 @@ export default function ProjectsPage() {
       const root = await openProjectDirectory(project.template, project.id);
       await exportProjectDirectoryZip(root, `${project.title || "project"}-source`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
 
@@ -108,7 +116,7 @@ export default function ProjectsPage() {
         )
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
 
@@ -134,7 +142,7 @@ export default function ProjectsPage() {
       });
       await refresh();
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       setImporting(false);
       if (importInputRef.current) importInputRef.current.value = "";
@@ -237,7 +245,7 @@ export default function ProjectsPage() {
                 <p className="text-xs text-muted-foreground">
                   {t("projects.updatedAt")}{" "}
                   {new Date(project.updatedAt).toLocaleString(
-                    lang === "zh" ? "zh-CN" : "en-US"
+                    languageInfo[lang].dateLocale
                   )}
                 </p>
               </CardHeader>

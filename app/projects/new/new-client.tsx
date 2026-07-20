@@ -26,6 +26,7 @@ import {
 } from "@/lib/file-system/browser";
 import { nextDefaultProjectTitle } from "@/lib/project-naming";
 import { useLang } from "@/lib/i18n";
+import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 
 export default function NewClient() {
   const { lang, t } = useLang();
@@ -41,6 +42,10 @@ export default function NewClient() {
   const [title, setTitle] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    document.title = t("meta.newTitle");
+  }, [t]);
 
   useEffect(() => {
     void listProjects().then(setProjects).catch(() => setProjects([]));
@@ -82,7 +87,7 @@ export default function NewClient() {
     } catch (e) {
       setSubmitting(false);
       if (e instanceof DOMException && e.name === "AbortError") return;
-      window.alert(e instanceof Error ? e.message : String(e));
+      window.alert(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
 

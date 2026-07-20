@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 
 import { PublicTopicPage } from "@/components/public-topic-page";
+import { languageInfo, publicTopicChrome } from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
   ogImagePath,
@@ -35,6 +36,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang: rawLang, slug: rawSlug } = await params;
   const lang = normalizePublicLang(rawLang);
   if (!isPublicPageSlug(rawSlug)) notFound();
+  const locale = languageInfo[lang];
   const page = publicPages[rawSlug];
   const path = rawSlug;
 
@@ -43,7 +45,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: page.description[lang],
     keywords: publicPageKeywords[rawSlug][lang],
     other: {
-      "content-language": lang === "zh" ? "zh-CN" : "en",
+      "content-language": locale.contentLanguage,
     },
     alternates: {
       canonical: pageUrl(lang, path),
@@ -54,8 +56,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title: page.title[lang],
       description: page.description[lang],
       url: pageUrl(lang, path),
-      locale: lang === "zh" ? "zh_CN" : "en_US",
-      alternateLocale: [lang === "zh" ? "en_US" : "zh_CN"],
+      locale: locale.ogLocale,
+      alternateLocale: [locale.alternateOgLocale],
       images: [
         {
           url: ogImagePath,
@@ -78,7 +80,9 @@ export default async function PublicTopic({ params }: Props) {
   const { lang: rawLang, slug: rawSlug } = await params;
   const lang = normalizePublicLang(rawLang);
   if (!isPublicPageSlug(rawSlug)) notFound();
+  const locale = languageInfo[lang];
   const page = publicPages[rawSlug];
+  const chrome = publicTopicChrome[lang];
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -87,7 +91,7 @@ export default async function PublicTopic({ params }: Props) {
       url: pageUrl(lang, rawSlug),
       name: page.title[lang],
       description: page.description[lang],
-      inLanguage: lang === "zh" ? "zh-CN" : "en",
+      inLanguage: locale.schemaLanguage,
       isPartOf: {
         "@type": "WebSite",
         name: "GenStory",
@@ -101,7 +105,7 @@ export default async function PublicTopic({ params }: Props) {
         {
           "@type": "ListItem",
           position: 1,
-          name: lang === "zh" ? "首页" : "Home",
+          name: chrome.homeBreadcrumb,
           item: pageUrl(lang),
         },
         {
@@ -115,7 +119,7 @@ export default async function PublicTopic({ params }: Props) {
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      inLanguage: lang === "zh" ? "zh-CN" : "en",
+      inLanguage: locale.schemaLanguage,
       mainEntity: page.faqs.map((item) => ({
         "@type": "Question",
         name: item.question[lang],

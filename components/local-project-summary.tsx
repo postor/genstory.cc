@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/card";
 import { contentTypes } from "@/lib/content-types";
 import { useLang } from "@/lib/i18n";
+import { languageInfo } from "@/lib/platform-i18n";
 import { listProjects, type Project } from "@/lib/local-projects";
 import { localizedPath, publicPages, type PublicPageSlug } from "@/lib/seo";
 
@@ -92,7 +93,7 @@ export function LocalProjectSummary() {
                       <CardDescription>
                         {t("projects.updatedAt")} {" "}
                         {new Date(project.updatedAt).toLocaleString(
-                          lang === "zh" ? "zh-CN" : "en-US"
+                          languageInfo[lang].dateLocale
                         )}
                       </CardDescription>
                     </CardHeader>

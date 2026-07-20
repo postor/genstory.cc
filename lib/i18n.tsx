@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import {
   createContext,
   useCallback,
@@ -52,6 +53,10 @@ const zh: Dict = {
   "projects.unbound": "暂时无法找到作品",
   "projects.storageNote":
     "作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。换设备或清理浏览器数据前，请先下载项目备份。",
+  "meta.projectsTitle": "我的作品 - GenStory",
+  "meta.newTitle": "新建作品 - GenStory",
+  "meta.editorTitle": "编辑作品 - GenStory",
+  "meta.previewTitle": "预览作品 - GenStory",
 
   "create.title": "新建作品",
   "create.template": "项目类型",
@@ -108,6 +113,18 @@ const zh: Dict = {
   "editor.applyChanges": "应用变更",
   "editor.discardChanges": "丢弃",
   "editor.pendingChanges": "待应用文件变更",
+  "editor.chatChangeTextOnly": "聊天变更只能写入文本文件：{path}",
+  "editor.contextProject": "项目：{title}",
+  "editor.contextTemplate": "模板：{template}",
+  "editor.contextSelected": "当前选中：{path}",
+  "editor.contextSelectedNone": "当前选中：无",
+  "editor.contextTextFileCount": "文本文件数：{count}",
+  "editor.toolListFilesDesc": "列出当前 GenStory 项目的文本文件路径。需要了解项目结构时先调用。",
+  "editor.toolReadFileDesc": "读取当前 GenStory 项目中的单个文本文件完整内容。只在确实需要文件内容时调用。",
+  "editor.toolReadFilePathDesc": "项目内相对路径，例如 AGENTS.md 或 chapter-001/scenes/scene-001/script.md",
+  "editor.toolMissingTextFile": "文件不存在或不是文本文件：{path}",
+  "editor.toolSearchFilesDesc": "在当前 GenStory 项目的文本文件中搜索关键词，返回匹配文件和片段。",
+  "editor.toolSearchQueryDesc": "要搜索的关键词",
 
   "vn.projectTitle": "项目标题",
   "vn.scenes": "章节与场景",
@@ -135,9 +152,75 @@ const zh: Dict = {
   "vn.previewLoading": "正在准备预览…",
   "vn.exporting": "正在打包导出…",
   "vn.structuredEditor": "场景编辑",
+  "vn.newChapter": "新章节",
+  "vn.newScene": "新场景",
 
   "common.cancel": "取消",
   "common.confirm": "确定",
+
+  "chat.title": "OpenRouter 聊天",
+  "chat.clear": "清空聊天",
+  "chat.placeholder": "输入消息，Enter 发送",
+  "chat.authPlaceholder": "请先完成 OAuth 授权（点击此处）",
+  "chat.context": "上下文",
+  "chat.compressedCount": "已压缩 {count} 条",
+  "chat.compress": "压缩",
+  "chat.compressionOptions": "压缩选项",
+  "chat.compressionDescription": "压缩长对话，减少后续请求体积。",
+  "chat.autoCompress": "自动压缩上下文",
+  "chat.compressing": "压缩中…",
+  "chat.compressContext": "压缩上下文",
+  "chat.compressionOptionsLabel": "压缩上下文选项",
+  "chat.send": "发送",
+  "chat.sending": "发送中…",
+  "chat.pendingChanges": "待应用文件变更",
+  "chat.applyChanges": "应用变更",
+  "chat.applyingChanges": "应用中…",
+  "chat.discard": "丢弃",
+  "chat.authTitle": "需要授权",
+  "chat.authDescription": "该聊天需要连接 OpenRouter MCP 才能调用工具。是否跳转到授权页面完成 OAuth 登录？",
+  "chat.authorize": "前往授权",
+  "chat.noToken": "未找到可用令牌，请先完成 OAuth 授权。",
+  "chat.noTools": "尚未连接 MCP 或未发现工具，无法在聊天中调用工具。",
+  "chat.emptySummary": "上下文压缩未返回摘要",
+  "chat.compressionFallback": "上下文压缩失败，已改用最近历史：{message}",
+  "chat.compressionFailed": "上下文压缩失败：{message}",
+  "chat.modelLoading": "模型加载中…",
+  "chat.modelSelect": "选择模型…",
+  "chat.modelSelectLabel": "选择模型",
+  "chat.modelFilter": "筛选模型…",
+  "chat.modelFilterLabel": "筛选模型",
+  "chat.noMatchingModels": "无匹配模型",
+  "chat.empty": "还没有对话，发送一条消息开始。",
+  "chat.toolResult": "工具返回：{name}",
+  "chat.toolRequest": "模型请求调用工具",
+  "chat.thinking": "思考中{dots}",
+  "chat.unknownLimit": "上限未知",
+  "chat.noticeModelSwitch": "模型切换到 {model}",
+  "chat.noticeCompression": "已压缩 {count} 条早期消息，摘要约 {tokens} tokens",
+  "chat.missingImage": "（图片不存在或已清除）",
+  "chat.toolImageAlt": "工具返回图片",
+  "chat.toolCallFailed": "工具调用失败: {message}",
+
+  "mcp.authTitle": "需要授权",
+  "mcp.authDescription": "该操作需要连接 OpenRouter MCP。是否跳转到授权页面完成 OAuth 登录？",
+  "mcp.authorize": "前往授权",
+  "mcp.oauthStartFailed": "OAuth 启动失败: {message}",
+  "mcp.reconnectFailed": "自动重连失败，请手动连接",
+  "mcp.authRequired": "需要授权才能连接 OpenRouter MCP",
+  "mcp.oauthIncomplete": "OAuth 授权未完成，请重试",
+  "mcp.notConnected": "尚未连接 MCP，无法调用工具",
+  "mcp.missingLocalContext": "缺少本地 PKCE/上下文，请重新点击连接",
+  "mcp.stateMismatch": "state 不匹配，疑似 CSRF，已中止",
+  "mcp.callbackFailed": "OAuth 回调失败: {message}",
+
+  "codeEditor.renameHint": "双击重命名",
+  "codeEditor.edit": "编辑",
+  "codeEditor.preview": "预览",
+  "codeEditor.lines": "{count} 行",
+  "codeEditor.dirty": "● 有未保存修改",
+  "codeEditor.saved": "已保存到浏览器",
+  "codeEditor.previewMode": "预览模式",
 };
 
 const en: Dict = {
@@ -180,6 +263,10 @@ const en: Dict = {
   "projects.unbound": "Work temporarily unavailable",
   "projects.storageNote":
     "Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Download a project backup before changing devices or clearing browser data.",
+  "meta.projectsTitle": "My works - GenStory",
+  "meta.newTitle": "New work - GenStory",
+  "meta.editorTitle": "Edit work - GenStory",
+  "meta.previewTitle": "Preview work - GenStory",
 
   "create.title": "New work",
   "create.template": "Project type",
@@ -237,6 +324,18 @@ const en: Dict = {
   "editor.applyChanges": "Apply changes",
   "editor.discardChanges": "Discard",
   "editor.pendingChanges": "Pending file changes",
+  "editor.chatChangeTextOnly": "Chat changes can only write text files: {path}",
+  "editor.contextProject": "Project: {title}",
+  "editor.contextTemplate": "Template: {template}",
+  "editor.contextSelected": "Selected file: {path}",
+  "editor.contextSelectedNone": "Selected file: none",
+  "editor.contextTextFileCount": "Text files: {count}",
+  "editor.toolListFilesDesc": "List text file paths in the current GenStory project. Call this first when you need the project structure.",
+  "editor.toolReadFileDesc": "Read the full content of one text file in the current GenStory project. Use only when file content is actually needed.",
+  "editor.toolReadFilePathDesc": "Project-relative path, for example AGENTS.md or chapter-001/scenes/scene-001/script.md",
+  "editor.toolMissingTextFile": "File does not exist or is not a text file: {path}",
+  "editor.toolSearchFilesDesc": "Search text files in the current GenStory project and return matching files and excerpts.",
+  "editor.toolSearchQueryDesc": "Keyword to search for",
 
   "vn.projectTitle": "Project title",
   "vn.scenes": "Chapters & scenes",
@@ -264,9 +363,75 @@ const en: Dict = {
   "vn.previewLoading": "Preparing preview…",
   "vn.exporting": "Packaging export…",
   "vn.structuredEditor": "Scene editor",
+  "vn.newChapter": "New chapter",
+  "vn.newScene": "New scene",
 
   "common.cancel": "Cancel",
   "common.confirm": "Confirm",
+
+  "chat.title": "OpenRouter chat",
+  "chat.clear": "Clear chat",
+  "chat.placeholder": "Type a message, Enter to send",
+  "chat.authPlaceholder": "Complete OAuth authorization first (click here)",
+  "chat.context": "Context",
+  "chat.compressedCount": "compressed {count}",
+  "chat.compress": "Compress",
+  "chat.compressionOptions": "Compression options",
+  "chat.compressionDescription": "Compress long conversations to reduce later request size.",
+  "chat.autoCompress": "Auto-compress context",
+  "chat.compressing": "Compressing…",
+  "chat.compressContext": "Compress context",
+  "chat.compressionOptionsLabel": "Context compression options",
+  "chat.send": "Send",
+  "chat.sending": "Sending…",
+  "chat.pendingChanges": "Pending file changes",
+  "chat.applyChanges": "Apply changes",
+  "chat.applyingChanges": "Applying…",
+  "chat.discard": "Discard",
+  "chat.authTitle": "Authorization required",
+  "chat.authDescription": "This chat needs an OpenRouter MCP connection to call tools. Go to the authorization page to finish OAuth login?",
+  "chat.authorize": "Authorize",
+  "chat.noToken": "No available token found. Complete OAuth authorization first.",
+  "chat.noTools": "MCP is not connected or no tools were found, so chat cannot call tools.",
+  "chat.emptySummary": "Context compression did not return a summary",
+  "chat.compressionFallback": "Context compression failed, using recent history instead: {message}",
+  "chat.compressionFailed": "Context compression failed: {message}",
+  "chat.modelLoading": "Loading models…",
+  "chat.modelSelect": "Select model…",
+  "chat.modelSelectLabel": "Select model",
+  "chat.modelFilter": "Filter models…",
+  "chat.modelFilterLabel": "Filter models",
+  "chat.noMatchingModels": "No matching models",
+  "chat.empty": "No messages yet. Send one to start.",
+  "chat.toolResult": "Tool result: {name}",
+  "chat.toolRequest": "Model requested a tool call",
+  "chat.thinking": "Thinking{dots}",
+  "chat.unknownLimit": "Unknown limit",
+  "chat.noticeModelSwitch": "Model switched to {model}",
+  "chat.noticeCompression": "Compressed {count} earlier messages, summary about {tokens} tokens",
+  "chat.missingImage": "(Image missing or cleared)",
+  "chat.toolImageAlt": "Tool result image",
+  "chat.toolCallFailed": "Tool call failed: {message}",
+
+  "mcp.authTitle": "Authorization required",
+  "mcp.authDescription": "This action needs an OpenRouter MCP connection. Go to the authorization page to finish OAuth login?",
+  "mcp.authorize": "Authorize",
+  "mcp.oauthStartFailed": "OAuth start failed: {message}",
+  "mcp.reconnectFailed": "Automatic reconnect failed. Connect manually.",
+  "mcp.authRequired": "Authorization is required to connect OpenRouter MCP",
+  "mcp.oauthIncomplete": "OAuth authorization did not complete. Try again.",
+  "mcp.notConnected": "MCP is not connected, so tools cannot be called.",
+  "mcp.missingLocalContext": "Missing local PKCE/context. Click connect again.",
+  "mcp.stateMismatch": "State mismatch, possible CSRF. Aborted.",
+  "mcp.callbackFailed": "OAuth callback failed: {message}",
+
+  "codeEditor.renameHint": "Double-click to rename",
+  "codeEditor.edit": "Edit",
+  "codeEditor.preview": "Preview",
+  "codeEditor.lines": "{count} lines",
+  "codeEditor.dirty": "● Unsaved changes",
+  "codeEditor.saved": "Saved in browser",
+  "codeEditor.previewMode": "Preview mode",
 };
 
 const dictionaries: Record<Lang, Dict> = { zh, en };
@@ -276,19 +441,22 @@ const STORAGE_KEY = "genstory-lang";
 interface LangContextValue {
   lang: Lang;
   setLang: (lang: Lang) => void;
-  t: (key: string) => string;
+  t: (key: string, values?: Record<string, string | number>) => string;
 }
 
 const LangContext = createContext<LangContextValue | null>(null);
 
 export function LangProvider({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [lang, setLangState] = useState<Lang>("zh");
 
   useEffect(() => {
     let initial: Lang = "zh";
+    const routeLang = pathname.split("/")[1];
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
-      if (saved === "zh" || saved === "en") initial = saved;
+      if (routeLang === "zh" || routeLang === "en") initial = routeLang;
+      else if (saved === "zh" || saved === "en") initial = saved;
       else if (navigator.language?.toLowerCase().startsWith("en")) initial = "en";
     } catch {
       /* ignore storage errors */
@@ -296,7 +464,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLangState(initial);
     document.documentElement.lang = initial;
-  }, []);
+  }, [pathname]);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
@@ -309,7 +477,13 @@ export function LangProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (key: string) => dictionaries[lang][key] ?? key,
+    (key: string, values?: Record<string, string | number>) => {
+      const template = dictionaries[lang][key] ?? key;
+      if (!values) return template;
+      return template.replace(/\{(\w+)\}/g, (match, name) =>
+        values[name] === undefined ? match : String(values[name])
+      );
+    },
     [lang]
   );
 

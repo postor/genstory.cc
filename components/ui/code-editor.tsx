@@ -6,6 +6,7 @@ import { markdown } from "@codemirror/lang-markdown";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useLang } from "@/lib/i18n";
 
 type CodeEditorProps = {
   value: string;
@@ -30,6 +31,7 @@ export function CodeEditor({
   resolveImageSrc,
   mediaKindForSrc,
 }: CodeEditorProps) {
+  const { t } = useLang();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(filename);
   const [preview, setPreview] = useState(false);
@@ -111,7 +113,7 @@ export function CodeEditor({
                 setEditing(true);
               }}
               className="flex items-center gap-1.5"
-              title="双击重命名"
+              title={t("codeEditor.renameHint")}
             >
               <span
                 className={
@@ -130,7 +132,7 @@ export function CodeEditor({
             onClick={() => setPreview((p) => !p)}
             className="rounded px-2 py-1 text-[#cccccc] transition-colors hover:bg-white/10"
           >
-            {preview ? "编辑" : "预览"}
+            {preview ? t("codeEditor.edit") : t("codeEditor.preview")}
           </button>
         </div>
       </div>
@@ -162,9 +164,9 @@ export function CodeEditor({
       <div className="flex items-center gap-4 bg-[#007acc] px-3 py-0.5 text-[11px] text-white">
         <span>Markdown</span>
         <span>UTF-8</span>
-        <span>{lineCount ?? value.split("\n").length} 行</span>
-        {dirty ? <span>● 有未保存修改</span> : <span>已保存到浏览器</span>}
-        {preview && <span>预览模式</span>}
+        <span>{t("codeEditor.lines", { count: lineCount ?? value.split("\n").length })}</span>
+        {dirty ? <span>{t("codeEditor.dirty")}</span> : <span>{t("codeEditor.saved")}</span>}
+        {preview && <span>{t("codeEditor.previewMode")}</span>}
       </div>
     </div>
   );

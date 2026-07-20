@@ -12,7 +12,8 @@ test("cycles the thinking dot count from one to three", () => {
 });
 
 test("formats the loading label with a changing dot suffix", () => {
-  assert.equal(formatThinkingLabel(0), "思考中.");
-  assert.equal(formatThinkingLabel(1), "思考中..");
-  assert.equal(formatThinkingLabel(2), "思考中...");
+  assert.equal(formatThinkingLabel(0, "zh"), "思考中.");
+  assert.equal(formatThinkingLabel(1, "zh"), "思考中..");
+  assert.equal(formatThinkingLabel(2, "zh"), "思考中...");
+  assert.equal(formatThinkingLabel(0, "en"), "Thinking.");
 });

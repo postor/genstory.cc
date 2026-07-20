@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import PreviewClient from "./preview-client";
 
 export const metadata: Metadata = {
-  title: "预览作品 - GenStory",
+  title: "GenStory",
   robots: {
     index: false,
     follow: false,

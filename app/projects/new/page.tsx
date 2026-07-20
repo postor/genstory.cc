@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 import NewClient from "./new-client";
 
 export const metadata: Metadata = {
-  title: "新建作品 - GenStory",
+  title: "GenStory",
   robots: {
     index: false,
     follow: false,

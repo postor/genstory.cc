@@ -10,6 +10,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLang } from "@/lib/i18n";
 import type { VNProject, VNScene, VNAsset, AssetType } from "@/lib/vn/types";
 
+const positionLabelKeys = {
+  left: "vn.left",
+  center: "vn.center",
+  right: "vn.right",
+} as const;
+
 function uid(): string {
   return crypto.randomUUID().slice(0, 8);
 }
@@ -64,7 +70,7 @@ export function VNEditor({
       ...vn,
       chapters: [
         ...vn.chapters,
-        { id: `chapter-${uid()}`, title: "新章节", scenes: [] },
+        { id: `chapter-${uid()}`, title: t("vn.newChapter"), scenes: [] },
       ],
     });
   }
@@ -73,7 +79,7 @@ export function VNEditor({
     const target = vn.chapters[0];
     if (!target) return;
     const id = `scene-${uid()}`;
-    const scene: VNScene = { id, title: "新场景", characters: [], script: "" };
+    const scene: VNScene = { id, title: t("vn.newScene"), characters: [], script: "" };
     onChange({
       ...vn,
       chapters: vn.chapters.map((c) =>
@@ -244,11 +250,7 @@ export function VNEditor({
                               : "hover:bg-muted"
                           }`}
                         >
-                          {pos === "left"
-                            ? t("vn.left")
-                            : pos === "center"
-                            ? t("vn.center")
-                            : t("vn.right")}
+                          {t(positionLabelKeys[pos])}
                         </button>
                       ))}
                     </div>

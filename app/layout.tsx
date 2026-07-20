@@ -72,14 +72,14 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable}`}
     >
       <body>
-        <OpenRouterMcpProvider>
-          <LangProvider>
+        <LangProvider>
+          <OpenRouterMcpProvider>
             <div className="flex min-h-full flex-col">
               <SiteHeader />
               <div className="flex-1">{children}</div>
             </div>
-          </LangProvider>
-        </OpenRouterMcpProvider>
+          </OpenRouterMcpProvider>
+        </LangProvider>
       </body>
     </html>
   );

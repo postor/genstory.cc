@@ -1,8 +1,24 @@
 import type { ChatMessage } from "@/lib/openrouter";
+import type { Lang } from "@/lib/i18n";
 
 const CJK_RE = /[\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaff]/g;
 const LATIN_RE = /[A-Za-z0-9_]/g;
 const SYMBOL_RE = /[^\s\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uac00-\ud7af\uf900-\ufaffA-Za-z0-9_]/g;
+
+const CONTEXT_SIZE_COPY = {
+  zh: {
+    unknownLimit: "上限未知",
+    context: "项目概况",
+    history: "聊天历史",
+    input: "输入",
+  },
+  en: {
+    unknownLimit: "Unknown limit",
+    context: "Project context",
+    history: "Chat history",
+    input: "Input",
+  },
+} satisfies Record<Lang, Record<string, string>>;
 
 export interface ContextSizeInput {
   context?: string;
@@ -80,15 +96,22 @@ export function formatContextSize(tokens: number): string {
 }
 
 export function formatContextLimit(tokens: number | undefined): string {
-  return tokens ? formatContextSize(tokens) : "上限未知";
+  return formatContextLimitForLang(tokens);
+}
+
+export function formatContextLimitForLang(tokens: number | undefined, lang: Lang = "zh"): string {
+  if (tokens) return formatContextSize(tokens);
+  return CONTEXT_SIZE_COPY[lang].unknownLimit;
 }
 
 export function formatContextBreakdown(
-  usage: Pick<ContextTokenBreakdown, "context" | "history" | "input">
+  usage: Pick<ContextTokenBreakdown, "context" | "history" | "input">,
+  lang: Lang = "zh"
 ): string {
+  const labels = CONTEXT_SIZE_COPY[lang];
   return [
-    `项目概况 ${formatContextSize(usage.context)}`,
-    `聊天历史 ${formatContextSize(usage.history)}`,
-    `输入 ${formatContextSize(usage.input)}`,
+    `${labels.context} ${formatContextSize(usage.context)}`,
+    `${labels.history} ${formatContextSize(usage.history)}`,
+    `${labels.input} ${formatContextSize(usage.input)}`,
   ].join(" + ");
 }

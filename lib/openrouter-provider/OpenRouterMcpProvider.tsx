@@ -20,6 +20,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useLang } from "@/lib/i18n";
+import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import {
   Dialog,
   DialogContent,
@@ -133,6 +135,7 @@ export function OpenRouterMcpProvider({
   onAuthorize,
   onStatusChange,
 }: OpenRouterMcpProviderProps) {
+  const { lang, t } = useLang();
   const store = useMemo<StorageLike>(
     () =>
       namespacedStorage(
@@ -249,11 +252,11 @@ export function OpenRouterMcpProvider({
         if (onAuthorize) onAuthorize(url);
         else if (typeof window !== "undefined") window.location.assign(url);
       } catch (e) {
-        setError("OAuth 启动失败: " + msg(e));
+        setError(t("mcp.oauthStartFailed", { message: localizePlatformErrorMessage(msg(e), lang) }));
         setMcpStatus("error");
       }
     },
-    [store, resolvedRedirectUri, onAuthorize, setMcpStatus]
+    [store, resolvedRedirectUri, onAuthorize, setMcpStatus, lang, t]
   );
 
   const connect = useCallback(async () => {
@@ -281,10 +284,10 @@ export function OpenRouterMcpProvider({
       setToken(t);
       setMcpStatus("connected");
     } catch (e) {
-      setError(msg(e));
+      setError(localizePlatformErrorMessage(msg(e), lang));
       setMcpStatus("error");
     }
-  }, [serverUrl, getToken, startOAuth, store, setMcpStatus]);
+  }, [serverUrl, getToken, startOAuth, store, setMcpStatus, lang]);
 
   const disconnect = useCallback(() => {
     clearAuth(store);
@@ -301,31 +304,31 @@ export function OpenRouterMcpProvider({
   // confirm modal) to approve the OAuth redirect.
   const ensureConnected = useCallback(async (): Promise<void> => {
     if (statusRef.current === "connected" && clientRef.current) return;
-    const t = loadTokens(store);
-    if (t) {
+    const storedToken = loadTokens(store);
+    if (storedToken) {
       if (!connectPromiseRef.current) {
         connectPromiseRef.current = connect().finally(() => {
           connectPromiseRef.current = null;
         });
       }
       await connectPromiseRef.current;
-      if (!clientRef.current) throw new Error("自动重连失败，请手动连接");
+      if (!clientRef.current) throw new Error(t("mcp.reconnectFailed"));
       return;
     }
     const confirmed = await confirmOAuth();
-    if (!confirmed) throw new Error("需要授权才能连接 OpenRouter MCP");
+    if (!confirmed) throw new Error(t("mcp.authRequired"));
     const base = serverUrlRef.current.trim().replace(/\/$/, "");
     await startOAuth(base, null);
     // startOAuth redirects the browser; reaching here means authorization failed.
-    throw new Error("OAuth 授权未完成，请重试");
-  }, [store, connect, startOAuth, confirmOAuth]);
+    throw new Error(t("mcp.oauthIncomplete"));
+  }, [store, connect, startOAuth, confirmOAuth, t]);
 
   const callTool = useCallback(async (name: string, args: unknown) => {
     await ensureConnected();
     const client = clientRef.current;
-    if (!client) throw new Error("尚未连接 MCP，无法调用工具");
+    if (!client) throw new Error(t("mcp.notConnected"));
     return client.callTool(name, args);
-  }, [ensureConnected]);
+  }, [ensureConnected, t]);
 
   const refreshToken = useCallback(async (): Promise<string | null> => {
     return getToken();
@@ -340,8 +343,8 @@ export function OpenRouterMcpProvider({
     try {
       const pkce = loadPkce(store);
       const ctx = loadAuthContext(store);
-      if (!pkce || !ctx) throw new Error("缺少本地 PKCE/上下文，请重新点击连接");
-      if (pkce.state !== state) throw new Error("state 不匹配，疑似 CSRF，已中止");
+      if (!pkce || !ctx) throw new Error(t("mcp.missingLocalContext"));
+      if (pkce.state !== state) throw new Error(t("mcp.stateMismatch"));
       const tokens = await exchangeCode(
         ctx.token_endpoint,
         ctx.client_id,
@@ -354,10 +357,10 @@ export function OpenRouterMcpProvider({
       window.history.replaceState({}, "", window.location.pathname);
       await connect();
     } catch (e) {
-      setError("OAuth 回调失败: " + msg(e));
+      setError(t("mcp.callbackFailed", { message: localizePlatformErrorMessage(msg(e), lang) }));
       setMcpStatus("error");
     }
-  }, [store, connect, setMcpStatus]);
+  }, [store, connect, setMcpStatus, lang, t]);
 
   useEffect(() => {
     if (!autoHandleCallback) {
@@ -437,16 +440,16 @@ export function OpenRouterMcpProvider({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>需要授权</DialogTitle>
+            <DialogTitle>{t("mcp.authTitle")}</DialogTitle>
             <DialogDescription>
-              该操作需要连接 OpenRouter MCP。是否跳转到授权页面完成 OAuth 登录？
+              {t("mcp.authDescription")}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button variant="outline" onClick={() => closeOAuthConfirm(false)}>
-              取消
+              {t("common.cancel")}
             </Button>
-            <Button onClick={() => closeOAuthConfirm(true)}>前往授权</Button>
+            <Button onClick={() => closeOAuthConfirm(true)}>{t("mcp.authorize")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

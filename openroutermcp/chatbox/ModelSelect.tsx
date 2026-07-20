@@ -11,6 +11,7 @@ import type { ModelInfo } from "@/lib/openrouter";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { useLang } from "@/lib/i18n";
 import {
   Popover,
   PopoverPopup,
@@ -28,6 +29,7 @@ export interface ModelSelectProps {
 }
 
 export function ModelSelect({ models, value, onChange, loading, disabled }: ModelSelectProps) {
+  const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
@@ -88,10 +90,10 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
   };
 
   const triggerLabel = loading
-    ? "模型加载中…"
+    ? t("chat.modelLoading")
     : selected
       ? selected.name
-      : "选择模型…";
+      : t("chat.modelSelect");
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -101,7 +103,7 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
             variant="outline"
             disabled={disabled}
             className="w-full justify-between font-normal"
-            aria-label="选择模型"
+            aria-label={t("chat.modelSelectLabel")}
           />
         }
       >
@@ -120,12 +122,12 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
                 ref={inputRef}
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
-                placeholder="筛选模型…"
-                aria-label="筛选模型"
+                placeholder={t("chat.modelFilter")}
+                aria-label={t("chat.modelFilterLabel")}
               />
             </div>
             {filtered.length === 0 ? (
-              <p className="px-1 py-2 text-sm text-muted-foreground">无匹配模型</p>
+              <p className="px-1 py-2 text-sm text-muted-foreground">{t("chat.noMatchingModels")}</p>
             ) : (
               <ScrollArea className="h-56 rounded-md">
                 <ul className="flex flex-col">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { OpenRouterMcpProvider } from "@/lib/openrouter-provider/OpenRouterMcpProvider";
 import { LangProvider } from "@/lib/i18n";
@@ -20,6 +21,8 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+const googleAnalyticsId = "G-NLK5ZW73ZW";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -81,6 +84,17 @@ export default function RootLayout({
           </OpenRouterMcpProvider>
         </LangProvider>
       </body>
+      <Script
+        id="google-analytics-src"
+        src={`https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}`}
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${googleAnalyticsId}');`}
+      </Script>
     </html>
   );
 }

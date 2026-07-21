@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { GitBranchIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useLang } from "@/lib/i18n";
@@ -54,6 +55,22 @@ export function SiteHeader() {
             );
           })}
 
+          <Button
+            render={
+              <a
+                href="https://github.com/postor/genstory.cc"
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
+            variant="ghost"
+            size="icon-sm"
+            aria-label={labels.sourceCode}
+            title={labels.sourceCode}
+          >
+            <GitBranchIcon aria-hidden="true" />
+          </Button>
+
           <div
             className="ml-1 flex items-center rounded-lg border p-0.5"
             role="group"
@@ -91,15 +108,30 @@ function getPublicLang(pathname: string): PublicLang | null {
 
 const headerLabels: Record<
   PublicLang,
-  { home: string; projects: string; settings: string; language: string; languageName: string }
+  {
+    home: string;
+    projects: string;
+    settings: string;
+    language: string;
+    languageName: string;
+    sourceCode: string;
+  }
 > = {
-  zh: { home: "首页", projects: "项目", settings: "设置", language: "语言", languageName: "中文" },
+  zh: {
+    home: "首页",
+    projects: "项目",
+    settings: "设置",
+    language: "语言",
+    languageName: "中文",
+    sourceCode: "查看 Git 仓库",
+  },
   en: {
     home: "Home",
     projects: "Projects",
     settings: "Settings",
     language: "Language",
     languageName: "English",
+    sourceCode: "View Git repository",
   },
 };
 

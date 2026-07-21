@@ -19,6 +19,7 @@ type TreeProps = {
   initialExpandedItems?: string[];
   initialSelectedId?: string;
   onSelect?: (id: string) => void;
+  renderActions?: (element: TreeViewElement) => ReactNode;
   fileIcon?: ReactNode;
   folderOpenIcon?: ReactNode;
   folderClosedIcon?: ReactNode;
@@ -33,6 +34,7 @@ export function Tree({
   initialExpandedItems = [],
   initialSelectedId,
   onSelect,
+  renderActions,
   fileIcon,
   folderOpenIcon,
   folderClosedIcon,
@@ -56,28 +58,40 @@ export function Tree({
     const folder = isFolder(el);
     const isOpen = expanded.includes(el.id);
     const isSelected = selected === el.id;
+    const itemClasses = cn(
+      "flex min-w-0 flex-1 items-center gap-1.5 rounded-md py-1.5 pr-2 pl-2 text-sm transition-colors",
+      isSelected
+        ? "bg-primary/10 font-medium text-primary"
+        : "text-foreground hover:bg-muted"
+    );
+    const actions = renderActions ? (
+      <div
+        className="ml-1 flex shrink-0 items-center gap-0.5 opacity-70 transition-opacity group-hover/tree-item:opacity-100 group-focus-within/tree-item:opacity-100"
+        onClick={(event) => event.stopPropagation()}
+      >
+        {renderActions?.(el)}
+      </div>
+    ) : null;
 
     if (folder) {
       return (
         <div key={el.id}>
-          <button
-            type="button"
-            onClick={() => {
-              toggle(el.id);
-              select(el.id);
-            }}
-            className={cn(
-              "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 pl-2 text-sm transition-colors",
-              isSelected
-                ? "bg-primary/10 font-medium text-primary"
-                : "text-foreground hover:bg-muted"
-            )}
-          >
-            {isOpen
-              ? (folderOpenIcon ?? <FolderOpenIcon className="size-4 text-muted-foreground" />)
-              : (folderClosedIcon ?? <FolderIcon className="size-4 text-muted-foreground" />)}
-            <span className="truncate">{el.name}</span>
-          </button>
+          <div className="group/tree-item flex items-center">
+            <button
+              type="button"
+              onClick={() => {
+                toggle(el.id);
+                select(el.id);
+              }}
+              className={itemClasses}
+            >
+              {isOpen
+                ? (folderOpenIcon ?? <FolderOpenIcon className="size-4 text-muted-foreground" />)
+                : (folderClosedIcon ?? <FolderIcon className="size-4 text-muted-foreground" />)}
+              <span className="truncate">{el.name}</span>
+            </button>
+            {actions}
+          </div>
           {isOpen && el.children && (
             <div className="pl-3">{el.children.map((child) => renderItem(child))}</div>
           )}
@@ -86,20 +100,13 @@ export function Tree({
     }
 
     return (
-      <button
-        key={el.id}
-        type="button"
-        onClick={() => select(el.id)}
-        className={cn(
-          "flex w-full items-center gap-1.5 rounded-md py-1.5 pr-2 pl-2 text-sm transition-colors",
-          isSelected
-            ? "bg-primary/10 font-medium text-primary"
-            : "text-foreground hover:bg-muted"
-        )}
-      >
-        {fileIcon ?? <FileIcon className="size-4 text-muted-foreground" />}
-        <span className="truncate">{el.name}</span>
-      </button>
+      <div key={el.id} className="group/tree-item flex items-center">
+        <button type="button" onClick={() => select(el.id)} className={itemClasses}>
+          {fileIcon ?? <FileIcon className="size-4 text-muted-foreground" />}
+          <span className="truncate">{el.name}</span>
+        </button>
+        {actions}
+      </div>
     );
   }
 

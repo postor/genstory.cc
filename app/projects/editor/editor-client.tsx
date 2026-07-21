@@ -1,15 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, FileDown, FolderPlus, Loader2, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InteractionModal, PromptModal } from "@/components/ui/interaction-modal";
 import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
 import { CodeEditor } from "@/components/ui/code-editor";
+import {
+  Popover,
+  PopoverPopup,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   ChatBox,
   type ChatBoxHandle,
@@ -121,6 +128,93 @@ interface EntryDialogState {
   kind: EntryKind;
 }
 
+function entryDialogStateFromTreeElement(element: TreeViewElement): EntryDialogState {
+  if (element.id === "root") return { path: "", kind: "directory" };
+  const path = element.id.startsWith("root/") ? element.id.replace("root/", "") : "";
+  return {
+    path,
+    kind: element.type === "folder" ? "directory" : "file",
+  };
+}
+
+function TreeNodeActions({
+  target,
+  t,
+  onRefresh,
+  onUpload,
+  onCreateFile,
+  onCreateDirectory,
+  onDelete,
+}: {
+  target: EntryDialogState;
+  t: (key: string, values?: Record<string, string | number>) => string;
+  onRefresh: () => void;
+  onUpload: () => void;
+  onCreateFile: () => void;
+  onCreateDirectory: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function run(action: () => void) {
+    setOpen(false);
+    action();
+  }
+
+  const actions: { label: string; icon: ReactNode; onSelect: () => void }[] = [
+    { label: t("editor.refreshFiles"), icon: <RefreshCw />, onSelect: onRefresh },
+    { label: t("editor.uploadFiles"), icon: <Upload />, onSelect: onUpload },
+    { label: t("editor.newFile"), icon: <FilePlus />, onSelect: onCreateFile },
+    { label: t("editor.newFolder"), icon: <FolderPlus />, onSelect: onCreateDirectory },
+  ];
+  if (target.path) {
+    actions.push({ label: t("editor.deleteEntry"), icon: <Trash2 />, onSelect: onDelete });
+  }
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-xs"
+            title={t("editor.nodeActions")}
+            aria-label={t("editor.nodeActions")}
+          />
+        }
+      >
+        <Ellipsis className="size-3.5" />
+      </PopoverTrigger>
+      <PopoverPortal>
+        <PopoverPositioner side="left" align="start">
+          <PopoverPopup className="min-w-44">
+            <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+              {t("editor.nodeActions")}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {/* Each menu item pairs an icon + action label. */}
+              {actions.map((action) => (
+                <Button
+                  key={action.label}
+                  type="button"
+                  variant={action.label === t("editor.deleteEntry") ? "destructive" : "ghost"}
+                  size="sm"
+                  className="w-full justify-start"
+                  onClick={() => run(action.onSelect)}
+                >
+                  {action.icon}
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          </PopoverPopup>
+        </PopoverPositioner>
+      </PopoverPortal>
+    </Popover>
+  );
+}
+
 export default function EditorClient() {
   const { lang, t } = useLang();
   const router = useRouter();
@@ -152,8 +246,11 @@ export default function EditorClient() {
   const [exporting, setExporting] = useState(false);
   const chatRef = useRef<ChatBoxHandle>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  const uploadTargetRef = useRef<EntryDialogState | null>(null);
   const [isTitleEditing, setIsTitleEditing] = useState(false);
   const [titleDraft, setTitleDraft] = useState("");
+  const [createFileState, setCreateFileState] = useState<EntryDialogState | null>(null);
+  const [newFileName, setNewFileName] = useState("");
   const [createDirectoryState, setCreateDirectoryState] = useState<EntryDialogState | null>(null);
   const [newDirectoryName, setNewDirectoryName] = useState("");
   const [deleteEntryState, setDeleteEntryState] = useState<EntryDialogState | null>(null);
@@ -453,6 +550,16 @@ export default function EditorClient() {
         textFiles[entry.path] = await readTextFile(root, entry.path);
       }
     }
+    if (preferredPath === "" && preferredKind === "directory") {
+      setFiles(entries);
+      setContents(textFiles);
+      setSelectedPath("");
+      setSelectedKind("directory");
+      if (project?.template === "visual-novel") {
+        setVn(await readVNProjectFromDirectory(root));
+      }
+      return;
+    }
     const preferredEntry = preferredPath
       ? entries.find((entry) => entry.path === preferredPath && (!preferredKind || entry.kind === preferredKind))
       : undefined;
@@ -471,6 +578,25 @@ export default function EditorClient() {
     }
   }
 
+  async function handleRefreshEntry(target: EntryDialogState) {
+    if (!root) return;
+    setError("");
+    try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) return;
+      }
+      await reloadFiles(target.path, target.kind);
+    } catch (e) {
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+    }
+  }
+
+  function handleUploadIntoEntry(target: EntryDialogState) {
+    uploadTargetRef.current = target;
+    uploadInputRef.current?.click();
+  }
+
   async function handleUploadFiles(fileList: FileList | null) {
     if (!root || !fileList?.length) return;
     setError("");
@@ -479,13 +605,38 @@ export default function EditorClient() {
         const ok = await handleSave();
         if (!ok) return;
       }
-      const target = uploadTargetDirectory(selectedPath, selectedKind);
+      const targetEntry = uploadTargetRef.current ?? { path: selectedPath, kind: selectedKind };
+      const target = uploadTargetDirectory(targetEntry.path, targetEntry.kind);
       const written = await writeFilesToDirectory(root, target, Array.from(fileList));
-      await reloadFiles(written.at(-1) ?? selectedPath, "file");
+      await reloadFiles(written.at(-1) ?? targetEntry.path, "file");
     } catch (e) {
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
+      uploadTargetRef.current = null;
       if (uploadInputRef.current) uploadInputRef.current.value = "";
+    }
+  }
+
+  async function handleCreateFile() {
+    if (!root) return;
+    const dialogState = createFileState;
+    if (!dialogState) return;
+    const name = newFileName.trim();
+    if (!name) return;
+    setError("");
+    try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) return;
+      }
+      const path = resolveNewEntryPath(dialogState.path, dialogState.kind, name);
+      await ensurePermission(root, true);
+      await writeTextFile(root, path, "");
+      setCreateFileState(null);
+      setNewFileName("");
+      await reloadFiles(path, "file");
+    } catch (e) {
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
 
@@ -497,6 +648,10 @@ export default function EditorClient() {
     if (!name) return;
     setError("");
     try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) return;
+      }
       const path = resolveNewEntryPath(dialogState.path, dialogState.kind, name);
       await ensurePermission(root, true);
       await createDirectory(root, path);
@@ -514,6 +669,10 @@ export default function EditorClient() {
     if (!dialogState?.path) return;
     setError("");
     try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) return;
+      }
       const targetPath = dialogState.path;
       setDeleteEntryState(null);
       if (dirtyPaths.has(targetPath)) {
@@ -703,6 +862,10 @@ export default function EditorClient() {
     ? uploadTargetDirectory(createDirectoryState.path, createDirectoryState.kind) ||
       t("editor.projectRoot")
     : t("editor.projectRoot");
+  const createFileTarget = createFileState
+    ? uploadTargetDirectory(createFileState.path, createFileState.kind) ||
+      t("editor.projectRoot")
+    : t("editor.projectRoot");
 
   return (
     <main className="flex h-svh flex-col overflow-hidden">
@@ -766,40 +929,8 @@ export default function EditorClient() {
             className="sr-only"
             onChange={(event) => void handleUploadFiles(event.currentTarget.files)}
           />
-          <Button variant="outline" size="sm" onClick={() => id && void loadProject(id)} disabled={status === "loading"}>
-            <RefreshCw className="size-4" />
-            {t("editor.refreshFiles")}
-          </Button>
           {project && root && (
             <>
-              <Button variant="outline" size="sm" onClick={() => uploadInputRef.current?.click()}>
-                <Upload className="size-4" />
-                {t("editor.uploadFiles")}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setNewDirectoryName("");
-                  setCreateDirectoryState({ path: selectedPath, kind: selectedKind });
-                }}
-              >
-                <FolderPlus className="size-4" />
-                {t("editor.newFolder")}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() =>
-                  setDeleteEntryState(
-                    selectedPath ? { path: selectedPath, kind: selectedKind } : null
-                  )
-                }
-                disabled={!selectedPath}
-              >
-                <Trash2 className="size-4" />
-                {t("editor.deleteEntry")}
-              </Button>
               <Button variant="outline" size="sm" onClick={() => void handlePreview()}>
                 <Play className="size-4" />
                 {t("editor.preview")}
@@ -854,6 +985,27 @@ export default function EditorClient() {
               initialExpandedItems={tree.expanded}
               initialSelectedId={selectedPath ? `root/${selectedPath}` : "root"}
               onSelect={selectPath}
+              renderActions={(element) => {
+                const target = entryDialogStateFromTreeElement(element);
+
+                return (
+                  <TreeNodeActions
+                    target={target}
+                    t={t}
+                    onRefresh={() => void handleRefreshEntry(target)}
+                    onUpload={() => handleUploadIntoEntry(target)}
+                    onCreateFile={() => {
+                      setNewFileName("");
+                      setCreateFileState(target);
+                    }}
+                    onCreateDirectory={() => {
+                      setNewDirectoryName("");
+                      setCreateDirectoryState(target);
+                    }}
+                    onDelete={() => setDeleteEntryState(target)}
+                  />
+                );
+              }}
               className="p-2"
             />
           ) : (
@@ -951,6 +1103,30 @@ export default function EditorClient() {
           </div>
         </aside>
       </div>
+
+      <PromptModal
+        open={createFileState !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreateFileState(null);
+            setNewFileName("");
+          }
+        }}
+        title={t("editor.newFileTitle")}
+        description={t("editor.newFileDescription")}
+        inputLabel={t("editor.newFileNameLabel")}
+        inputPlaceholder={t("editor.newFileNamePlaceholder")}
+        value={newFileName}
+        onValueChange={setNewFileName}
+        confirmLabel={t("editor.newFileConfirm")}
+        confirmDisabled={!newFileName.trim()}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleCreateFile()}
+      >
+        <p className="text-xs text-muted-foreground">
+          {t("editor.newFileLocation", { path: createFileTarget })}
+        </p>
+      </PromptModal>
 
       <PromptModal
         open={createDirectoryState !== null}

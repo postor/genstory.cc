@@ -1015,7 +1015,7 @@ export default function EditorClient() {
           )}
         </aside>
 
-        <section className="min-h-0 overflow-hidden">
+        <section className="min-h-0 min-w-0 overflow-hidden">
           {status === "loading" ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-4 animate-spin" />

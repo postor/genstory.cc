@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { markdown } from "@codemirror/lang-markdown";
+import { EditorView } from "@codemirror/view";
 import { vscodeDark } from "@uiw/codemirror-theme-vscode";
+import { WrapText } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Button } from "@/components/ui/button";
 import { useLang } from "@/lib/i18n";
+
+const WRAP_LINES_STORAGE_KEY = "genstory.code-editor.wrap-lines";
 
 type CodeEditorProps = {
   value: string;
@@ -35,6 +40,22 @@ export function CodeEditor({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(filename);
   const [preview, setPreview] = useState(false);
+  const [wrapLines, setWrapLines] = useState(false);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      setWrapLines(window.localStorage.getItem(WRAP_LINES_STORAGE_KEY) === "true");
+    });
+    return () => window.cancelAnimationFrame(frameId);
+  }, []);
+
+  function toggleWrapLines() {
+    setWrapLines((previous) => {
+      const next = !previous;
+      window.localStorage.setItem(WRAP_LINES_STORAGE_KEY, String(next));
+      return next;
+    });
+  }
 
   function commitRename() {
     const next = draft.trim().replace(/\.md$/i, "");
@@ -88,7 +109,7 @@ export function CodeEditor({
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-[#1e1e1e] text-[#d4d4d4]">
+    <div className="flex h-full min-h-0 min-w-0 flex-col bg-[#1e1e1e] text-[#d4d4d4]">
       {/* tab bar */}
       <div className="flex items-stretch bg-[#252526] text-xs">
         <div className="flex items-center gap-2 border-r border-black/40 border-t-2 border-t-[#0e639c] bg-[#1e1e1e] px-3 py-1.5 text-[#ffffff]">
@@ -126,7 +147,21 @@ export function CodeEditor({
           )}
         </div>
 
-        <div className="ml-auto flex items-center px-2">
+        <div className="ml-auto flex items-center gap-1 px-2">
+          {!preview && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              onClick={toggleWrapLines}
+              aria-pressed={wrapLines}
+              aria-label={t("codeEditor.wrap")}
+              title={t("codeEditor.wrap")}
+              className={wrapLines ? "bg-white/15 text-white" : "text-[#cccccc]"}
+            >
+              <WrapText className="size-3.5" />
+            </Button>
+          )}
           <button
             type="button"
             onClick={() => setPreview((p) => !p)}
@@ -138,7 +173,7 @@ export function CodeEditor({
       </div>
 
       {/* body */}
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
         {preview ? (
           <div className="h-full overflow-auto bg-background p-6 text-foreground">
             <div className="mx-auto max-w-3xl space-y-3 text-sm leading-6 [&_a]:text-primary [&_a]:underline [&_blockquote]:border-l-2 [&_blockquote]:border-border [&_blockquote]:pl-3 [&_blockquote]:text-muted-foreground [&_code]:rounded [&_code]:bg-muted [&_code]:px-1 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:mt-4 [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:mt-3 [&_li]:ml-5 [&_ol]:list-decimal [&_ul]:list-disc">
@@ -154,8 +189,8 @@ export function CodeEditor({
             editable={!readOnly}
             theme={vscodeDark}
             height="100%"
-            extensions={[mdSource]}
-            className="text-sm [&_.cm-editor]:h-full [&_.cm-editor.cm-focused]:outline-none [&_.cm-scroller]:font-mono [&_.cm-scroller]:text-[13px]"
+            extensions={[mdSource, ...(wrapLines ? [EditorView.lineWrapping] : [])]}
+            className="h-full min-h-0 text-sm [&_.cm-editor]:h-full [&_.cm-editor.cm-focused]:outline-none [&_.cm-scroller]:h-full [&_.cm-scroller]:overflow-auto [&_.cm-scroller]:font-mono [&_.cm-scroller]:text-[13px]"
           />
         )}
       </div>

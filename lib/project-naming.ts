@@ -7,7 +7,7 @@ const TYPE_NAMES: Record<ContentTypeId, Record<Lang, string>> = {
   comic: { zh: "漫画", en: "Comic" },
   "visual-novel": { zh: "视觉小说", en: "Visual Novel" },
   "interactive-video": { zh: "互动视频", en: "Interactive Video" },
-  "phaser-game": { zh: "Phaser 游戏", en: "Phaser Game" },
+  "phaser-game": { zh: "游戏", en: "Game" },
 };
 
 const TITLE_PREFIXERS: Record<Lang, (typeName: string) => string> = {

@@ -1,4 +1,4 @@
-# Phaser Game Project Rules
+# Game Project Rules
 
 This project is a runnable Phaser browser game. Real source files are the source of truth: `index.html` is the entry point, `src/scenes/` owns scenes, and `assets/index.yml` owns the asset plan.
 

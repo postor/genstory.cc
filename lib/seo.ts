@@ -340,17 +340,17 @@ export const publicPages: Record<
   },
   "phaser-game": {
     title: {
-      zh: "Phaser 游戏创作工具 - GenStory.cc",
-      en: "Phaser Game Creation Tool - GenStory.cc",
+      zh: "游戏创作工具 - GenStory.cc",
+      en: "Game Creation Tool - GenStory.cc",
     },
     description: {
       zh: "在浏览器中创建可运行的 Phaser 游戏项目，编辑菜单、场景、JavaScript、样式和资产计划，并导出源码。",
       en: "Create runnable Phaser game projects in the browser, edit menus, scenes, JavaScript, styles, and asset plans, then export the source.",
     },
-    kicker: { zh: "Phaser 游戏", en: "Phaser games" },
+    kicker: { zh: "游戏", en: "Games" },
     heading: {
-      zh: "从可编辑源文件开始制作 Phaser 浏览器游戏",
-      en: "Build Phaser browser games from editable source files",
+      zh: "从可编辑源文件开始制作浏览器游戏",
+      en: "Build browser games from editable source files",
     },
     intro: {
       zh: "GenStory.cc 为 Phaser 游戏提供菜单场景、可操作测试场景和清晰的 HTML、JavaScript、CSS 项目结构，方便继续扩展。",

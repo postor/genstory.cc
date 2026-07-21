@@ -1,4 +1,4 @@
-# Phaser 游戏项目约束
+# 游戏项目约束
 
 本项目是一个可在浏览器中运行的 Phaser 游戏。真实源文件是唯一事实来源，`index.html` 负责入口，`src/scenes/` 负责场景，`assets/index.yml` 负责资产计划。
 

@@ -57,7 +57,7 @@ export const contentTypes: ContentTypeInfo[] = [
   },
   {
     id: "phaser-game",
-    label: { zh: "Phaser 游戏", en: "Phaser Game" },
+    label: { zh: "游戏", en: "Game" },
     description: {
       zh: "用菜单、场景和可编辑 JavaScript 创建可运行的 Phaser 浏览器游戏。",
       en: "Build runnable Phaser browser games from menus, scenes, and editable JavaScript.",

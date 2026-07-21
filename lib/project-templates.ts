@@ -476,7 +476,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
   const instructions = isZh
     ? "方向键移动，空格跳跃，Esc 返回菜单"
     : "Arrow keys move, Space jumps, Esc returns to menu";
-  const gameTitle = title.trim() || (isZh ? "Phaser 游戏模板" : "Phaser Game Template");
+  const gameTitle = title.trim() || (isZh ? "游戏模板" : "Game Template");
   const htmlLang = isZh ? "zh-CN" : "en";
   const gameTitleLiteral = JSON.stringify(gameTitle);
   const menuTitleLiteral = JSON.stringify(menuTitle);

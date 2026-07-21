@@ -45,14 +45,27 @@ test("project cloud sync exposes per-project upload and download actions", async
   assert.match(projectsSource, /projects\.cloudUploadProject/);
   assert.match(projectsSource, /prepareCloudDownload\(project\)/);
   assert.match(projectsSource, /prepareCloudUpload\(project\)/);
-  assert.match(projectsSource, /projects\.cloudSync/);
   assert.match(projectsSource, /cloudConfirm === "download"/);
   assert.match(projectsSource, /cloudConfirm === "upload"/);
-  assert.match(projectsSource, /cloudConfirm === "sync"/);
   assert.match(projectsSource, /projects\.cloudDownloadProjectDescription/);
   assert.match(projectsSource, /projects\.cloudUploadProjectDescription/);
-  assert.match(projectsSource, /projects\.cloudSyncTitle/);
   assert.match(projectsSource, /role="progressbar"/);
-  assert.match(projectsSource, /handleCloudSync/);
+  assert.doesNotMatch(projectsSource, /prepareCloudDownload\(undefined, "sync"\)/);
+  assert.doesNotMatch(projectsSource, /projects\.cloudSync/);
+  assert.doesNotMatch(projectsSource, /cloudConfirm === "sync"/);
+  assert.doesNotMatch(projectsSource, /handleCloudSync/);
   assert.doesNotMatch(projectsSource, /Presigned|presigned|S3|s3/);
+});
+
+test("cloud sync actions use the unified Chinese operation names", async () => {
+  const i18nSource = await readFile(new URL("../../lib/i18n.tsx", import.meta.url), "utf8");
+
+  assert.match(i18nSource, /"projects\.cloudUpload": "同步到网盘"/);
+  assert.match(i18nSource, /"projects\.cloudDownload": "从网盘同步"/);
+  assert.match(i18nSource, /"projects\.cloudUploadProject": "同步到网盘"/);
+  assert.match(i18nSource, /"projects\.cloudDownloadProject": "从网盘同步"/);
+  assert.match(i18nSource, /"projects\.cloudSuccessUpload": "已同步到网盘"/);
+  assert.match(i18nSource, /"projects\.cloudSuccessDownload": "已从网盘同步到本地"/);
+  assert.doesNotMatch(i18nSource, /"projects\.cloudUpload": "上传到云盘"/);
+  assert.doesNotMatch(i18nSource, /"projects\.cloudDownload": "从云盘下载并合并"/);
 });

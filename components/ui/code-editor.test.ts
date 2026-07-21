@@ -11,6 +11,22 @@ test("code editor exposes a persistent automatic wrapping toggle", async () => {
   assert.match(source, /aria-pressed/);
 });
 
+test("code editor enables automatic wrapping by default until a saved preference overrides it", async () => {
+  const source = await readFile(new URL("./code-editor.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const \[wrapLines, setWrapLines\] = useState\(true\)/);
+  assert.match(source, /savedWrapPreference === null \? true : savedWrapPreference === "true"/);
+});
+
+test("code editor keeps wrapping toggle usable when storage is unavailable", async () => {
+  const source = await readFile(new URL("./code-editor.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /function readSavedWrapPreference/);
+  assert.match(source, /function saveWrapPreference/);
+  assert.match(source, /catch \{\s*return true;\s*\}/);
+  assert.match(source, /catch \{\s*\/\* Ignore storage errors; wrapping still toggles for this session\. \*\/\s*\}/);
+});
+
 test("code editor keeps both axes scrollable inside the fixed editor body", async () => {
   const source = await readFile(new URL("./code-editor.tsx", import.meta.url), "utf8");
 

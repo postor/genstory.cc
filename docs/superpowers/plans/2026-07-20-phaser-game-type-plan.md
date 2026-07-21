@@ -1,4 +1,4 @@
-# Phaser Game Type Implementation Plan
+# Game Type Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task with verification checkpoints.
 

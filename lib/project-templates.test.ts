@@ -89,7 +89,7 @@ test("visual novel template contains real OpenWebGal source files", async () => 
   assert.ok(files.some((file) => file.path.endsWith(".png") && file.kind === "binary"));
 });
 
-test("Phaser template contains runnable menu and test game scenes without generated media", async () => {
+test("game template contains runnable menu and test game scenes without generated media", async () => {
   const files = await getProjectTemplate("phaser-game", "zh", "测试游戏");
   const paths = new Set(files.map((file) => file.path));
   const text = files

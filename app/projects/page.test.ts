@@ -22,3 +22,13 @@ test("projects empty state links the new work call to action", async () => {
   assert.match(source, /\{t\("projects\.new"\)\}/);
   assert.match(source, /\{t\("projects\.emptyAfterNew"\)\}/);
 });
+
+test("expired cloud authorization offers an actionable reconnect button", async () => {
+  const source = await readFile(new URL("./projects-client.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /isCloudAuthorizationExpired/);
+  assert.match(source, /handleCloudReconnect/);
+  assert.match(source, /requestGoogleToken\(settings\.rememberAuthorization, true\)/);
+  assert.match(source, /onClick=\{\(\) => void handleCloudReconnect\(\)\}/);
+  assert.match(source, /t\("settings\.cloud\.reconnect"\)/);
+});

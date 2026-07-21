@@ -79,7 +79,6 @@ export const publicHomeCopy = {
     ctaCreate: "开始创作",
     ctaBrowseTypes: "探索创作类型",
     pillarsTitle: "为长期创作设计",
-    workflowTitle: "从创作到导出",
     localProjects: "我的作品",
     pillars: [
       {
@@ -95,11 +94,6 @@ export const publicHomeCopy = {
         body: "备份后可以继续编辑；视觉小说和 Phaser 游戏还可以在浏览器中预览并导出运行包。",
       },
     ],
-    workflows: [
-      "选择图书、漫画、视觉小说、互动视频或 Phaser 游戏模板。",
-      "直接在浏览器中编辑作品内容。",
-      "预览作品，下载备份或导出运行包。",
-    ],
   },
   en: {
     heroTitle: "GenStory.cc",
@@ -109,7 +103,6 @@ export const publicHomeCopy = {
     ctaCreate: "Start creating",
     ctaBrowseTypes: "Explore creation types",
     pillarsTitle: "Designed for long-running creative work",
-    workflowTitle: "From creation to export",
     localProjects: "My works",
     pillars: [
       {
@@ -125,11 +118,6 @@ export const publicHomeCopy = {
         body: "Project backups can be imported for continued editing, while visual novels and Phaser games preview and export as runnable packages.",
       },
     ],
-    workflows: [
-      "Choose a book, comic, visual novel, interactive video, or Phaser game template.",
-      "Edit your work directly in the browser.",
-      "Preview it, download a backup, or export a runnable package.",
-    ],
   },
 } satisfies Record<
   PublicLang,
@@ -140,9 +128,7 @@ export const publicHomeCopy = {
     ctaCreate: string;
     ctaBrowseTypes: string;
     pillarsTitle: string;
-    workflowTitle: string;
     localProjects: string;
     pillars: Array<{ title: string; body: string }>;
-    workflows: string[];
   }
 >;

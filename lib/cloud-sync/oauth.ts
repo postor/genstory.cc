@@ -325,7 +325,8 @@ function loadGoogleIdentityScript(): Promise<void> {
 }
 
 export async function requestGoogleToken(
-  rememberAuthorization: boolean
+  rememberAuthorization: boolean,
+  forceConsent = false
 ): Promise<void> {
   const config = CLOUD_OAUTH_CONFIG["google-drive"];
   if (!config.clientId) throw new Error("Google Drive 尚未配置 OAuth client ID");
@@ -358,7 +359,7 @@ export async function requestGoogleToken(
       return;
     }
     client.requestAccessToken({
-      prompt: loadCloudToken("google-drive") ? "" : "consent",
+      prompt: forceConsent || !loadCloudToken("google-drive") ? "consent" : "",
     });
   });
 }

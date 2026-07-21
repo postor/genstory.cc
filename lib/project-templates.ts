@@ -525,7 +525,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         '  <link rel="stylesheet" href="src/styles.css">',
         "</head>",
         "<body>",
-        '  <main id="game" aria-label="Phaser game"></main>',
+        '  <main id="game" aria-label="Game"></main>',
         '  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>',
         '  <script src="src/config.js"></script>',
         '  <script src="src/scenes/menu-scene.js"></script>',

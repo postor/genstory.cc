@@ -13,6 +13,23 @@ import { useLang } from "@/lib/i18n";
 
 const WRAP_LINES_STORAGE_KEY = "genstory.code-editor.wrap-lines";
 
+function readSavedWrapPreference(): boolean {
+  try {
+    const savedWrapPreference = window.localStorage.getItem(WRAP_LINES_STORAGE_KEY);
+    return savedWrapPreference === null ? true : savedWrapPreference === "true";
+  } catch {
+    return true;
+  }
+}
+
+function saveWrapPreference(wrapLines: boolean) {
+  try {
+    window.localStorage.setItem(WRAP_LINES_STORAGE_KEY, String(wrapLines));
+  } catch {
+    /* Ignore storage errors; wrapping still toggles for this session. */
+  }
+}
+
 type CodeEditorProps = {
   value: string;
   onChange: (value: string) => void;
@@ -40,11 +57,11 @@ export function CodeEditor({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(filename);
   const [preview, setPreview] = useState(false);
-  const [wrapLines, setWrapLines] = useState(false);
+  const [wrapLines, setWrapLines] = useState(true);
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
-      setWrapLines(window.localStorage.getItem(WRAP_LINES_STORAGE_KEY) === "true");
+      setWrapLines(readSavedWrapPreference());
     });
     return () => window.cancelAnimationFrame(frameId);
   }, []);
@@ -52,7 +69,7 @@ export function CodeEditor({
   function toggleWrapLines() {
     setWrapLines((previous) => {
       const next = !previous;
-      window.localStorage.setItem(WRAP_LINES_STORAGE_KEY, String(next));
+      saveWrapPreference(next);
       return next;
     });
   }

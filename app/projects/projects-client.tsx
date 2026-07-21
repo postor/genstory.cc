@@ -41,14 +41,20 @@ import {
   uploadLocalWorkspace,
   type LocalWorkspaceSnapshot,
 } from "@/lib/cloud-sync/sync";
-import type {
-  CloudConflict,
-  CloudDownloadPlan,
-  CloudRemoteFile,
-  CloudSyncPhase,
-  CloudSyncProgress,
+import {
+  CLOUD_PROVIDER_LABELS,
+  type CloudConflict,
+  type CloudDownloadPlan,
+  type CloudRemoteFile,
+  type CloudSyncPhase,
+  type CloudSyncProgress,
 } from "@/lib/cloud-sync/types";
-import { CLOUD_OAUTH_CONFIG, loadCloudToken } from "@/lib/cloud-sync/oauth";
+import {
+  beginCloudOAuth,
+  CLOUD_OAUTH_CONFIG,
+  loadCloudToken,
+  requestGoogleToken,
+} from "@/lib/cloud-sync/oauth";
 import {
   deleteProject,
   listProjects,
@@ -67,7 +73,7 @@ import { useLang } from "@/lib/i18n";
 import { languageInfo } from "@/lib/platform-i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 
-type CloudAction = "upload" | "download" | "sync";
+type CloudAction = "upload" | "download";
 
 interface CloudUploadPlan {
   snapshot: LocalWorkspaceSnapshot;
@@ -99,6 +105,8 @@ export default function ProjectsPage() {
   const [cloudProgress, setCloudProgress] =
     useState<CloudSyncProgress | null>(null);
   const [cloudFeedback, setCloudFeedback] = useState<string | null>(null);
+  const [cloudAuthorizationExpired, setCloudAuthorizationExpired] = useState(false);
+  const [reconnectingCloud, setReconnectingCloud] = useState(false);
   const [cloudConfirm, setCloudConfirm] = useState<CloudAction | null>(null);
   const [downloadPlan, setDownloadPlan] = useState<CloudDownloadPlan | null>(
     null
@@ -178,12 +186,43 @@ export default function ProjectsPage() {
   function resetCloudState() {
     setCloudProgress(null);
     setCloudFeedback(null);
+    setCloudAuthorizationExpired(false);
     setError(null);
+  }
+
+  function isCloudAuthorizationExpired(reason: unknown): boolean {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    return message.includes("云端授权已过期") || message.includes("Cloud authorization has expired");
   }
 
   function setCloudError(reason: unknown) {
     const message = reason instanceof Error ? reason.message : String(reason);
+    setCloudAuthorizationExpired(isCloudAuthorizationExpired(reason));
     setError(t("projects.cloudOperationFailed", { message }));
+  }
+
+  async function handleCloudReconnect() {
+    const settings = loadCloudSyncSettings();
+    setReconnectingCloud(true);
+    setError(null);
+    setCloudFeedback(null);
+    try {
+      if (settings.provider === "google-drive") {
+        await requestGoogleToken(settings.rememberAuthorization, true);
+      } else {
+        await beginCloudOAuth(settings.provider, settings.rememberAuthorization);
+      }
+      setCloudAuthorizationExpired(false);
+      setCloudFeedback(
+        t("settings.cloud.connected", {
+          provider: CLOUD_PROVIDER_LABELS[settings.provider][lang],
+        })
+      );
+    } catch (reason) {
+      setCloudError(reason);
+    } finally {
+      setReconnectingCloud(false);
+    }
   }
 
   async function prepareCloudUpload(project?: Project) {
@@ -207,16 +246,13 @@ export default function ProjectsPage() {
     }
   }
 
-  async function prepareCloudDownload(
-    project?: Project,
-    nextConfirm: "download" | "sync" = "download"
-  ) {
+  async function prepareCloudDownload(project?: Project) {
     resetCloudState();
     setCloudConfirm(null);
     setDownloadPlan(null);
     setUploadPlan(null);
     setCloudTargetProject(project ?? null);
-    setCloudOperation(nextConfirm);
+    setCloudOperation("download");
     try {
       const targetProjects = project ? [project] : projects;
       const store = requireCloudStore();
@@ -227,7 +263,7 @@ export default function ProjectsPage() {
         project ? { remoteProjectScope: targetProjects } : undefined
       );
       setDownloadPlan(plan);
-      setCloudConfirm(nextConfirm);
+      setCloudConfirm("download");
     } catch (e) {
       setCloudError(e);
     } finally {
@@ -295,38 +331,6 @@ export default function ProjectsPage() {
             })
           : t("projects.cloudSuccessDownload")
       );
-      setDownloadPlan(null);
-    } catch (e) {
-      setCloudError(e);
-    } finally {
-      setCloudOperation(null);
-      setCloudProgress(null);
-    }
-  }
-
-  async function handleCloudSync() {
-    if (!downloadPlan) return;
-    setCloudConfirm(null);
-    setCloudOperation("sync");
-    setCloudProgress(null);
-    setCloudFeedback(null);
-    setError(null);
-    try {
-      const store = requireCloudStore();
-      const nextProjects = await applyCloudDownload();
-      if (nextProjects.length === 0) throw new Error(t("projects.cloudNoProjects"));
-      const plan = await prepareCloudUploadPlan(
-        store,
-        nextProjects,
-        setCloudProgress
-      );
-      await uploadLocalWorkspace(
-        store,
-        plan.snapshot,
-        plan.remoteFiles,
-        setCloudProgress
-      );
-      setCloudFeedback(t("projects.cloudSuccessSync"));
       setDownloadPlan(null);
     } catch (e) {
       setCloudError(e);
@@ -435,7 +439,6 @@ export default function ProjectsPage() {
       : 0;
   const downloadConflictCount = downloadPlan?.conflicts.length ?? 0;
   const uploadConflictCount = uploadPlan?.conflicts.length ?? 0;
-  const syncUploadConflictCount = downloadPlan?.uploadConflicts.length ?? 0;
   const downloadDescription = downloadPlan
     ? downloadConflictCount > 0
       ? t(
@@ -462,16 +465,6 @@ export default function ProjectsPage() {
   ]
     .filter(Boolean)
     .join("\n\n");
-  const syncDescription = [
-    downloadDescription,
-    t("projects.cloudSyncDescription"),
-    syncUploadConflictCount > 0
-      ? t("projects.cloudUploadConflictCount", { count: syncUploadConflictCount })
-      : "",
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
   return (
     <main className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -522,15 +515,6 @@ export default function ProjectsPage() {
             <CloudUpload className="size-4" />
             {t("projects.cloudUpload")}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => void prepareCloudDownload(undefined, "sync")}
-            disabled={cloudOperation !== null || importing}
-          >
-            <RefreshCw className="size-4" />
-            {t("projects.cloudSync")}
-          </Button>
           <Button render={<Link href="/projects/new" />}>
             <Plus className="size-4" />
             {t("projects.new")}
@@ -539,9 +523,23 @@ export default function ProjectsPage() {
       </div>
 
       {error && (
-        <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </p>
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <p className="min-w-0 flex-1">{error}</p>
+          {cloudAuthorizationExpired ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void handleCloudReconnect()}
+              disabled={reconnectingCloud}
+            >
+              <RefreshCw className={reconnectingCloud ? "size-4 animate-spin" : "size-4"} />
+              {reconnectingCloud
+                ? t("settings.cloud.connecting")
+                : t("settings.cloud.reconnect")}
+            </Button>
+          ) : null}
+        </div>
       )}
       {cloudFeedback && (
         <p className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
@@ -713,23 +711,6 @@ export default function ProjectsPage() {
         confirmDisabled={!downloadPlan}
         cancelLabel={t("common.cancel")}
         onConfirm={() => void handleCloudDownload()}
-      >
-        {downloadPlan
-          ? conflictPreview(downloadPlan.conflicts, t("projects.cloudConflictPreview"))
-          : null}
-      </InteractionModal>
-      <InteractionModal
-        open={cloudConfirm === "sync"}
-        onOpenChange={(open) => {
-          if (!open) setCloudConfirm(null);
-        }}
-        title={t("projects.cloudSyncTitle")}
-        description={syncDescription}
-        confirmLabel={t("projects.cloudSyncConfirm")}
-        confirmVariant="destructive"
-        confirmDisabled={!downloadPlan}
-        cancelLabel={t("common.cancel")}
-        onConfirm={() => void handleCloudSync()}
       >
         {downloadPlan
           ? conflictPreview(downloadPlan.conflicts, t("projects.cloudConflictPreview"))

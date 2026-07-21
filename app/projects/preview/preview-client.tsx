@@ -287,7 +287,7 @@ export default function PreviewClient() {
         {status === "ready" && runtimePreviewHtml && (
           <iframe
             srcDoc={runtimePreviewHtml}
-            title="Phaser game preview"
+            title="Game preview"
             className="h-full w-full border-0"
           />
         )}

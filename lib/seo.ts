@@ -67,7 +67,7 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
     "作品保存在浏览器中",
     "图书、漫画、视觉小说、互动视频和 Phaser 游戏模板",
     "项目备份下载和导入",
-    "可选的 Google Drive、OneDrive 和 Dropbox 同步",
+    "可选的 Google Drive 和 Dropbox 同步",
     "视觉小说浏览器预览",
     "OpenWebGal 独立项目导出",
   ],
@@ -75,7 +75,7 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
     "Local-first project files",
     "Book, comic, visual novel, interactive video, and Phaser game templates",
     "Source ZIP backup and import",
-    "Optional Google Drive, OneDrive, and Dropbox sync",
+    "Optional Google Drive and Dropbox sync",
     "Visual novel preview in the browser",
     "Standalone OpenWebGal project export",
   ],
@@ -170,8 +170,8 @@ export const publicPages: Record<
       {
         question: { zh: "GenStory 会把项目上传到服务器吗？", en: "Does GenStory upload my project to a server?" },
         answer: {
-          zh: "不会自动上传到 GenStory 服务器。作品内容和素材默认保存在这台设备的浏览器中；如果你在设置页授权 Google Drive、OneDrive 或 Dropbox，项目页可以直接把文件同步到云盘的隔离目录。换设备或清理浏览器数据前，请先下载项目备份或完成一次云盘同步。",
-          en: "Not to GenStory servers. Work and assets stay in this browser by default; if you authorize Google Drive, OneDrive, or Dropbox in Settings, Projects can sync files directly to that provider's isolated app folder. Before changing devices or clearing browser data, download a source ZIP or complete a cloud sync.",
+          zh: "不会自动上传到 GenStory 服务器。作品内容和素材默认保存在这台设备的浏览器中；如果你在设置页授权 Google Drive 或 Dropbox，项目页可以直接把文件同步到云盘的隔离目录。换设备或清理浏览器数据前，请先下载项目备份或完成一次云盘同步。",
+          en: "Not to GenStory servers. Work and assets stay in this browser by default; if you authorize Google Drive or Dropbox in Settings, Projects can sync files directly to that provider's isolated app folder. Before changing devices or clearing browser data, download a source ZIP or complete a cloud sync.",
         },
       },
       {

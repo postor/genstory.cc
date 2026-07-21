@@ -29,12 +29,11 @@ test("cloud sync setup uses OAuth provider guidance and official links", async (
 
   assert.match(settingsSource, /<Dialog open=\{guideOpen\}/);
   assert.match(settingsSource, /google-drive/);
-  assert.match(settingsSource, /one-drive/);
   assert.match(settingsSource, /dropbox/);
+  assert.doesNotMatch(settingsSource, /one-drive|OneDrive|ONEDRIVE/);
   assert.match(settingsSource, /handleCloudOAuthCallback/);
   assert.match(settingsSource, /requestGoogleToken/);
   assert.match(settingsSource, /https:\/\/developers\.google\.com\/drive/);
-  assert.match(settingsSource, /https:\/\/learn\.microsoft\.com\/en-us\/graph/);
   assert.match(settingsSource, /https:\/\/www\.dropbox\.com\/developers/);
   assert.match(settingsSource, /target="_blank"/);
   assert.doesNotMatch(settingsSource, /Presigned|presigned|AmazonS3|Cloudflare/);

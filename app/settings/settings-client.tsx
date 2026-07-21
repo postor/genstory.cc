@@ -37,17 +37,15 @@ import {
 
 const DOCS: Record<CloudProviderId, string> = {
   "google-drive": "https://developers.google.com/drive/api/guides/about-sdk",
-  "one-drive": "https://learn.microsoft.com/en-us/graph/onedrive-concept-overview",
   dropbox: "https://www.dropbox.com/developers/reference/getting-started",
 };
 
 const OAUTH_DOCS: Record<CloudProviderId, string> = {
   "google-drive": "https://developers.google.com/identity/oauth2/web/guides/use-token-model",
-  "one-drive": "https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow",
   dropbox: "https://developers.dropbox.com/oauth-guide",
 };
 
-const PROVIDERS: CloudProviderId[] = ["google-drive", "one-drive", "dropbox"];
+const PROVIDERS: CloudProviderId[] = ["google-drive", "dropbox"];
 
 export default function SettingsClient() {
   const { lang, t } = useLang();

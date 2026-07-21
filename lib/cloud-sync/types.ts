@@ -1,7 +1,7 @@
 import type { ContentTypeId } from "../content-types";
 import type { Lang } from "../i18n";
 
-export type CloudProviderId = "google-drive" | "one-drive" | "dropbox";
+export type CloudProviderId = "google-drive" | "dropbox";
 
 export interface CloudToken {
   accessToken: string;
@@ -76,6 +76,5 @@ export const CLOUD_ROOT_NAME = "GenStory Workspace - Local Story Projects";
 
 export const CLOUD_PROVIDER_LABELS: Record<CloudProviderId, { zh: string; en: string }> = {
   "google-drive": { zh: "Google Drive", en: "Google Drive" },
-  "one-drive": { zh: "OneDrive", en: "OneDrive" },
   dropbox: { zh: "Dropbox", en: "Dropbox" },
 };

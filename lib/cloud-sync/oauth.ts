@@ -2,6 +2,7 @@ import type { CloudProviderId, CloudToken } from "./types";
 
 export const GOOGLE_DRIVE_CLIENT_ID =
   "271171439504-vc4fhde8ei0736h7qlkfqcqdcbsh3d5l.apps.googleusercontent.com";
+export const DROPBOX_APP_KEY = "rlwotrslri8sko6";
 
 export interface StorageLike {
   getItem(key: string): string | null;
@@ -39,16 +40,9 @@ export const CLOUD_OAUTH_CONFIG: Record<CloudProviderId, CloudOAuthConfig> = {
     tokenEndpoint: "https://oauth2.googleapis.com/token",
     scope: "https://www.googleapis.com/auth/drive.file",
   },
-  "one-drive": {
-    provider: "one-drive",
-    clientId: process.env.NEXT_PUBLIC_ONEDRIVE_CLIENT_ID ?? "",
-    authorizationEndpoint: `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_ONEDRIVE_TENANT_ID ?? "common"}/oauth2/v2.0/authorize`,
-    tokenEndpoint: `https://login.microsoftonline.com/${process.env.NEXT_PUBLIC_ONEDRIVE_TENANT_ID ?? "common"}/oauth2/v2.0/token`,
-    scope: "openid profile offline_access Files.ReadWrite.AppFolder",
-  },
   dropbox: {
     provider: "dropbox",
-    clientId: process.env.NEXT_PUBLIC_DROPBOX_APP_KEY ?? "",
+    clientId: DROPBOX_APP_KEY,
     authorizationEndpoint: "https://www.dropbox.com/oauth2/authorize",
     tokenEndpoint: "https://api.dropboxapi.com/oauth2/token",
     scope: "files.content.read files.content.write files.metadata.read",
@@ -249,7 +243,7 @@ export async function getValidCloudToken(
 }
 
 export async function beginCloudOAuth(
-  provider: Exclude<CloudProviderId, "google-drive">,
+  provider: "dropbox",
   rememberAuthorization: boolean
 ): Promise<void> {
   const config = CLOUD_OAUTH_CONFIG[provider];

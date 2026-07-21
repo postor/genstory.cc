@@ -6,6 +6,7 @@ import {
   CLOUD_OAUTH_CONFIG,
   clearCloudToken,
   GOOGLE_DRIVE_CLIENT_ID,
+  DROPBOX_APP_KEY,
   loadCloudToken,
   saveCloudToken,
   type CloudOAuthConfig,
@@ -36,6 +37,12 @@ test("uses the built-in Google Drive OAuth client ID", () => {
     GOOGLE_DRIVE_CLIENT_ID,
     "271171439504-vc4fhde8ei0736h7qlkfqcqdcbsh3d5l.apps.googleusercontent.com"
   );
+});
+
+test("uses the built-in Dropbox app key and removes OneDrive OAuth", () => {
+  assert.equal(CLOUD_OAUTH_CONFIG.dropbox.clientId, DROPBOX_APP_KEY);
+  assert.equal(DROPBOX_APP_KEY, "rlwotrslri8sko6");
+  assert.equal(Object.hasOwn(CLOUD_OAUTH_CONFIG, "one-drive"), false);
 });
 
 test("round-trips cloud tokens through an injected storage shape", () => {

@@ -1,10 +1,10 @@
 "use client";
 
-import type { ContentTypeId } from "../content-types";
-import { getProjectTemplate } from "../project-templates";
-import { resolveNewEntryPath } from "./ops";
-import { normalizeRelativePath, projectRelativePath, type ProjectPath } from "./paths";
-import type { ProjectFileEntry } from "./types";
+import type { ContentTypeId } from "../content-types.ts";
+import { getProjectTemplate } from "../project-templates.ts";
+import { resolveNewEntryPath } from "./ops.ts";
+import { normalizeRelativePath, projectRelativePath, type ProjectPath } from "./paths.ts";
+import type { ProjectFileEntry } from "./types.ts";
 
 type StorageManagerWithDirectory = StorageManager & {
   getDirectory?: () => Promise<FileSystemDirectoryHandle>;

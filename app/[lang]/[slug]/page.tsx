@@ -94,7 +94,7 @@ export default async function PublicTopic({ params }: Props) {
       inLanguage: locale.schemaLanguage,
       isPartOf: {
         "@type": "WebSite",
-        name: "GenStory",
+        name: "GenStory.cc",
         url: pageUrl(lang),
       },
     },

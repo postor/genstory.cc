@@ -9,8 +9,8 @@ const ZH_TO_EN: Record<string, string> = {
     "ZIP central directory not found. Could not import the project backup.",
   "ZIP 目录损坏，无法导入项目备份":
     "The ZIP central directory is corrupted. Could not import the project backup.",
-  "只能导入 GenStory 导出的项目备份 ZIP":
-    "Only GenStory-exported project backup ZIP files can be imported.",
+  "只能导入 GenStory.cc 导出的项目备份 ZIP":
+    "Only GenStory.cc-exported project backup ZIP files can be imported.",
   "ZIP 文件损坏，无法导入项目备份":
     "The ZIP file is corrupted. Could not import the project backup.",
   "项目备份包含空路径，无法恢复作品":
@@ -53,8 +53,8 @@ const EN_TO_ZH: Record<string, string> = {
     "未找到 ZIP 目录，无法导入项目备份",
   "The ZIP central directory is corrupted. Could not import the project backup.":
     "ZIP 目录损坏，无法导入项目备份",
-  "Only GenStory-exported project backup ZIP files can be imported.":
-    "只能导入 GenStory 导出的项目备份 ZIP",
+  "Only GenStory.cc-exported project backup ZIP files can be imported.":
+    "只能导入 GenStory.cc 导出的项目备份 ZIP",
   "The ZIP file is corrupted. Could not import the project backup.":
     "ZIP 文件损坏，无法导入项目备份",
   "The project backup contains an empty path and cannot be restored.":

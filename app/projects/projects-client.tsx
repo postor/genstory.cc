@@ -104,6 +104,9 @@ export default function ProjectsPage() {
     null
   );
   const [uploadPlan, setUploadPlan] = useState<CloudUploadPlan | null>(null);
+  const [cloudTargetProject, setCloudTargetProject] = useState<Project | null>(
+    null
+  );
 
   useEffect(() => {
     document.title = t("meta.projectsTitle");
@@ -183,16 +186,18 @@ export default function ProjectsPage() {
     setError(t("projects.cloudOperationFailed", { message }));
   }
 
-  async function prepareCloudUpload() {
+  async function prepareCloudUpload(project?: Project) {
     resetCloudState();
     setCloudConfirm(null);
     setDownloadPlan(null);
     setUploadPlan(null);
+    setCloudTargetProject(project ?? null);
     setCloudOperation("upload");
     try {
-      if (projects.length === 0) throw new Error(t("projects.cloudNoProjects"));
+      const targetProjects = project ? [project] : projects;
+      if (targetProjects.length === 0) throw new Error(t("projects.cloudNoProjects"));
       const store = requireCloudStore();
-      const plan = await prepareCloudUploadPlan(store, projects, setCloudProgress);
+      const plan = await prepareCloudUploadPlan(store, targetProjects, setCloudProgress);
       setUploadPlan(plan);
       setCloudConfirm("upload");
     } catch (e) {
@@ -202,15 +207,25 @@ export default function ProjectsPage() {
     }
   }
 
-  async function prepareCloudDownload(nextConfirm: "download" | "sync" = "download") {
+  async function prepareCloudDownload(
+    project?: Project,
+    nextConfirm: "download" | "sync" = "download"
+  ) {
     resetCloudState();
     setCloudConfirm(null);
     setDownloadPlan(null);
     setUploadPlan(null);
+    setCloudTargetProject(project ?? null);
     setCloudOperation(nextConfirm);
     try {
+      const targetProjects = project ? [project] : projects;
       const store = requireCloudStore();
-      const plan = await prepareCloudDownloadPlan(store, projects, setCloudProgress);
+      const plan = await prepareCloudDownloadPlan(
+        store,
+        targetProjects,
+        setCloudProgress,
+        project ? { remoteProjectScope: targetProjects } : undefined
+      );
       setDownloadPlan(plan);
       setCloudConfirm(nextConfirm);
     } catch (e) {
@@ -235,7 +250,13 @@ export default function ProjectsPage() {
         plan.remoteFiles,
         setCloudProgress
       );
-      setCloudFeedback(t("projects.cloudSuccessUpload"));
+      setCloudFeedback(
+        cloudTargetProject
+          ? t("projects.cloudSuccessUploadProject", {
+              title: cloudTargetProject.title,
+            })
+          : t("projects.cloudSuccessUpload")
+      );
       setUploadPlan(null);
     } catch (e) {
       setCloudError(e);
@@ -267,7 +288,13 @@ export default function ProjectsPage() {
     setError(null);
     try {
       await applyCloudDownload();
-      setCloudFeedback(t("projects.cloudSuccessDownload"));
+      setCloudFeedback(
+        cloudTargetProject
+          ? t("projects.cloudSuccessDownloadProject", {
+              title: cloudTargetProject.title,
+            })
+          : t("projects.cloudSuccessDownload")
+      );
       setDownloadPlan(null);
     } catch (e) {
       setCloudError(e);
@@ -411,11 +438,24 @@ export default function ProjectsPage() {
   const syncUploadConflictCount = downloadPlan?.uploadConflicts.length ?? 0;
   const downloadDescription = downloadPlan
     ? downloadConflictCount > 0
-      ? t("projects.cloudDownloadDescription", { count: downloadConflictCount })
-      : t("projects.cloudDownloadNoConflict")
+      ? t(
+          cloudTargetProject
+            ? "projects.cloudDownloadProjectDescription"
+            : "projects.cloudDownloadDescription",
+          { count: downloadConflictCount }
+        )
+      : t(
+          cloudTargetProject
+            ? "projects.cloudDownloadProjectNoConflict"
+            : "projects.cloudDownloadNoConflict"
+        )
     : "";
   const uploadDescription = [
-    t("projects.cloudUploadDescription"),
+    t(
+      cloudTargetProject
+        ? "projects.cloudUploadProjectDescription"
+        : "projects.cloudUploadDescription"
+    ),
     uploadConflictCount > 0
       ? t("projects.cloudUploadConflictCount", { count: uploadConflictCount })
       : "",
@@ -485,7 +525,7 @@ export default function ProjectsPage() {
           <Button
             type="button"
             variant="outline"
-            onClick={() => void prepareCloudDownload("sync")}
+            onClick={() => void prepareCloudDownload(undefined, "sync")}
             disabled={cloudOperation !== null || importing}
           >
             <RefreshCw className="size-4" />
@@ -514,7 +554,13 @@ export default function ProjectsPage() {
       ) : projects.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-sm text-muted-foreground">
-            {t("projects.empty")}
+            <p>
+              {t("projects.emptyBeforeNew")}
+              <Link href="/projects/new" className="font-medium text-primary underline underline-offset-4">
+                {t("projects.new")}
+              </Link>
+              {t("projects.emptyAfterNew")}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -584,6 +630,24 @@ export default function ProjectsPage() {
                 >
                   <FileDown className="size-4" />
                   {t("editor.downloadSource")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void prepareCloudDownload(project)}
+                  disabled={cloudOperation !== null || importing}
+                >
+                  <CloudDownload className="size-4" />
+                  {t("projects.cloudDownloadProject")}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void prepareCloudUpload(project)}
+                  disabled={cloudOperation !== null || importing}
+                >
+                  <CloudUpload className="size-4" />
+                  {t("projects.cloudUploadProject")}
                 </Button>
                 <Button
                   size="sm"

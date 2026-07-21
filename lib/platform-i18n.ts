@@ -72,10 +72,10 @@ export const publicTopicChrome = {
 
 export const publicHomeCopy = {
   zh: {
-    heroTitle: "GenStory",
+    heroTitle: "GenStory.cc",
     heroSubtitle: "在浏览器中创作故事和游戏",
     heroBody:
-      "在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。可随时备份，也可以导出可运行项目。",
+      "在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory.cc 服务器。可随时备份，也可以导出可运行项目。",
     ctaCreate: "开始创作",
     ctaBrowseTypes: "探索创作类型",
     pillarsTitle: "为长期创作设计",
@@ -102,10 +102,10 @@ export const publicHomeCopy = {
     ],
   },
   en: {
-    heroTitle: "GenStory",
+    heroTitle: "GenStory.cc",
     heroSubtitle: "Create stories and games in the browser",
     heroBody:
-      "Create books, comics, visual novels, interactive videos, and Phaser games in the browser. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Back up your work or export runnable projects when ready.",
+      "Create books, comics, visual novels, interactive videos, and Phaser games in the browser. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory.cc servers. Back up your work or export runnable projects when ready.",
     ctaCreate: "Start creating",
     ctaBrowseTypes: "Explore creation types",
     pillarsTitle: "Designed for long-running creative work",

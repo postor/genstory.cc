@@ -1,12 +1,12 @@
-# GenStory SEO 方案
+# GenStory.cc SEO 方案
 
 ## 目标
 
-GenStory 的公开 SEO 入口必须覆盖产品真实能力，而不是只为视觉小说提供一个入口。目标是让搜索引擎可以分别理解：
+GenStory.cc 的公开 SEO 入口必须覆盖产品真实能力，而不是只为视觉小说提供一个入口。目标是让搜索引擎可以分别理解：
 
-- GenStory 是什么：本地优先、浏览器内运行的故事与游戏创作工作台。
-- GenStory 支持什么：图书、漫画、视觉小说、互动视频和 Phaser 游戏。
-- GenStory 如何交付：源码 ZIP、浏览器预览，以及 OpenWebGal 可运行项目导出。
+- GenStory.cc 是什么：本地优先、浏览器内运行的故事与游戏创作工作台。
+- GenStory.cc 支持什么：图书、漫画、视觉小说、互动视频和 Phaser 游戏。
+- GenStory.cc 如何交付：源码 ZIP、浏览器预览，以及 OpenWebGal 可运行项目导出。
 - 每个页面服务哪种搜索意图：了解产品、选择创作类型、了解导出方式或开始创作。
 
 ## URL 与语言结构
@@ -35,7 +35,7 @@ GenStory 的公开 SEO 入口必须覆盖产品真实能力，而不是只为视
 
 ### 中文
 
-- 品牌：`GenStory`、`GenStory 创作工具`
+- 品牌：`GenStory.cc`、`GenStory.cc 创作工具`
 - 总类目：`故事创作工具`、`浏览器创作工具`、`本地优先写作工具`
 - 图书：`图书创作工具`、`浏览器写作工具`、`小说创作软件`
 - 漫画：`漫画创作工具`、`漫画分镜软件`、`浏览器漫画编辑器`
@@ -46,7 +46,7 @@ GenStory 的公开 SEO 入口必须覆盖产品真实能力，而不是只为视
 
 ### English
 
-- Brand: `GenStory`, `GenStory creative workspace`
+- Brand: `GenStory.cc`, `GenStory.cc creative workspace`
 - General: `story creation tool`, `browser-based creative workspace`, `local-first writing app`
 - Books: `book creation tool`, `browser writing app`, `novel writing software`
 - Comics: `comic creation tool`, `comic storyboard software`, `browser comic editor`

@@ -1,6 +1,6 @@
 # Phaser 游戏浏览器内创作方案
 
-Phaser 项目和其他 GenStory 类型一样，正文保存在浏览器 OPFS 的
+Phaser 项目和其他 GenStory.cc 类型一样，正文保存在浏览器 OPFS 的
 `<type>/<projectId>/` 目录中，IndexedDB 只保存项目索引和 UI 状态。
 
 ## 模板结构

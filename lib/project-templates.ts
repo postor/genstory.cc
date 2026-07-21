@@ -7,7 +7,7 @@ import { seedRedRidingHood } from "./vn/seed.ts";
 import { seedComicRedRidingHood } from "./comic/seed.ts";
 import { buildComicProjectFiles } from "./comic/project-files.ts";
 
-const FALLBACK_AGENTS = `# GenStory 项目约束
+const FALLBACK_AGENTS = `# GenStory.cc 项目约束
 
 本项目的正文事实保存在当前目录的真实文件中。
 
@@ -46,7 +46,7 @@ function meta(type: ContentTypeId, title: string): string {
     "",
     `# ${title}`,
     "",
-    "这是一个由 GenStory 模板创建的作品。",
+    "这是一个由 GenStory.cc 模板创建的作品。",
     "",
   ].join("\n");
 }

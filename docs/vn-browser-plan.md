@@ -1,6 +1,6 @@
 # 视觉小说（Visual Novel）浏览器内创作方案
 
-> 状态：已采用。GenStory 是无后端、SSG 的浏览器应用。视觉小说项目的正文和资产
+> 状态：已采用。GenStory.cc 是无后端、SSG 的浏览器应用。视觉小说项目的正文和资产
 > 来源保存在浏览器 Origin Private File System 中；IndexedDB 只保存项目索引、时间戳
 > 和 UI 状态。
 
@@ -130,7 +130,7 @@ AGENTS.md → 项目/章节/场景 meta.md → 当前选中的源文件
 资源，并还原原始引擎 Service Worker，不把浏览器桥接 SW 带入独立项目。
 
 项目列表和编辑器提供“下载源码”，导出当前 OPFS 项目目录的可编辑 source ZIP。项目列表
-提供“导入源码 ZIP”，用于恢复 GenStory 自己导出的未压缩 source ZIP。导入会校验
+提供“导入源码 ZIP”，用于恢复 GenStory.cc 自己导出的未压缩 source ZIP。导入会校验
 `meta.md` 与 `AGENTS.md`，推断项目类型，并写入新的 OPFS 目录；它不会覆盖已有项目。
 
 `public/webgal/` 是生成目录且被 gitignore。`npm run dev` 与 `npm run build` 都会先执行

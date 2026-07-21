@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import ProjectsClient from "./projects-client";
 
 export const metadata: Metadata = {
-  title: "GenStory",
-  description: "GenStory local creative workspace.",
+  title: "GenStory.cc",
+  description: "GenStory.cc local creative workspace.",
   robots: {
     index: false,
     follow: false,

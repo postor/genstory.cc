@@ -1,7 +1,7 @@
 ---
 id: red-riding-hood
 title: 小红帽
-author: GenStory 模板
+author: GenStory.cc 模板
 version: 1.0.0
 canon: 经典格林童话改编
 timeline: 单线叙事，含一个分支
@@ -9,7 +9,7 @@ timeline: 单线叙事，含一个分支
 
 # 小红帽（视觉小说模板示例）
 
-本模板演示如何使用 GenStory 的视觉小说约定（参见仓库 `AGENTS.md`）编写一部可玩的视觉小说，
+本模板演示如何使用 GenStory.cc 的视觉小说约定（参见仓库 `AGENTS.md`）编写一部可玩的视觉小说，
 并构建为 OpenWebGal 项目。故事为经典《小红帽》的简化改编。
 
 ## 设定（Canon）

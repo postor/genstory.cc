@@ -102,7 +102,7 @@ export async function parseProjectSourceZip(blob: Blob): Promise<ImportedProject
     cursor += 46 + fileNameLength + extraLength + commentLength;
     if (!rawPath || rawPath.endsWith("/") || rawPath.startsWith("__MACOSX/")) continue;
     if (method !== 0) {
-      throw new Error("只能导入 GenStory 导出的项目备份 ZIP");
+      throw new Error("只能导入 GenStory.cc 导出的项目备份 ZIP");
     }
     if (view.getUint32(localOffset, true) !== 0x04034b50) {
       throw new Error("ZIP 文件损坏，无法导入项目备份");

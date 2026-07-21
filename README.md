@@ -1,6 +1,6 @@
-# GenStory
+# GenStory.cc
 
-GenStory is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. The app is a static Next.js export: there is no backend, API route, or server-side project filesystem. Project source files live in the browser Origin Private File System (OPFS), and IndexedDB stores only the project index and UI state.
+GenStory.cc is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. The app is a static Next.js export: there is no backend, API route, or server-side project filesystem. Project source files live in the browser Origin Private File System (OPFS), and IndexedDB stores only the project index and UI state.
 
 [SEO plan](./docs/seo-plan.md) documents the public URL structure, keyword map, bilingual metadata, structured data, sitemap policy, and post-launch search monitoring.
 
@@ -10,7 +10,7 @@ GenStory is a local-first creative workspace for books, comics, visual novels, i
 - The editor always reads and saves real project files such as `AGENTS.md`, `meta.md`, `script.md`, `stage.yml`, and `assets/index.yml`.
 - IndexedDB keeps lightweight metadata: project id, template, title, language, timestamps, and last opened path.
 - Visual novel preview uses a browser-only IndexedDB cache for compiled OpenWebGal `game/*` files. That cache is runtime output, not a project source of truth.
-- AI assistance is optional and browser-side. If the user connects OpenRouter, requests go to OpenRouter from the browser; the GenStory app still does not run its own backend.
+- AI assistance is optional and browser-side. If the user connects OpenRouter, requests go to OpenRouter from the browser; the GenStory.cc app still does not run its own backend.
 
 # Requirements
 
@@ -41,7 +41,7 @@ npm run build
 
 The browser owns OPFS storage. Clearing site data, switching browsers, or changing origins can remove local projects. Users should regularly use **Download source** from the project list or editor.
 
-A downloaded source ZIP can be restored from the project list with **Import source ZIP**. GenStory imports ZIP files produced by its own source exporter, restores all files into a new OPFS project directory, and rebuilds the IndexedDB project index from `meta.md`.
+A downloaded source ZIP can be restored from the project list with **Import source ZIP**. GenStory.cc imports ZIP files produced by its own source exporter, restores all files into a new OPFS project directory, and rebuilds the IndexedDB project index from `meta.md`.
 
 For visual novels, **Export OpenWebGal** creates a standalone OpenWebGal project ZIP. That export is for running the game, not for editing. Use **Download source** for editable backups.
 

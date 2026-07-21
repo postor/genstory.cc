@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: ogImagePath,
           width: 1200,
           height: 630,
-          alt: "GenStory local-first story creation workspace",
+          alt: "GenStory.cc local-first story creation workspace",
         },
       ],
     },

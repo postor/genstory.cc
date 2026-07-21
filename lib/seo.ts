@@ -29,15 +29,15 @@ export const languageAlternates: Record<string, string> = {
 };
 
 export const siteMetadata = {
-  name: "GenStory",
-  zhTitle: "GenStory - 在浏览器中创作故事",
-  enTitle: "GenStory - Create stories in the browser",
+  name: "GenStory.cc",
+  zhTitle: "GenStory.cc - 在浏览器中创作故事",
+  enTitle: "GenStory.cc - Create stories in the browser",
   zhDescription:
-    "GenStory 是一个在浏览器中运行的故事创作工作台，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，可下载项目备份、选择性同步到自己的云盘并导出可运行项目。",
+    "GenStory.cc 是一个在浏览器中运行的故事创作工作台，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，可下载项目备份、选择性同步到自己的云盘并导出可运行项目。",
   enDescription:
-    "GenStory is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. Projects stay in your browser, can be exported as source ZIPs or runnable projects, and can optionally sync to a cloud drive you authorize.",
+    "GenStory.cc is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. Projects stay in your browser, can be exported as source ZIPs or runnable projects, and can optionally sync to a cloud drive you authorize.",
   keywords: [
-    "GenStory",
+    "GenStory.cc",
     "视觉小说编辑器",
     "OpenWebGal 编辑器",
     "本地优先写作工具",
@@ -127,8 +127,8 @@ export const publicPages: Record<
 > = {
   "visual-novel": {
     title: {
-      zh: "视觉小说编辑器 - GenStory",
-      en: "Visual Novel Editor - GenStory",
+      zh: "视觉小说编辑器 - GenStory.cc",
+      en: "Visual Novel Editor - GenStory.cc",
     },
     description: {
       zh: "在浏览器中创作视觉小说，管理剧本、场景、角色和资产，并导出 OpenWebGal 项目。",
@@ -140,8 +140,8 @@ export const publicPages: Record<
       en: "Create visual novels with a clear project structure",
     },
     intro: {
-      zh: "GenStory 将剧本、场景、角色和素材整理成清晰的项目结构，让互动叙事更容易维护、预览和导出。",
-      en: "GenStory organizes scripts, scenes, characters, and assets into a clear project structure for interactive stories that are easy to maintain, preview, and export.",
+      zh: "GenStory.cc 将剧本、场景、角色和素材整理成清晰的项目结构，让互动叙事更容易维护、预览和导出。",
+      en: "GenStory.cc organizes scripts, scenes, characters, and assets into a clear project structure for interactive stories that are easy to maintain, preview, and export.",
     },
     sections: [
       {
@@ -168,10 +168,10 @@ export const publicPages: Record<
     ],
     faqs: [
       {
-        question: { zh: "GenStory 会把项目上传到服务器吗？", en: "Does GenStory upload my project to a server?" },
+        question: { zh: "GenStory.cc 会把项目上传到服务器吗？", en: "Does GenStory.cc upload my project to a server?" },
         answer: {
-          zh: "不会自动上传到 GenStory 服务器。作品内容和素材默认保存在这台设备的浏览器中；如果你在设置页授权 Google Drive 或 Dropbox，项目页可以直接把文件同步到云盘的隔离目录。换设备或清理浏览器数据前，请先下载项目备份或完成一次云盘同步。",
-          en: "Not to GenStory servers. Work and assets stay in this browser by default; if you authorize Google Drive or Dropbox in Settings, Projects can sync files directly to that provider's isolated app folder. Before changing devices or clearing browser data, download a source ZIP or complete a cloud sync.",
+          zh: "不会自动上传到 GenStory.cc 服务器。作品内容和素材默认保存在这台设备的浏览器中；如果你在设置页授权 Google Drive 或 Dropbox，项目页可以直接把文件同步到云盘的隔离目录。换设备或清理浏览器数据前，请先下载项目备份或完成一次云盘同步。",
+          en: "Not to GenStory.cc servers. Work and assets stay in this browser by default; if you authorize Google Drive or Dropbox in Settings, Projects can sync files directly to that provider's isolated app folder. Before changing devices or clearing browser data, download a source ZIP or complete a cloud sync.",
         },
       },
       {
@@ -182,25 +182,25 @@ export const publicPages: Record<
         },
       },
       {
-        question: { zh: "OpenWebGal 在 GenStory 中是什么？", en: "What is OpenWebGal in GenStory?" },
+        question: { zh: "OpenWebGal 在 GenStory.cc 中是什么？", en: "What is OpenWebGal in GenStory.cc?" },
         answer: {
-          zh: "OpenWebGal 是视觉小说的预览和导出运行目标，不是独立的 GenStory 项目类型。视觉小说项目可以编译并导出为 OpenWebGal 项目。",
-          en: "OpenWebGal is the preview and export runtime target for visual novels, not a separate GenStory project type. Visual novel projects can be compiled and exported as OpenWebGal projects.",
+          zh: "OpenWebGal 是视觉小说的预览和导出运行目标，不是独立的 GenStory.cc 项目类型。视觉小说项目可以编译并导出为 OpenWebGal 项目。",
+          en: "OpenWebGal is the preview and export runtime target for visual novels, not a separate GenStory.cc project type. Visual novel projects can be compiled and exported as OpenWebGal projects.",
         },
       },
     ],
   },
   comic: {
-    title: { zh: "漫画创作工具 - GenStory", en: "Comic Creation Workspace - GenStory" },
+    title: { zh: "漫画创作工具 - GenStory.cc", en: "Comic Creation Workspace - GenStory.cc" },
     description: {
-      zh: "用 GenStory 在浏览器中组织漫画项目、分镜、页面、角色和视觉资产，保持源码可备份、可恢复。",
-      en: "Use GenStory to organize comic projects, panels, pages, characters, and visual assets in a browser workspace with restorable source backups.",
+      zh: "用 GenStory.cc 在浏览器中组织漫画项目、分镜、页面、角色和视觉资产，保持源码可备份、可恢复。",
+      en: "Use GenStory.cc to organize comic projects, panels, pages, characters, and visual assets in a browser workspace with restorable source backups.",
     },
     kicker: { zh: "漫画", en: "Comics" },
     heading: { zh: "把漫画创作拆成可维护的项目结构", en: "Structure comic creation into maintainable project files" },
     intro: {
-      zh: "从分镜到页面，从角色到媒体附件，GenStory 用浏览器中的项目文件承载连续画面作品的创作过程。",
-      en: "From panels to pages and characters to media attachments, GenStory stores the comic creation process in project files in your browser.",
+      zh: "从分镜到页面，从角色到媒体附件，GenStory.cc 用浏览器中的项目文件承载连续画面作品的创作过程。",
+      en: "From panels to pages and characters to media attachments, GenStory.cc stores the comic creation process in project files in your browser.",
     },
     sections: [
       {
@@ -229,14 +229,14 @@ export const publicPages: Record<
       {
         question: { zh: "漫画项目可以导入恢复吗？", en: "Can comic projects be imported again?" },
         answer: {
-          zh: "可以。使用 GenStory 导出的项目备份可以从作品列表导入，恢复为新的作品。",
-          en: "Yes. Project backups exported by GenStory can be imported from the works list and restored as new works.",
+          zh: "可以。使用 GenStory.cc 导出的项目备份可以从作品列表导入，恢复为新的作品。",
+          en: "Yes. Project backups exported by GenStory.cc can be imported from the works list and restored as new works.",
         },
       },
     ],
   },
   book: {
-    title: { zh: "浏览器写作工具 - GenStory", en: "Browser Writing App - GenStory" },
+    title: { zh: "浏览器写作工具 - GenStory.cc", en: "Browser Writing App - GenStory.cc" },
     description: {
       zh: "在浏览器中写作和管理图书项目，用章节、页面和媒体附件组织长篇文字叙事。",
       en: "Write and manage book projects in the browser with chapters, pages, and media attachments for long-form narrative work.",
@@ -244,8 +244,8 @@ export const publicPages: Record<
     kicker: { zh: "图书", en: "Books" },
     heading: { zh: "适合长篇叙事的浏览器写作空间", en: "A browser writing space for long-form narratives" },
     intro: {
-      zh: "GenStory 让图书项目以清晰的源文件存在于浏览器中，适合小说、设定集、章节式内容和带素材的长篇创作。",
-      en: "GenStory keeps book projects as clear source files in the browser, suited for novels, lore documents, chaptered content, and media-rich writing.",
+      zh: "GenStory.cc 让图书项目以清晰的源文件存在于浏览器中，适合小说、设定集、章节式内容和带素材的长篇创作。",
+      en: "GenStory.cc keeps book projects as clear source files in the browser, suited for novels, lore documents, chaptered content, and media-rich writing.",
     },
     sections: [
       {
@@ -258,8 +258,8 @@ export const publicPages: Record<
       {
         title: { zh: "作品保存在浏览器中", en: "Your work stays in the browser" },
         body: {
-          zh: "作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory 服务器。换设备或清理浏览器数据前，请先下载项目备份。",
-          en: "Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory servers. Download a project backup before changing devices or clearing browser data.",
+          zh: "作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory.cc 服务器。换设备或清理浏览器数据前，请先下载项目备份。",
+          en: "Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory.cc servers. Download a project backup before changing devices or clearing browser data.",
         },
       },
       {
@@ -282,12 +282,12 @@ export const publicPages: Record<
   },
   "interactive-video": {
     title: {
-      zh: "互动视频创作工具 - GenStory",
-      en: "Interactive Video Authoring Tool - GenStory",
+      zh: "互动视频创作工具 - GenStory.cc",
+      en: "Interactive Video Authoring Tool - GenStory.cc",
     },
     description: {
-      zh: "用 GenStory 组织互动视频的片段、镜头、视频、配音和选择点，规划可播放的分支叙事项目。",
-      en: "Use GenStory to organize interactive video segments, shots, video, voice, and choice points into playable branching narratives.",
+      zh: "用 GenStory.cc 组织互动视频的片段、镜头、视频、配音和选择点，规划可播放的分支叙事项目。",
+      en: "Use GenStory.cc to organize interactive video segments, shots, video, voice, and choice points into playable branching narratives.",
     },
     kicker: { zh: "互动视频", en: "Interactive video" },
     heading: {
@@ -340,8 +340,8 @@ export const publicPages: Record<
   },
   "phaser-game": {
     title: {
-      zh: "Phaser 游戏创作工具 - GenStory",
-      en: "Phaser Game Creation Tool - GenStory",
+      zh: "Phaser 游戏创作工具 - GenStory.cc",
+      en: "Phaser Game Creation Tool - GenStory.cc",
     },
     description: {
       zh: "在浏览器中创建可运行的 Phaser 游戏项目，编辑菜单、场景、JavaScript、样式和资产计划，并导出源码。",
@@ -353,8 +353,8 @@ export const publicPages: Record<
       en: "Build Phaser browser games from editable source files",
     },
     intro: {
-      zh: "GenStory 为 Phaser 游戏提供菜单场景、可操作测试场景和清晰的 HTML、JavaScript、CSS 项目结构，方便继续扩展。",
-      en: "GenStory gives Phaser games a menu scene, a playable test scene, and a clear HTML, JavaScript, and CSS structure that is ready to extend.",
+      zh: "GenStory.cc 为 Phaser 游戏提供菜单场景、可操作测试场景和清晰的 HTML、JavaScript、CSS 项目结构，方便继续扩展。",
+      en: "GenStory.cc gives Phaser games a menu scene, a playable test scene, and a clear HTML, JavaScript, and CSS structure that is ready to extend.",
     },
     sections: [
       {

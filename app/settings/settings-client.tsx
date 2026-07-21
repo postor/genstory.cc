@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, ExternalLink, HelpCircle, LogIn, LogOut, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -35,21 +35,24 @@ import {
   type CloudSyncSettings,
 } from "@/lib/cloud-sync/types";
 
-const DOCS: Record<CloudProviderId, string> = {
+const GOOGLE_DRIVE_PROVIDER = "google-drive" satisfies CloudProviderId;
+const PROVIDERS = [GOOGLE_DRIVE_PROVIDER] as const;
+type VisibleCloudProviderId = (typeof PROVIDERS)[number];
+
+const DOCS: Record<VisibleCloudProviderId, string> = {
   "google-drive": "https://developers.google.com/drive/api/guides/about-sdk",
-  dropbox: "https://www.dropbox.com/developers/reference/getting-started",
 };
 
-const OAUTH_DOCS: Record<CloudProviderId, string> = {
+const OAUTH_DOCS: Record<VisibleCloudProviderId, string> = {
   "google-drive": "https://developers.google.com/identity/oauth2/web/guides/use-token-model",
-  dropbox: "https://developers.dropbox.com/oauth-guide",
 };
-
-const PROVIDERS: CloudProviderId[] = ["google-drive", "dropbox"];
 
 export default function SettingsClient() {
   const { lang, t } = useLang();
-  const [settings, setSettings] = useState<CloudSyncSettings>(() => loadCloudSyncSettings());
+  const [settings, setSettings] = useState<CloudSyncSettings>(() => ({
+    ...loadCloudSyncSettings(),
+    provider: GOOGLE_DRIVE_PROVIDER,
+  }));
   const [connected, setConnected] = useState<Record<CloudProviderId, boolean>>(() =>
     Object.fromEntries(
       PROVIDERS.map((provider) => [provider, loadCloudToken(provider) !== null])
@@ -64,10 +67,15 @@ export default function SettingsClient() {
     document.title = t("meta.settingsTitle");
   }, [t]);
 
+  const visibleSettings = useMemo<CloudSyncSettings>(
+    () => ({ ...settings, provider: GOOGLE_DRIVE_PROVIDER }),
+    [settings]
+  );
+
   useEffect(() => {
     void handleCloudOAuthCallback()
       .then((provider) => {
-        if (!provider) return;
+        if (provider !== GOOGLE_DRIVE_PROVIDER) return;
         setConnected((current) => ({ ...current, [provider]: true }));
         setSettings((current) => ({ ...current, provider }));
         setFeedback(t("settings.cloud.connected", { provider: CLOUD_PROVIDER_LABELS[provider][lang] }));
@@ -84,14 +92,14 @@ export default function SettingsClient() {
     setError(null);
     setFeedback(null);
     updateSettings({ provider });
-    saveCloudSyncSettings({ ...settings, provider });
+    saveCloudSyncSettings({ ...visibleSettings, provider });
     try {
       if (provider === "google-drive") {
-        await requestGoogleToken(settings.rememberAuthorization);
+        await requestGoogleToken(visibleSettings.rememberAuthorization);
         setConnected((current) => ({ ...current, [provider]: true }));
         setFeedback(t("settings.cloud.connected", { provider: CLOUD_PROVIDER_LABELS[provider][lang] }));
       } else {
-        await beginCloudOAuth(provider, settings.rememberAuthorization);
+        await beginCloudOAuth(provider, visibleSettings.rememberAuthorization);
       }
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : String(reason));
@@ -107,7 +115,7 @@ export default function SettingsClient() {
   }
 
   function savePreferences() {
-    saveCloudSyncSettings(settings);
+    saveCloudSyncSettings(visibleSettings);
     setFeedback(t("settings.cloud.preferencesSaved"));
   }
 
@@ -137,7 +145,7 @@ export default function SettingsClient() {
                 const label = CLOUD_PROVIDER_LABELS[provider][lang];
                 const configured = Boolean(CLOUD_OAUTH_CONFIG[provider].clientId);
                 const isConnected = connected[provider];
-                const active = settings.provider === provider;
+                const active = visibleSettings.provider === provider;
                 return (
                   <div
                     key={provider}
@@ -189,7 +197,7 @@ export default function SettingsClient() {
           <label className="flex items-start gap-3 rounded-lg border p-3 text-sm">
             <input
               type="checkbox"
-              checked={settings.rememberAuthorization}
+              checked={visibleSettings.rememberAuthorization}
               onChange={(event) => updateSettings({ rememberAuthorization: event.target.checked })}
               className="mt-0.5 size-4 accent-primary"
             />

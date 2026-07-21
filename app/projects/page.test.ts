@@ -13,3 +13,12 @@ test("projects page can enter inline title edit mode from title or icon", async 
   assert.match(source, /await saveProject\(\{ \.\.\.project, title: nextTitle, updatedAt: now \}\)/);
 
 });
+
+test("projects empty state links the new work call to action", async () => {
+  const source = await readFile(new URL("./projects-client.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /<Link href="\/projects\/new" className="[^"]*underline/);
+  assert.match(source, /\{t\("projects\.emptyBeforeNew"\)\}/);
+  assert.match(source, /\{t\("projects\.new"\)\}/);
+  assert.match(source, /\{t\("projects\.emptyAfterNew"\)\}/);
+});

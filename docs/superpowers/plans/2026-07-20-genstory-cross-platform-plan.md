@@ -1,4 +1,4 @@
-# GenStory 全终端本地优先方案
+# GenStory.cc 全终端本地优先方案
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -331,8 +331,8 @@ interface AccountIdentity {
 
 - Google、Apple、Facebook、GitHub：标准 OAuth/OIDC 连接。
 - WeChat、QQ：通过 broker 的自定义 OAuth 连接或独立 provider adapter 接入。
-- Web、桌面和移动端都只调用 GenStory 的 `/auth/start` 和 `/auth/callback`。
-- 后端统一产出 GenStory session，不把第三方 access token 交给项目同步层。
+- Web、桌面和移动端都只调用 GenStory.cc 的 `/auth/start` 和 `/auth/callback`。
+- 后端统一产出 GenStory.cc session，不把第三方 access token 交给项目同步层。
 
 如果使用托管 Auth 服务，应先确认 WeChat/QQ 是否有官方连接；否则采用支持自定义 provider 的身份中介，或在 API 服务中实现独立 adapter。
 

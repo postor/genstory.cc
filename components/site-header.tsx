@@ -33,7 +33,7 @@ export function SiteHeader() {
           <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground text-sm">
             G
           </span>
-          GenStory
+          GenStory.cc
         </Link>
 
         <nav className="flex items-center gap-1 max-[400px]:w-full max-[400px]:justify-end">

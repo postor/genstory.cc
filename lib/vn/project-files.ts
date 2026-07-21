@@ -33,7 +33,7 @@ function buildProjectMeta(vn: VNProject): string {
     "",
     `# ${vn.title}`,
     "",
-    "本项目由 GenStory 的 OpenWebGal 视觉小说模板创建。",
+    "本项目由 GenStory.cc 的 OpenWebGal 视觉小说模板创建。",
     "章节、场景、舞台状态和对白由结构化编辑器维护。",
     "",
   ].join("\n");

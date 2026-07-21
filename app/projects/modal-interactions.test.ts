@@ -29,27 +29,28 @@ test("cloud sync setup uses OAuth provider guidance and official links", async (
 
   assert.match(settingsSource, /<Dialog open=\{guideOpen\}/);
   assert.match(settingsSource, /google-drive/);
-  assert.match(settingsSource, /dropbox/);
+  assert.doesNotMatch(settingsSource, /dropbox|Dropbox/);
   assert.doesNotMatch(settingsSource, /one-drive|OneDrive|ONEDRIVE/);
   assert.match(settingsSource, /handleCloudOAuthCallback/);
   assert.match(settingsSource, /requestGoogleToken/);
   assert.match(settingsSource, /https:\/\/developers\.google\.com\/drive/);
-  assert.match(settingsSource, /https:\/\/www\.dropbox\.com\/developers/);
   assert.match(settingsSource, /target="_blank"/);
   assert.doesNotMatch(settingsSource, /Presigned|presigned|AmazonS3|Cloudflare/);
 });
 
-test("workspace cloud sync actions are global and use explicit overwrite confirmations", async () => {
+test("project cloud sync exposes per-project upload and download actions", async () => {
   const projectsSource = await readFile(new URL("./projects-client.tsx", import.meta.url), "utf8");
 
-  assert.match(projectsSource, /projects\.cloudDownload/);
-  assert.match(projectsSource, /projects\.cloudUpload/);
+  assert.match(projectsSource, /projects\.cloudDownloadProject/);
+  assert.match(projectsSource, /projects\.cloudUploadProject/);
+  assert.match(projectsSource, /prepareCloudDownload\(project\)/);
+  assert.match(projectsSource, /prepareCloudUpload\(project\)/);
   assert.match(projectsSource, /projects\.cloudSync/);
   assert.match(projectsSource, /cloudConfirm === "download"/);
   assert.match(projectsSource, /cloudConfirm === "upload"/);
   assert.match(projectsSource, /cloudConfirm === "sync"/);
-  assert.match(projectsSource, /projects\.cloudDownloadDescription/);
-  assert.match(projectsSource, /projects\.cloudUploadDescription/);
+  assert.match(projectsSource, /projects\.cloudDownloadProjectDescription/);
+  assert.match(projectsSource, /projects\.cloudUploadProjectDescription/);
   assert.match(projectsSource, /projects\.cloudSyncTitle/);
   assert.match(projectsSource, /role="progressbar"/);
   assert.match(projectsSource, /handleCloudSync/);

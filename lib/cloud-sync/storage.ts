@@ -12,7 +12,7 @@ export function loadCloudSyncSettings(): CloudSyncSettings {
     const raw = window.localStorage.getItem(SETTINGS_KEY);
     if (!raw) return { ...DEFAULT_CLOUD_SYNC_SETTINGS };
     const parsed = JSON.parse(raw) as Partial<CloudSyncSettings>;
-    const providers: CloudProviderId[] = ["google-drive", "dropbox"];
+    const providers: CloudProviderId[] = ["google-drive"];
     return {
       provider: providers.includes(parsed.provider as CloudProviderId)
         ? (parsed.provider as CloudProviderId)

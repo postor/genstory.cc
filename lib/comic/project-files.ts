@@ -33,7 +33,7 @@ function buildProjectMeta(project: ComicProject): string {
     "",
     `# ${project.title}`,
     "",
-    "本项目由 GenStory 的漫画模板创建。",
+    "本项目由 GenStory.cc 的漫画模板创建。",
     "章节、页面、分镜、对白与资产由结构化编辑器维护。",
     "",
   ].join("\n");

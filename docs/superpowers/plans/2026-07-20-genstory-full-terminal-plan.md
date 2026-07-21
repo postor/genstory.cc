@@ -1,12 +1,12 @@
-# GenStory 全链路创作工作台实施方案
+# GenStory.cc 全链路创作工作台实施方案
 
 > **已被新方案取代（2026-07-20）：** 本文最初按“浏览器 + OPFS 本地真源”设计，不再适合作为全终端实施依据。请使用 [`2026-07-20-genstory-cross-platform-plan.md`](./2026-07-20-genstory-cross-platform-plan.md)；本文保留用于追溯已经完成的浏览器端设计。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 建立一套浏览器内闭环的 GenStory 创作工作台，让用户从创建项目、编辑真实源文件、调用 AI、管理资产、预览运行、导入恢复到导出独立作品都使用同一套项目生命周期协议。
+**Goal:** 建立一套浏览器内闭环的 GenStory.cc 创作工作台，让用户从创建项目、编辑真实源文件、调用 AI、管理资产、预览运行、导入恢复到导出独立作品都使用同一套项目生命周期协议。
 
-**Architecture:** GenStory 保持无后端、Next.js SSG 和 local-first。OPFS 保存项目源文件与资产，IndexedDB 只保存项目索引、权限/恢复状态和 UI 状态；统一的内容类型适配器负责模板、读取、校验、编译、预览和发布。通用编辑器处理文件树、代码/Markdown、上传、AI 工具和源码备份，类型适配器只处理领域语义与运行时。
+**Architecture:** GenStory.cc 保持无后端、Next.js SSG 和 local-first。OPFS 保存项目源文件与资产，IndexedDB 只保存项目索引、权限/恢复状态和 UI 状态；统一的内容类型适配器负责模板、读取、校验、编译、预览和发布。通用编辑器处理文件树、代码/Markdown、上传、AI 工具和源码备份，类型适配器只处理领域语义与运行时。
 
 **Tech Stack:** Next.js 16 App Router + static export、React 19、TypeScript、Tailwind CSS 4、shadcn/ui、OPFS、IndexedDB、Service Worker、WebAssembly/浏览器原生 ZIP、OpenWebGal、Phaser。
 
@@ -341,7 +341,7 @@ OPFS source
 - 包含引擎和编译结果。
 - 包含项目资产。
 - 恢复 OpenWebGal 原始 Service Worker。
-- 不带 GenStory 的 IndexedDB bridge 逻辑。
+- 不带 GenStory.cc 的 IndexedDB bridge 逻辑。
 
 ### Phaser
 
@@ -352,7 +352,7 @@ OPFS index.html + src/**/*.js
   → iframe preview
 ```
 
-发布包将运行时改写为相对路径 `vendor/phaser.min.js`，不依赖 GenStory origin。
+发布包将运行时改写为相对路径 `vendor/phaser.min.js`，不依赖 GenStory.cc origin。
 
 ### 图书、漫画、互动视频
 
@@ -380,7 +380,7 @@ type-specific source files
 
 导入校验：
 
-1. ZIP 只接受 store/no-compression 的 GenStory 格式。
+1. ZIP 只接受 store/no-compression 的 GenStory.cc 格式。
 2. 去除单一公共根目录。
 3. 规范化路径并拒绝目录穿越。
 4. 必须包含 `AGENTS.md` 和 `meta.md`。
@@ -399,7 +399,7 @@ type-specific source files
 - `Export readable project`
 - `Export interactive video`
 
-运行包必须在脱离 GenStory、脱离开发服务器、脱离 IndexedDB 的情况下打开。
+运行包必须在脱离 GenStory.cc、脱离开发服务器、脱离 IndexedDB 的情况下打开。
 
 ## 10. 安全与可靠性
 
@@ -593,7 +593,7 @@ type-specific source files
 5. 运行校验，确认错误定位到文件。
 6. 运行预览，确认编译结果是最新源文件。
 7. 下载源码 ZIP，再导入为新项目。
-8. 导出运行 ZIP，解压后不启动 GenStory 仍能运行。
+8. 导出运行 ZIP，解压后不启动 GenStory.cc 仍能运行。
 9. 清除预览缓存，重新预览。
 10. 拒绝/恢复 OPFS 权限，确认提示和重连路径。
 ```

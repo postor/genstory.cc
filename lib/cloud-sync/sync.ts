@@ -1,21 +1,22 @@
-import type { ContentTypeId } from "../content-types";
-import { contentTypeById } from "../content-types";
+import type { ContentTypeId } from "../content-types.ts";
+import { contentTypeById } from "../content-types.ts";
 import {
   listProjectFiles,
   openProjectDirectory,
   readFile,
   restoreProjectDirectory,
-} from "../file-system/browser";
-import { listProjects, saveProject, type Project } from "../local-projects";
-import { parseRemoteProjectPath, remoteProjectPath } from "./paths";
-import { findDownloadConflicts, findUploadConflicts } from "./merge";
+} from "../file-system/browser.ts";
+import { listProjects, saveProject, type Project } from "../local-projects.ts";
+import { parseRemoteProjectPath, remoteProjectPath } from "./paths.ts";
+import { findDownloadConflicts, findUploadConflicts } from "./merge.ts";
+import { filterRemoteFilesForProjects } from "./scope.ts";
 import type {
   CloudDownloadPlan,
   CloudLocalFile,
   CloudRemoteFile,
   CloudSyncProgress,
-} from "./types";
-import type { CloudRemoteStore } from "./providers";
+} from "./types.ts";
+import type { CloudRemoteStore } from "./providers.ts";
 
 export interface LocalWorkspaceSnapshot {
   projects: Project[];
@@ -51,10 +52,14 @@ export async function collectLocalWorkspace(
 export async function prepareCloudDownloadPlan(
   store: CloudRemoteStore,
   projects: readonly Project[],
-  report?: ProgressReporter
+  report?: ProgressReporter,
+  options?: { remoteProjectScope?: readonly Pick<Project, "id">[] }
 ): Promise<CloudDownloadPlan> {
   const local = await collectLocalWorkspace(projects, report);
-  const remoteFiles = await store.listFiles();
+  const listedRemoteFiles = await store.listFiles();
+  const remoteFiles = options?.remoteProjectScope
+    ? filterRemoteFilesForProjects(listedRemoteFiles, options.remoteProjectScope)
+    : listedRemoteFiles;
   const remoteBlobs = new Map<string, Blob>();
   for (let index = 0; index < remoteFiles.length; index += 1) {
     const file = remoteFiles[index];

@@ -6,7 +6,7 @@ import test from "node:test";
 import { parseProjectSourceZip } from "./project-import.ts";
 import { zipStore } from "./vn/zip.ts";
 
-test("imports a GenStory source zip and infers its template", async () => {
+test("imports a GenStory.cc source zip and infers its template", async () => {
   const zip = await zipStore([
     {
       path: "AGENTS.md",

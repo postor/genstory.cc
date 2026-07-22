@@ -6,7 +6,7 @@
 // keyboard navigation (ArrowUp/Down move the highlight, Enter/Space select).
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ChevronDownIcon, Loader2 } from "lucide-react";
+import { ChevronDownIcon, ExternalLink, Loader2 } from "lucide-react";
 import type { ModelInfo } from "@/lib/openrouter";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -75,6 +75,7 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.target !== inputRef.current) return;
     if (disabled || filtered.length === 0) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
@@ -160,6 +161,18 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
                 </ul>
               </ScrollArea>
             )}
+            <div className="mt-2 border-t px-1 pt-2 text-xs text-muted-foreground">
+              <span>{t("chat.modelBenchmarkHint")} </span>
+              <a
+                href="https://openrouter.ai/rankings#benchmarks"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-foreground underline-offset-4 hover:underline"
+              >
+                {t("chat.modelBenchmarkLink")}
+                <ExternalLink aria-hidden="true" className="size-3" />
+              </a>
+            </div>
           </PopoverPopup>
         </PopoverPositioner>
       </PopoverPortal>

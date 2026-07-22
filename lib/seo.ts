@@ -33,7 +33,7 @@ export const siteMetadata = {
   zhTitle: "GenStory.cc - 100%开源、100%本地数据的故事创作工具",
   enTitle: "GenStory.cc - 100% Open Source, Local-First Story Tool",
   zhDescription:
-    "GenStory.cc 是一个 100% 开源、100% 本地数据（默认）的浏览器故事创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目内容和素材保存在这台设备的浏览器中，可下载备份、选择性同步到自己的云盘并导出可运行项目。",
+    "GenStory.cc 是一个 100% 开源、100% 本地数据的浏览器故事创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目内容和素材保存在这台设备的浏览器中，可下载备份、选择性同步到自己的云盘并导出可运行项目。",
   enDescription:
     "GenStory.cc is a 100% open-source, local-first story creation tool with 100% local project data by default. Create books, comics, visual novels, interactive videos, and Phaser games in the browser, then back up, export, or optionally sync to a cloud drive you authorize.",
   keywords: [

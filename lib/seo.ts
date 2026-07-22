@@ -7,7 +7,8 @@ export type PublicPageSlug =
   | "interactive-video"
   | "phaser-game";
 
-export const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://genstory.cc";
+export const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.genstory.cc";
 export const ogImagePath = "/og/genstory-og.png";
 export const ogImageUrl = `${siteUrl}${ogImagePath}`;
 

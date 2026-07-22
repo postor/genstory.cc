@@ -183,6 +183,21 @@ export default function ProjectsPage() {
     return createCloudRemoteStore(settings.provider);
   }
 
+  async function ensureCloudAuthorization(): Promise<void> {
+    const settings = loadCloudSyncSettings();
+    if (!CLOUD_OAUTH_CONFIG[settings.provider].clientId) {
+      throw new Error(t("projects.cloudProviderNotConfigured"));
+    }
+    if (loadCloudToken(settings.provider)) return;
+
+    if (settings.provider === "google-drive") {
+      await requestGoogleToken(settings.rememberAuthorization);
+      return;
+    }
+
+    await beginCloudOAuth(settings.provider, settings.rememberAuthorization);
+  }
+
   function resetCloudState() {
     setCloudProgress(null);
     setCloudFeedback(null);
@@ -235,6 +250,7 @@ export default function ProjectsPage() {
     try {
       const targetProjects = project ? [project] : projects;
       if (targetProjects.length === 0) throw new Error(t("projects.cloudNoProjects"));
+      await ensureCloudAuthorization();
       const store = requireCloudStore();
       const plan = await prepareCloudUploadPlan(store, targetProjects, setCloudProgress);
       setUploadPlan(plan);
@@ -255,6 +271,7 @@ export default function ProjectsPage() {
     setCloudOperation("download");
     try {
       const targetProjects = project ? [project] : projects;
+      await ensureCloudAuthorization();
       const store = requireCloudStore();
       const plan = await prepareCloudDownloadPlan(
         store,

@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { languageInfo, publicHomeCopy } from "@/lib/platform-i18n";
-import { type PublicLang } from "@/lib/seo";
+import { localizedPath, type PublicLang } from "@/lib/seo";
 
 const featureIcons = [FolderOpen, FileText, Download];
 
@@ -47,7 +47,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
               {t.ctaCreate}
             </Button>
             <Button
-              render={<Link href="#work-types" />}
+              render={<Link href={localizedPath(lang, "types")} />}
               size="lg"
               variant="outline"
             >

@@ -1,18 +1,19 @@
 import type { Metadata } from "next";
 
-import { PublicHomePage } from "@/components/public-home-page";
-import { languageInfo, localizedSiteMetadata } from "@/lib/platform-i18n";
+import { PublicTypesPage } from "@/components/public-types-page";
+import { languageInfo } from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
   ogImagePath,
   pageLanguageAlternates,
   pageUrl,
   publicLanguages,
+  publicPageSlugs,
+  publicPages,
   siteKeywords,
-  siteFeatureList,
   siteMetadata,
   siteTrustSummary,
-
+  type PublicLang,
 } from "@/lib/seo";
 
 type Props = {
@@ -25,10 +26,20 @@ export function generateStaticParams() {
   return publicLanguages.map((lang) => ({ lang }));
 }
 
+function typesMetadata(lang: PublicLang) {
+  return {
+    title: lang === "zh" ? "故事创作工具类型 - GenStory.cc" : "Story Creation Tools - GenStory.cc",
+    description:
+      lang === "zh"
+        ? `探索图书、漫画、视觉小说、互动视频和 Phaser 游戏创作工具。${siteTrustSummary.zh}`
+        : `Explore book, comic, visual novel, interactive video, and Phaser game creation tools. ${siteTrustSummary.en}`,
+  };
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lang = normalizePublicLang((await params).lang);
   const locale = languageInfo[lang];
-  const metadata = localizedSiteMetadata[lang];
+  const metadata = typesMetadata(lang);
 
   return {
     title: metadata.title,
@@ -38,15 +49,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       "content-language": locale.contentLanguage,
     },
     alternates: {
-      canonical: pageUrl(lang),
-      languages: pageLanguageAlternates(),
+      canonical: pageUrl(lang, "types"),
+      languages: pageLanguageAlternates("types"),
     },
     openGraph: {
       type: "website",
       siteName: siteMetadata.name,
       title: metadata.title,
       description: metadata.description,
-      url: pageUrl(lang),
+      url: pageUrl(lang, "types"),
       locale: locale.ogLocale,
       alternateLocale: [locale.alternateOgLocale],
       images: [
@@ -54,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           url: ogImagePath,
           width: 1200,
           height: 630,
-          alt: "GenStory.cc local-first story creation workspace",
+          alt: metadata.title,
         },
       ],
     },
@@ -67,40 +78,35 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function LocalizedHome({ params }: Props) {
+export default async function PublicTypes({ params }: Props) {
   const lang = normalizePublicLang((await params).lang);
   const locale = languageInfo[lang];
-  const metadata = localizedSiteMetadata[lang];
+  const metadata = typesMetadata(lang);
   const jsonLd = [
     {
       "@context": "https://schema.org",
-      "@type": "WebSite",
-      name: siteMetadata.name,
-      url: pageUrl(lang),
-      inLanguage: locale.schemaLanguage,
+      "@type": "CollectionPage",
+      "@id": `${pageUrl(lang, "types")}#webpage`,
+      url: pageUrl(lang, "types"),
+      name: metadata.title,
       description: metadata.description,
       keywords: siteKeywords[lang],
-    },
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      name: siteMetadata.name,
-      url: pageUrl(lang),
-      applicationCategory: "CreativeWorkApplication",
-      operatingSystem: "Web browser",
       inLanguage: locale.schemaLanguage,
-      description: metadata.description,
-      keywords: siteKeywords[lang],
-      codeRepository: "https://github.com/postor/genstory.cc",
-      license: "https://github.com/postor/genstory.cc/blob/main/LICENSE",
-      slogan: siteTrustSummary[lang],
       isAccessibleForFree: true,
-      offers: {
-        "@type": "Offer",
-        price: "0",
-        priceCurrency: "USD",
+      isPartOf: {
+        "@type": "WebSite",
+        name: siteMetadata.name,
+        url: pageUrl(lang),
       },
-      featureList: siteFeatureList[lang],
+      mainEntity: {
+        "@type": "ItemList",
+        itemListElement: publicPageSlugs.map((slug, index) => ({
+          "@type": "ListItem",
+          position: index + 1,
+          name: publicPages[slug].title[lang],
+          url: pageUrl(lang, slug),
+        })),
+      },
     },
   ];
 
@@ -110,7 +116,7 @@ export default async function LocalizedHome({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <PublicHomePage lang={lang} />
+      <PublicTypesPage lang={lang} />
     </>
   );
 }

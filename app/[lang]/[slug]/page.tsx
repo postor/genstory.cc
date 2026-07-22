@@ -12,6 +12,8 @@ import {
   publicLanguages,
   publicPageSlugs,
   publicPages,
+  siteKeywords,
+  siteTrustSummary,
   type PublicPageSlug,
 
 } from "@/lib/seo";
@@ -39,11 +41,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = languageInfo[lang];
   const page = publicPages[rawSlug];
   const path = rawSlug;
+  const description = `${page.description[lang]} ${siteTrustSummary[lang]}`;
+  const keywords = [...publicPageKeywords[rawSlug][lang], ...siteKeywords[lang]];
 
   return {
     title: page.title[lang],
-    description: page.description[lang],
-    keywords: publicPageKeywords[rawSlug][lang],
+    description,
+    keywords,
     other: {
       "content-language": locale.contentLanguage,
     },
@@ -54,7 +58,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       type: "website",
       title: page.title[lang],
-      description: page.description[lang],
+      description,
       url: pageUrl(lang, path),
       locale: locale.ogLocale,
       alternateLocale: [locale.alternateOgLocale],
@@ -70,7 +74,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     twitter: {
       card: "summary_large_image",
       title: page.title[lang],
-      description: page.description[lang],
+      description,
       images: [ogImagePath],
     },
   };
@@ -83,6 +87,8 @@ export default async function PublicTopic({ params }: Props) {
   const locale = languageInfo[lang];
   const page = publicPages[rawSlug];
   const chrome = publicTopicChrome[lang];
+  const description = `${page.description[lang]} ${siteTrustSummary[lang]}`;
+  const keywords = [...publicPageKeywords[rawSlug][lang], ...siteKeywords[lang]];
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -90,7 +96,9 @@ export default async function PublicTopic({ params }: Props) {
       "@id": `${pageUrl(lang, rawSlug)}#webpage`,
       url: pageUrl(lang, rawSlug),
       name: page.title[lang],
-      description: page.description[lang],
+      description,
+      keywords,
+      isAccessibleForFree: true,
       inLanguage: locale.schemaLanguage,
       isPartOf: {
         "@type": "WebSite",

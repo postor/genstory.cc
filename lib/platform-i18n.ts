@@ -75,7 +75,7 @@ export const publicHomeCopy = {
     heroTitle: "GenStory.cc",
     heroSubtitle: "在浏览器中创作故事和游戏",
     heroBody:
-      "在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory.cc 服务器。可随时备份，也可以导出可运行项目。",
+      "GenStory.cc 是一个 100% 开源、100% 本地数据（默认）的浏览器故事创作工具。你可以在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏；项目内容和素材保存在这台设备中，不会自动上传到 GenStory.cc 服务器，可随时备份并导出可运行项目。",
     ctaCreate: "开始创作",
     ctaBrowseTypes: "探索创作类型",
     pillarsTitle: "为长期创作设计",
@@ -99,7 +99,7 @@ export const publicHomeCopy = {
     heroTitle: "GenStory.cc",
     heroSubtitle: "Create stories and games in the browser",
     heroBody:
-      "Create books, comics, visual novels, interactive videos, and Phaser games in the browser. Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory.cc servers. Back up your work or export runnable projects when ready.",
+      "GenStory.cc is a 100% open-source, local-first story creation tool with 100% local project data by default. Create books, comics, visual novels, interactive videos, and Phaser games in the browser; your project files stay on this device, are not automatically uploaded to GenStory.cc servers, and can be backed up or exported when ready.",
     ctaCreate: "Start creating",
     ctaBrowseTypes: "Explore creation types",
     pillarsTitle: "Designed for long-running creative work",

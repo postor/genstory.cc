@@ -30,14 +30,20 @@ export const languageAlternates: Record<string, string> = {
 
 export const siteMetadata = {
   name: "GenStory.cc",
-  zhTitle: "GenStory.cc - 在浏览器中创作故事",
-  enTitle: "GenStory.cc - Create stories in the browser",
+  zhTitle: "GenStory.cc - 100%开源、100%本地数据的故事创作工具",
+  enTitle: "GenStory.cc - 100% Open Source, Local-First Story Tool",
   zhDescription:
-    "GenStory.cc 是一个在浏览器中运行的故事创作工作台，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。作品内容和素材保存在这台设备的浏览器中，可下载项目备份、选择性同步到自己的云盘并导出可运行项目。",
+    "GenStory.cc 是一个 100% 开源、100% 本地数据（默认）的浏览器故事创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目内容和素材保存在这台设备的浏览器中，可下载备份、选择性同步到自己的云盘并导出可运行项目。",
   enDescription:
-    "GenStory.cc is a local-first creative workspace for books, comics, visual novels, interactive videos, and Phaser games. Projects stay in your browser, can be exported as source ZIPs or runnable projects, and can optionally sync to a cloud drive you authorize.",
+    "GenStory.cc is a 100% open-source, local-first story creation tool with 100% local project data by default. Create books, comics, visual novels, interactive videos, and Phaser games in the browser, then back up, export, or optionally sync to a cloud drive you authorize.",
   keywords: [
     "GenStory.cc",
+    "100%开源",
+    "100%本地数据",
+    "100% 开源",
+    "100% 本地数据",
+    "开源故事创作工具",
+    "本地数据创作工具",
     "视觉小说编辑器",
     "OpenWebGal 编辑器",
     "本地优先写作工具",
@@ -51,7 +57,44 @@ export const siteMetadata = {
     "interactive video authoring tool",
     "Phaser game editor",
     "browser game editor",
+    "100% open source",
+    "100% local project data",
+    "open-source story creation tool",
   ],
+};
+
+export const siteKeywords: Record<PublicLang, string[]> = {
+  zh: [
+    "GenStory.cc",
+    "100%开源",
+    "100%本地数据",
+    "开源故事创作工具",
+    "本地优先创作工具",
+    "浏览器故事创作工具",
+    "视觉小说编辑器",
+    "漫画创作工具",
+    "互动视频创作工具",
+    "OpenWebGal 导出工具",
+    "Phaser 游戏编辑器",
+  ],
+  en: [
+    "GenStory.cc",
+    "100% open source",
+    "100% local project data",
+    "open-source story creation tool",
+    "local-first creative workspace",
+    "browser story creation tool",
+    "visual novel editor",
+    "comic storyboard tool",
+    "interactive video authoring tool",
+    "OpenWebGal exporter",
+    "Phaser game editor",
+  ],
+};
+
+export const siteTrustSummary: Record<PublicLang, string> = {
+  zh: "100% 开源，项目数据默认 100% 保存在本地浏览器中；不会自动上传到 GenStory.cc 服务器。",
+  en: "100% open source, with 100% local project data by default; your work is not automatically uploaded to GenStory.cc servers.",
 };
 
 export const publicPageSlugs: PublicPageSlug[] = [

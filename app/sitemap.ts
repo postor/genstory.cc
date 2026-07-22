@@ -29,6 +29,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
       },
     });
 
+    routes.push({
+      url: pageUrl(lang, "types"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.9,
+      alternates: {
+        languages: pageLanguageAlternates("types"),
+      },
+    });
+
     for (const slug of publicPageSlugs) {
       routes.push({
         url: pageUrl(lang, slug),

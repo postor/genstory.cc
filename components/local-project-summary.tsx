@@ -65,7 +65,9 @@ export function LocalProjectSummary() {
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div className="space-y-1.5">
                 <h2 className="text-2xl font-semibold tracking-tight">
-                  {section.label[lang]}
+                  <Link href={detailHref} className="hover:underline">
+                    {section.label[lang]}
+                  </Link>
                 </h2>
                 <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
                   {section.description[lang]}
@@ -76,7 +78,7 @@ export function LocalProjectSummary() {
                   <BookOpen className="size-4" />
                   {t("home.sectionCreate")}
                 </Button>
-                <Button render={<Link href="/projects" />} variant="outline">
+                <Button render={<Link href={detailHref} />} variant="outline">
                   {t("home.sectionMore")}
                   <ArrowRight className="size-4" />
                 </Button>

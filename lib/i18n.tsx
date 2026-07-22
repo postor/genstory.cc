@@ -57,7 +57,7 @@ const zh: Dict = {
   "projects.reconnect": "重新连接作品",
   "projects.unbound": "暂时无法找到作品",
   "projects.storageNote":
-    "作品内容和素材保存在这台设备的浏览器中，不会自动上传到 GenStory.cc 服务器。换设备或清理浏览器数据前，请先备份。",
+    "作品默认保存在当前浏览器的 OPFS 中，不会自动上传到 GenStory.cc 服务器。清除网站数据、切换浏览器、重置浏览器存储或更换设备，可能导致本地作品无法恢复。请定期下载源码 ZIP，或点击“同步到网盘”授权并同步到你自己的云盘。",
   "projects.cloudProviderMissing": "请先在设置中连接一个云盘。",
   "projects.cloudProviderNotConfigured": "当前部署还没有配置该云盘的 OAuth client ID。",
   "projects.cloudPreparing": "正在读取云端文件清单…",
@@ -354,7 +354,7 @@ const en: Dict = {
   "projects.reconnect": "Reconnect work",
   "projects.unbound": "Work temporarily unavailable",
   "projects.storageNote":
-    "Your work and assets stay in this browser on this device and are not automatically uploaded to GenStory.cc servers. Back up before changing devices or clearing browser data.",
+    "Works are stored in this browser's OPFS by default and are not automatically uploaded to GenStory.cc servers. Clearing site data, switching browsers, resetting browser storage, or changing devices can make local work unavailable. Download a source ZIP regularly, or click “Sync to cloud drive” to authorize and sync your work to your own cloud drive.",
   "projects.cloudProviderMissing": "Connect a cloud drive in Settings first.",
   "projects.cloudProviderNotConfigured": "This deployment has not configured the selected provider's OAuth client ID.",
   "projects.cloudPreparing": "Reading the cloud file list…",

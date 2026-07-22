@@ -34,6 +34,11 @@ import { useLang, type Lang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { cn } from "@/lib/utils";
 import {
+  trackChatSent,
+  trackModelSelected,
+  trackToolCalled,
+} from "@/lib/analytics";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -539,6 +544,14 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     setSending(true);
     setStreamingText(false);
     onSend?.(text);
+    trackChatSent({
+      model,
+      messageLength: text.length,
+      hasContext: Boolean(context),
+      mcpToolCount: tools.length,
+      projectToolCount: projectTools.length,
+      autoCompress,
+    });
 
     const systemMsg: ChatMessage = {
       role: "system",
@@ -605,9 +618,12 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           const collected: Record<string, string> = {};
           for (const tc of toolCalls) {
             let resultText: string;
+            const toolSource = projectToolNames.has(tc.function.name)
+              ? "project"
+              : "mcp";
             try {
               const args = tc.function.arguments ? JSON.parse(tc.function.arguments) as Record<string, unknown> : {};
-              const localTool = projectToolNames.has(tc.function.name)
+              const localTool = toolSource === "project"
                 ? projectTools.find((tool) => tool.name === tc.function.name)
                 : undefined;
               const res = localTool
@@ -617,7 +633,17 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
               // data never enters the chat context sent back to the model.
               const display = extractImages(res, collected);
               resultText = JSON.stringify(display, null, 2);
+              trackToolCalled({
+                toolName: tc.function.name,
+                source: toolSource,
+                success: true,
+              });
                 } catch (e) {
+                  trackToolCalled({
+                    toolName: tc.function.name,
+                    source: toolSource,
+                    success: false,
+                  });
                   resultText = t("chat.toolCallFailed", {
                     message: e instanceof Error ? e.message : String(e),
                   });
@@ -735,6 +761,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           if (id !== model) {
             const modelName = models.find((item) => item.id === id)?.name ?? id;
             setTranscript((previous) => [...previous, createModelSwitchNotice(modelName, lang)]);
+            trackModelSelected({ model: id });
           }
           onModelChange?.(id);
         }}

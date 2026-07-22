@@ -93,6 +93,28 @@ npm run build
 
 The production site is emitted to `out/`. `next.config.ts` uses `output: "export"`, so the app can be hosted on static infrastructure without a GenStory backend.
 
+### Deploy Docker image
+
+Set the VPS SSH target in `.env`:
+
+```bash
+VPS="root@example.com"
+```
+
+Then build, push, pull on the VPS, and restart the HTTPS container:
+
+```bash
+npm run deploy:docker
+```
+
+If Docker Hub push is blocked by local network/proxy settings, deploy the same image by SSH tar transfer instead:
+
+```bash
+npm run deploy:docker:tar
+```
+
+Defaults: `IMAGE=postor/genstory.cc`, `TAG=latest`, `CONTAINER=genstory-web`, `DOMAIN=www.genstory.cc`. Override them as environment variables when needed.
+
 ## Project Structure
 
 Each project keeps story facts and presentation state separate. A visual novel editor project looks like this:

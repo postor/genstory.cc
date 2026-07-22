@@ -24,3 +24,15 @@ test("chatbox exposes an opt-in automatic compression toggle and a manual fallba
   assert.ok(contextStatusIndex < contextSettingsIndex);
   assert.ok(contextSettingsIndex < sendButtonIndex);
 });
+
+test("chatbox tracks model selections, sends, and tool calls", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /trackChatSent\(\{/);
+  assert.match(source, /messageLength: text\.length/);
+  assert.match(source, /mcpToolCount: tools\.length/);
+  assert.match(source, /projectToolCount: projectTools\.length/);
+  assert.match(source, /trackToolCalled\(\{[\s\S]*toolName: tc\.function\.name[\s\S]*success: true/);
+  assert.match(source, /trackToolCalled\(\{[\s\S]*toolName: tc\.function\.name[\s\S]*success: false/);
+  assert.match(source, /trackModelSelected\(\{ model: id \}\)/);
+});

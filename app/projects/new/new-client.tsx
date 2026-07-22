@@ -28,6 +28,7 @@ import {
 import { nextDefaultProjectTitle } from "@/lib/project-naming";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
+import { trackProjectCreated } from "@/lib/analytics";
 
 export default function NewClient() {
   const { lang, t } = useLang();
@@ -91,6 +92,11 @@ export default function NewClient() {
         updatedAt: now,
       };
       await saveProject(project);
+      trackProjectCreated({
+        template,
+        lang,
+        customTitle: title.trim().length > 0,
+      });
       router.push(`/projects/editor?id=${id}`);
     } catch (e) {
       setSubmitting(false);

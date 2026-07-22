@@ -7,6 +7,8 @@
     "build": "npm run sync-phaser && npm run sync-webgal && next build",
     "start": "next start",
     "lint": "eslint",
+    "deploy:docker": "node scripts/deploy-docker.mjs",
+    "deploy:docker:tar": "node scripts/deploy-docker.mjs --transport=tar",
     "sync-phaser": "node scripts/sync-phaser.mjs",
     "sync-webgal": "node scripts/sync-webgal.mjs"
   },

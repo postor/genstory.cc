@@ -298,10 +298,20 @@ type IVAsset = IVImageAsset | IVVideoAsset | IVVoiceAsset;
 
 function interactiveVideoTemplate(title: string, lang: Lang, agents: string): ProjectTemplateFile[] {
   const segmentTitle = lang === "zh" ? "小红帽 · 第一段" : "Little Red Riding Hood · Segment One";
+  const flowerTitle = lang === "zh" ? "采花的小路" : "The flower path";
+  const grandmaTitle = lang === "zh" ? "直奔外婆家" : "Straight to grandmother's house";
   const body =
     lang === "zh"
       ? "小红帽带着点心，穿过森林去看望生病的外婆。"
       : "Little Red Riding Hood carries a basket through the forest to visit her sick grandmother.";
+  const flowerBody =
+    lang === "zh"
+      ? "小红帽被花香吸引，离开小路。树影变深，大灰狼趁机抢先赶往外婆家。"
+      : "Little Red Riding Hood follows the scent of flowers off the path. The trees grow darker while the wolf rushes ahead.";
+  const grandmaBody =
+    lang === "zh"
+      ? "小红帽没有停留，直接赶到外婆家。猎人听见屋里的异响，冲进门救下了她。"
+      : "Little Red Riding Hood does not stop and reaches grandmother's house. The woodcutter hears trouble inside and bursts in to help.";
   const assets: IVAsset[] = [
     {
       kind: "image",
@@ -435,7 +445,7 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
         "    video: vid_forest",
         "    voice: voice_red",
         "    caption: red enters the forest",
-        "  - at: 8",
+        "  - at: 4",
         "    choice: first_forest_choice",
         "",
       ].join("\n")
@@ -453,6 +463,72 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
         "        next: segment-003",
         "",
       ].join("\n")
+    ),
+    text(
+      "chapter-001/segments/segment-002/meta.md",
+      [
+        "---",
+        `title: ${JSON.stringify(flowerTitle)}`,
+        "background: scene_forest",
+        "---",
+        "",
+        `# ${flowerTitle}`,
+        "",
+        "本文件记录分支片段元数据；正文与时间线位于同目录文件。",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "chapter-001/segments/segment-002/script.md",
+      `# ${flowerTitle}\n\n![${assets[0].name}](../../../assets/scenes/scene_forest.png)\n\n${flowerBody}\n\n> 视频镜头：[${assets[3].name}](../../../assets/videos/vid_forest.mp4)\n\n> 配音：[${assets[6].name}](../../../assets/audio/voice_wolf.mp3)\n`
+    ),
+    text(
+      "chapter-001/segments/segment-002/timeline.yml",
+      [
+        "timeline:",
+        "  - at: 0",
+        "    video: vid_forest",
+        "    voice: voice_wolf",
+        "    caption: red leaves the path",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "chapter-001/segments/segment-002/choices.yml",
+      ["choices:", ""].join("\n")
+    ),
+    text(
+      "chapter-001/segments/segment-003/meta.md",
+      [
+        "---",
+        `title: ${JSON.stringify(grandmaTitle)}`,
+        "background: scene_rescue",
+        "---",
+        "",
+        `# ${grandmaTitle}`,
+        "",
+        "本文件记录分支片段元数据；正文与时间线位于同目录文件。",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "chapter-001/segments/segment-003/script.md",
+      `# ${grandmaTitle}\n\n![${assets[2].name}](../../../assets/scenes/scene_rescue.png)\n\n${grandmaBody}\n\n> 视频镜头：[${assets[4].name}](../../../assets/videos/vid_rescue.mp4)\n\n> 配音：[${assets[8].name}](../../../assets/audio/voice_woodcutter.mp3)\n`
+    ),
+    text(
+      "chapter-001/segments/segment-003/timeline.yml",
+      [
+        "timeline:",
+        "  - at: 0",
+        "    video: vid_rescue",
+        "    voice: voice_woodcutter",
+        "    caption: the woodcutter arrives",
+        "",
+      ].join("\n")
+    ),
+    text(
+      "chapter-001/segments/segment-003/choices.yml",
+      ["choices:", ""].join("\n")
     ),
     text("assets/index.yml", buildIVAssetIndex(assets)),
   ];

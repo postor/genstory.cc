@@ -1,10 +1,11 @@
-import type { ContentTypeId } from "@/lib/content-types";
-import { listProjectFiles, readTextFile } from "@/lib/file-system/browser";
+import type { ContentTypeId } from "./content-types.ts";
+import { listProjectFiles, readTextFile } from "./file-system/browser.ts";
 
 export interface ProjectPreviewSection {
   path: string;
   title: string;
   body: string;
+  pageImagePath?: string;
 }
 
 export interface ProjectPreviewModel {
@@ -81,13 +82,19 @@ export async function readProjectPreview(
       sections.push({ path, title: heading(body) || path, body });
     }
   } else if (type === "comic") {
+    const filePaths = new Set(
+      entries
+        .filter((entry) => entry.kind === "file")
+        .map((entry) => entry.path)
+    );
     const scripts = entries
       .filter((entry) => entry.kind === "file")
       .map((entry) => entry.path)
-      .filter((path) => /^chapter-[^/]+\/pages\/[^/]+\/storyboard\.md$/i.test(path))
+      .filter((path) => /^chapter-[^/]+\/pages\/[^/]+\/(storyboard|script)\.md$/i.test(path))
       .sort((a, b) => a.localeCompare(b));
     for (const path of scripts) {
-      const metaPath = path.replace(/storyboard\.md$/i, "meta.md");
+      const metaPath = path.replace(/(storyboard|script)\.md$/i, "meta.md");
+      const finalImagePath = path.replace(/(storyboard|script)\.md$/i, "final.png");
       const [meta, body] = await Promise.all([
         safeText(root, metaPath),
         safeText(root, path),
@@ -96,6 +103,7 @@ export async function readProjectPreview(
         path,
         title: frontmatter(meta).title || heading(body) || path,
         body,
+        pageImagePath: filePaths.has(finalImagePath) ? finalImagePath : undefined,
       });
     }
   } else {

@@ -57,3 +57,16 @@ test("editor can create a blank text file in the selected node directory", async
   assert.match(source, /await reloadFiles\(path, "file"\)/);
   assert.match(source, /title=\{t\("editor\.newFileTitle"\)\}/);
 });
+
+test("editor uses mobile tabs defaulting to chat while preserving desktop columns", async () => {
+  const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /import \{ Tabs, TabsList, TabsTrigger \} from "@\/components\/ui\/tabs"/);
+  assert.match(source, /const \[mobileTab, setMobileTab\] = useState<EditorMobileTab>\("chat"\)/);
+  assert.match(source, /<Tabs value=\{mobileTab\} onValueChange=\{selectMobileTab\} className="shrink-0 border-b p-2 lg:hidden">/);
+  assert.match(source, /<TabsTrigger value="chat">\{t\("editor\.chat"\)\}<\/TabsTrigger>/);
+  assert.match(source, /<TabsTrigger value="files">\{t\("editor\.files"\)\}<\/TabsTrigger>/);
+  assert.match(source, /<TabsTrigger value="editor">\{t\("editor\.content"\)\}<\/TabsTrigger>/);
+  assert.match(source, /<div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-\[260px_1fr_360px\]">/);
+  assert.match(source, /mobileTab === "chat" \? "block" : "hidden",\s*"lg:block"/);
+});

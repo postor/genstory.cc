@@ -8,6 +8,7 @@ import { ArrowLeft, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Pencil, P
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InteractionModal, PromptModal } from "@/components/ui/interaction-modal";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
 import { CodeEditor } from "@/components/ui/code-editor";
 import {
@@ -52,6 +53,7 @@ import {
 } from "@/lib/local-projects";
 import { exportVNZipFromDirectory } from "@/lib/vn/export";
 import { exportPhaserProjectZip } from "@/lib/phaser/export";
+import { exportInteractiveVideoProjectZip } from "@/lib/interactive-video/export";
 import {
   exportProjectDirectoryZip,
   exportReadableProjectZip,
@@ -63,6 +65,7 @@ import type { VNProject } from "@/lib/vn/types";
 import { VNEditor } from "./vn-editor";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
+import { cn } from "@/lib/utils";
 
 function isTextPath(path: string): boolean {
   return /\.(md|markdown|ya?ml|txt|json|js|ts|tsx|jsx|css|html|svg)$/i.test(path);
@@ -122,6 +125,7 @@ function buildTree(
 
 type EditorStatus = "loading" | "ready" | "missing" | "error";
 type EntryKind = "file" | "directory" | null;
+type EditorMobileTab = "chat" | "files" | "editor";
 
 interface EntryDialogState {
   path: string;
@@ -239,6 +243,7 @@ export default function EditorClient() {
   const [selectedPath, setSelectedPath] = useState("AGENTS.md");
   const [selectedKind, setSelectedKind] = useState<"file" | "directory" | null>("file");
   const [mode, setMode] = useState<"source" | "scene">("source");
+  const [mobileTab, setMobileTab] = useState<EditorMobileTab>("chat");
   const [status, setStatus] = useState<EditorStatus>(id ? "loading" : "missing");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -483,6 +488,7 @@ export default function EditorClient() {
       setSelectedPath("");
       setSelectedKind("directory");
       setMode("source");
+      setMobileTab("editor");
       return;
     }
     if (!path.startsWith("root/")) return;
@@ -491,6 +497,13 @@ export default function EditorClient() {
     setSelectedPath(nextPath);
     setSelectedKind(entry?.kind ?? null);
     setMode("source");
+    setMobileTab("editor");
+  }
+
+  function selectMobileTab(value: unknown) {
+    if (value === "chat" || value === "files" || value === "editor") {
+      setMobileTab(value);
+    }
   }
 
   function updateStructuredVN(next: VNProject) {
@@ -773,6 +786,8 @@ export default function EditorClient() {
         await exportVNZipFromDirectory(root, `${project.title || "openwebgal"}.zip`);
       } else if (project.template === "phaser-game") {
         await exportPhaserProjectZip(root, project.title);
+      } else if (project.template === "interactive-video") {
+        await exportInteractiveVideoProjectZip(root, project.title);
       } else {
         const preview = await readProjectPreview(root, project.template);
         await exportReadableProjectZip(preview, project.title);
@@ -976,8 +991,22 @@ export default function EditorClient() {
         </div>
       )}
 
+      <Tabs value={mobileTab} onValueChange={selectMobileTab} className="shrink-0 border-b p-2 lg:hidden">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="chat">{t("editor.chat")}</TabsTrigger>
+          <TabsTrigger value="files">{t("editor.files")}</TabsTrigger>
+          <TabsTrigger value="editor">{t("editor.content")}</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
       <div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[260px_1fr_360px]">
-        <aside className="min-h-0 overflow-auto border-b border-border lg:border-b-0 lg:border-r">
+        <aside
+          className={cn(
+            "min-h-0 overflow-auto border-b border-border lg:border-b-0 lg:border-r",
+            mobileTab === "files" ? "block" : "hidden",
+            "lg:block"
+          )}
+        >
           {status === "ready" ? (
             <Tree
               key={`${project?.id ?? "none"}-${files.length}`}
@@ -1015,7 +1044,13 @@ export default function EditorClient() {
           )}
         </aside>
 
-        <section className="min-h-0 min-w-0 overflow-hidden">
+        <section
+          className={cn(
+            "min-h-0 min-w-0 overflow-hidden",
+            mobileTab === "editor" ? "block" : "hidden",
+            "lg:block"
+          )}
+        >
           {status === "loading" ? (
             <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-4 animate-spin" />
@@ -1082,7 +1117,13 @@ export default function EditorClient() {
           )}
         </section>
 
-        <aside className="min-h-0 overflow-hidden border-t border-border lg:border-l lg:border-t-0">
+        <aside
+          className={cn(
+            "min-h-0 overflow-hidden border-t border-border lg:border-l lg:border-t-0",
+            mobileTab === "chat" ? "block" : "hidden",
+            "lg:block"
+          )}
+        >
           <div className="flex h-full min-h-0 flex-col gap-3 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("editor.chat")}

@@ -22,9 +22,14 @@ import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
 import { readProjectPreview, type ProjectPreviewModel } from "@/lib/project-source";
 import { buildPhaserPreviewHtml } from "@/lib/phaser/preview";
 import { readPhaserProjectFromDirectory } from "@/lib/phaser/source-reader";
+import {
+  readInteractiveVideoPreviewFromDirectory,
+  type InteractiveVideoPreviewModel,
+} from "@/lib/interactive-video/preview";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { contentTypeById } from "@/lib/content-types";
+import { InteractiveVideoPlayer } from "./interactive-video-player";
 
 type Status = "loading" | "ready" | "missing" | "error";
 
@@ -86,9 +91,13 @@ export default function PreviewClient() {
   const [error, setError] = useState("");
   const [projectRoot, setProjectRoot] = useState<FileSystemDirectoryHandle | null>(null);
   const [genericPreview, setGenericPreview] = useState<ProjectPreviewModel | null>(null);
+  const [interactiveVideoPreview, setInteractiveVideoPreview] =
+    useState<InteractiveVideoPreviewModel | null>(null);
   const [runtimePreviewHtml, setRuntimePreviewHtml] = useState<string | null>(null);
   const [sectionMediaUrls, setSectionMediaUrls] = useState<Record<string, Record<string, string>>>({});
+  const [interactiveAssetUrls, setInteractiveAssetUrls] = useState<Record<string, string>>({});
   const sectionMediaUrlsRef = useRef<Record<string, Record<string, string>>>({});
+  const interactiveAssetUrlsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     document.title = t("meta.previewTitle");
@@ -102,12 +111,21 @@ export default function PreviewClient() {
     queueMicrotask(() => setSectionMediaUrls(nextUrls));
   }
 
+  function replaceInteractiveAssetUrls(nextUrls: Record<string, string>) {
+    for (const url of Object.values(interactiveAssetUrlsRef.current)) {
+      URL.revokeObjectURL(url);
+    }
+    interactiveAssetUrlsRef.current = nextUrls;
+    queueMicrotask(() => setInteractiveAssetUrls(nextUrls));
+  }
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!id) {
         setProjectRoot(null);
         setGenericPreview(null);
+        setInteractiveVideoPreview(null);
         setRuntimePreviewHtml(null);
         setStatus("missing");
         return;
@@ -118,6 +136,7 @@ export default function PreviewClient() {
           if (!cancelled) {
             setProjectRoot(null);
             setGenericPreview(null);
+            setInteractiveVideoPreview(null);
             setRuntimePreviewHtml(null);
           }
           if (!cancelled) setStatus("missing");
@@ -137,6 +156,7 @@ export default function PreviewClient() {
           if (!cancelled) {
             setProjectRoot(null);
             setGenericPreview(null);
+            setInteractiveVideoPreview(null);
             setRuntimePreviewHtml(null);
           }
         } else if (p.template === "phaser-game") {
@@ -145,13 +165,23 @@ export default function PreviewClient() {
           if (!cancelled) {
             setProjectRoot(null);
             setGenericPreview(null);
+            setInteractiveVideoPreview(null);
             setRuntimePreviewHtml(html);
+          }
+        } else if (p.template === "interactive-video") {
+          const model = await readInteractiveVideoPreviewFromDirectory(root);
+          if (!cancelled) {
+            setProjectRoot(root);
+            setGenericPreview(null);
+            setInteractiveVideoPreview(model);
+            setRuntimePreviewHtml(null);
           }
         } else {
           const model = await readProjectPreview(root, p.template);
           if (!cancelled) {
             setProjectRoot(root);
             setGenericPreview(model);
+            setInteractiveVideoPreview(null);
             setRuntimePreviewHtml(null);
           }
         }
@@ -160,6 +190,7 @@ export default function PreviewClient() {
         if (!cancelled) {
           setProjectRoot(null);
           setGenericPreview(null);
+          setInteractiveVideoPreview(null);
           setRuntimePreviewHtml(null);
           setStatus("error");
           setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
@@ -178,7 +209,20 @@ export default function PreviewClient() {
     }
 
     const references = collectPreviewSectionMediaReferences(genericPreview.sections);
-    if (references.length === 0) {
+    const pageImageReferences = genericPreview.sections.flatMap((section) =>
+      section.pageImagePath
+        ? [
+            {
+              sectionPath: section.path,
+              source: section.pageImagePath,
+              mediaPath: section.pageImagePath,
+              kind: "image" as const,
+            },
+          ]
+        : []
+    );
+    const allReferences = [...references, ...pageImageReferences];
+    if (allReferences.length === 0) {
       replaceSectionMediaUrls({});
       return;
     }
@@ -187,7 +231,7 @@ export default function PreviewClient() {
     void (async () => {
       const nextUrls: Record<string, Record<string, string>> = {};
       const createdUrls: string[] = [];
-      for (const reference of references) {
+      for (const reference of allReferences) {
         try {
           const file = await readFile(projectRoot, reference.mediaPath);
           const url = URL.createObjectURL(file);
@@ -210,22 +254,80 @@ export default function PreviewClient() {
   }, [genericPreview, projectRoot]);
 
   useEffect(() => {
+    if (!projectRoot || !interactiveVideoPreview) {
+      replaceInteractiveAssetUrls({});
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      const nextUrls: Record<string, string> = {};
+      const createdUrls: string[] = [];
+      for (const asset of Object.values(interactiveVideoPreview.assets)) {
+        try {
+          const file = await readFile(projectRoot, asset.path);
+          const url = URL.createObjectURL(file);
+          createdUrls.push(url);
+          nextUrls[asset.id] = url;
+        } catch {
+          /* Missing assets remain visible as missing-state UI in the player. */
+        }
+      }
+      if (cancelled) {
+        for (const url of createdUrls) URL.revokeObjectURL(url);
+        return;
+      }
+      replaceInteractiveAssetUrls(nextUrls);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [interactiveVideoPreview, projectRoot]);
+
+  useEffect(() => {
     return () => {
       for (const urls of Object.values(sectionMediaUrlsRef.current)) {
         for (const url of Object.values(urls)) URL.revokeObjectURL(url);
+      }
+      for (const url of Object.values(interactiveAssetUrlsRef.current)) {
+        URL.revokeObjectURL(url);
       }
     };
   }, []);
 
   return (
-    <main className="flex h-svh flex-col overflow-hidden">
-      <div className="flex shrink-0 items-center justify-between border-b px-4 py-3">
+    <main
+      className={
+        genericPreview?.type === "comic"
+          ? "flex h-svh flex-col overflow-hidden bg-neutral-950 text-white"
+          : interactiveVideoPreview
+            ? "flex h-svh flex-col overflow-hidden bg-neutral-950 text-white"
+          : "flex h-svh flex-col overflow-hidden"
+      }
+    >
+      <div
+        className={
+          genericPreview?.type === "comic"
+            ? "flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3"
+            : interactiveVideoPreview
+              ? "flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3"
+            : "flex shrink-0 items-center justify-between border-b px-4 py-3"
+        }
+      >
         <div className="flex items-center gap-2">
           <Button
             render={<Link href={`/projects/editor?id=${id}`} />}
             variant="ghost"
             size="icon"
             aria-label={t("editor.back")}
+            className={
+              genericPreview?.type === "comic"
+                ? "text-white hover:bg-white/10 hover:text-white"
+                : interactiveVideoPreview
+                  ? "text-white hover:bg-white/10 hover:text-white"
+                  : undefined
+            }
           >
             <ArrowLeft className="size-4" />
           </Button>
@@ -233,7 +335,17 @@ export default function PreviewClient() {
         </div>
       </div>
 
-      <div className={genericPreview ? "min-h-0 flex-1 overflow-auto bg-background" : "relative min-h-0 flex-1 bg-black"}>
+      <div
+        className={
+          genericPreview?.type === "comic"
+            ? "min-h-0 flex-1 overflow-auto bg-neutral-950"
+            : interactiveVideoPreview
+              ? "min-h-0 flex-1 overflow-hidden bg-neutral-950"
+            : genericPreview
+              ? "min-h-0 flex-1 overflow-auto bg-background"
+              : "relative min-h-0 flex-1 bg-black"
+        }
+      >
         {status !== "ready" && (
           <div className="absolute inset-0 flex items-center justify-center">
             {status === "loading" && (
@@ -250,7 +362,49 @@ export default function PreviewClient() {
             )}
           </div>
         )}
-        {status === "ready" && genericPreview && (
+        {status === "ready" && genericPreview?.type === "comic" && (
+          <div className="mx-auto flex w-full max-w-4xl flex-col items-center gap-10 px-4 py-8 sm:px-6">
+            {genericPreview.sections.map((section, index) => {
+              const sectionUrls = sectionMediaUrls[section.path] ?? {};
+              const pageImageUrl = section.pageImagePath
+                ? sectionUrls[section.pageImagePath]
+                : undefined;
+              return (
+                <figure
+                  key={section.path}
+                  className="w-full max-w-3xl space-y-3"
+                >
+                  {pageImageUrl ? (
+                    // Local OPFS previews use blob URLs; Next Image can render those as broken images.
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={pageImageUrl}
+                      alt={`Page ${index + 1}`}
+                      className="block h-auto w-full rounded-sm bg-white shadow-2xl"
+                    />
+                  ) : (
+                    <div
+                      aria-label={`Page ${index + 1}`}
+                      className="aspect-[3/4] w-full rounded-sm bg-neutral-900 shadow-2xl"
+                    />
+                  )}
+                  <figcaption className="text-center text-xs font-medium tracking-[0.2em] text-white/60">
+                    {index + 1} / {genericPreview.sections.length}
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+        )}
+        {status === "ready" && interactiveVideoPreview && (
+          <InteractiveVideoPlayer
+            key={`${id ?? ""}-${interactiveVideoPreview.startSegmentId}-${interactiveVideoPreview.segments.length}`}
+            model={interactiveVideoPreview}
+            assetUrls={interactiveAssetUrls}
+            lang={lang}
+          />
+        )}
+        {status === "ready" && genericPreview && genericPreview.type !== "comic" && (
           <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
             <p className="mb-2 text-sm text-muted-foreground">
               {contentTypeById[genericPreview.type].label[lang]}
@@ -291,7 +445,7 @@ export default function PreviewClient() {
             className="h-full w-full border-0"
           />
         )}
-        {status === "ready" && !genericPreview && !runtimePreviewHtml && (
+        {status === "ready" && !genericPreview && !interactiveVideoPreview && !runtimePreviewHtml && (
           <iframe
             src="/webgal/index.html"
             title="OpenWebGal preview"

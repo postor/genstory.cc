@@ -76,6 +76,10 @@ test("interactive video template follows the interactive video AGENTS.md segment
   assert.ok(paths.has("chapter-001/segments/segment-001/script.md"));
   assert.ok(paths.has("chapter-001/segments/segment-001/timeline.yml"));
   assert.ok(paths.has("chapter-001/segments/segment-001/choices.yml"));
+  assert.ok(paths.has("chapter-001/segments/segment-002/script.md"));
+  assert.ok(paths.has("chapter-001/segments/segment-002/timeline.yml"));
+  assert.ok(paths.has("chapter-001/segments/segment-003/script.md"));
+  assert.ok(paths.has("chapter-001/segments/segment-003/timeline.yml"));
   assert.ok(paths.has("assets/index.yml"));
 });
 test("visual novel template contains real OpenWebGal source files", async () => {

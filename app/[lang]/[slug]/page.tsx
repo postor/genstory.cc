@@ -12,7 +12,7 @@ import {
   publicLanguages,
   publicPageSlugs,
   publicPages,
-  siteKeywords,
+  sharedPageKeywords,
   siteTrustSummary,
   type PublicPageSlug,
 
@@ -42,10 +42,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const page = publicPages[rawSlug];
   const path = rawSlug;
   const description = `${page.description[lang]} ${siteTrustSummary[lang]}`;
-  const keywords = [...publicPageKeywords[rawSlug][lang], ...siteKeywords[lang]];
+  const keywords = [
+    ...new Set([...publicPageKeywords[rawSlug][lang], ...sharedPageKeywords[lang]]),
+  ];
 
   return {
-    title: page.title[lang],
+    title: {
+      absolute: page.title[lang],
+    },
     description,
     keywords,
     other: {
@@ -88,7 +92,9 @@ export default async function PublicTopic({ params }: Props) {
   const page = publicPages[rawSlug];
   const chrome = publicTopicChrome[lang];
   const description = `${page.description[lang]} ${siteTrustSummary[lang]}`;
-  const keywords = [...publicPageKeywords[rawSlug][lang], ...siteKeywords[lang]];
+  const keywords = [
+    ...new Set([...publicPageKeywords[rawSlug][lang], ...sharedPageKeywords[lang]]),
+  ];
   const jsonLd = [
     {
       "@context": "https://schema.org",

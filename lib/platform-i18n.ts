@@ -73,13 +73,14 @@ export const publicTopicChrome = {
 export const publicHomeCopy = {
   zh: {
     heroTitle: "GenStory.cc",
-    heroSubtitle: "在浏览器中创作故事和游戏",
+    heroSubtitle: "本地优先的故事与游戏创作工具",
     heroBody:
-      "GenStory.cc 是一个 100% 开源、100% 本地数据的浏览器故事创作工具。你可以在浏览器里创作图书、漫画、视觉小说、互动视频和 Phaser 游戏；项目内容和素材保存在这台设备中，不会自动上传到 GenStory.cc 服务器，可随时备份并导出可运行项目。",
+      "GenStory.cc 是 100% 开源、本地优先的浏览器创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目文件和素材默认留在这台设备中，不会自动上传；需要换设备时可下载备份，或授权后手动同步到 Google Drive。",
     ctaCreate: "开始创作",
     ctaBrowseTypes: "探索创作类型",
     pillarsTitle: "为长期创作设计",
     localProjects: "我的作品",
+    faqTitle: "常见问题",
     pillars: [
       {
         title: "保存在你的浏览器里",
@@ -91,19 +92,32 @@ export const publicHomeCopy = {
       },
       {
         title: "备份与发布",
-        body: "备份后可以继续编辑；视觉小说和 Phaser 游戏还可以在浏览器中预览并导出运行包。",
+        body: "备份后可以继续编辑，也可以授权后手动同步到自己的云盘；视觉小说和 Phaser 游戏还可以在浏览器中预览并导出运行包。",
+      },
+    ],
+    faqs: [
+      {
+        question: "GenStory.cc 是 AI 故事生成器吗？",
+        answer:
+          "不是单纯的 AI 生成器。GenStory.cc 的核心是浏览器里的项目工作台，用来组织源码文件、脚本、场景、素材和备份；AI 辅助是可选能力。",
+      },
+      {
+        question: "作品会自动上传到 GenStory.cc 吗？",
+        answer:
+          "不会。项目文件和素材默认保存在当前浏览器中。需要换设备或清理浏览器数据前，请先下载源码 ZIP，或在设置中授权后手动同步到 Google Drive。",
       },
     ],
   },
   en: {
     heroTitle: "GenStory.cc",
-    heroSubtitle: "Create stories and games in the browser",
+    heroSubtitle: "A local-first story and game creation tool",
     heroBody:
-      "GenStory.cc is a 100% open-source, local-first story creation tool with 100% local project data by default. Create books, comics, visual novels, interactive videos, and Phaser games in the browser; your project files stay on this device, are not automatically uploaded to GenStory.cc servers, and can be backed up or exported when ready.",
+      "GenStory.cc is a 100% open-source, local-first browser workspace for books, comics, visual novels, interactive videos, and Phaser games. Project files and assets stay on this device by default and are not automatically uploaded; download backups or manually sync to Google Drive after authorization when you need to move devices.",
     ctaCreate: "Start creating",
     ctaBrowseTypes: "Explore creation types",
     pillarsTitle: "Designed for long-running creative work",
     localProjects: "My works",
+    faqTitle: "FAQ",
     pillars: [
       {
         title: "Saved in your browser",
@@ -115,7 +129,19 @@ export const publicHomeCopy = {
       },
       {
         title: "Backup and publish",
-        body: "Project backups can be imported for continued editing, while visual novels and Phaser games preview and export as runnable packages.",
+        body: "Project backups can be imported for continued editing or manually synced to your own cloud drive after authorization, while visual novels and Phaser games preview and export as runnable packages.",
+      },
+    ],
+    faqs: [
+      {
+        question: "Is GenStory.cc an AI story generator?",
+        answer:
+          "Not primarily. GenStory.cc is a browser project workspace for source files, scripts, scenes, assets, and backups. AI assistance is optional.",
+      },
+      {
+        question: "Does GenStory.cc automatically upload my work?",
+        answer:
+          "No. Project files and assets stay in this browser by default. Before changing devices or clearing browser data, download a source ZIP or manually sync to Google Drive after authorization.",
       },
     ],
   },
@@ -129,6 +155,8 @@ export const publicHomeCopy = {
     ctaBrowseTypes: string;
     pillarsTitle: string;
     localProjects: string;
+    faqTitle: string;
     pillars: Array<{ title: string; body: string }>;
+    faqs: Array<{ question: string; answer: string }>;
   }
 >;

@@ -1,7 +1,11 @@
 import type { Metadata } from "next";
 
 import { PublicHomePage } from "@/components/public-home-page";
-import { languageInfo, localizedSiteMetadata } from "@/lib/platform-i18n";
+import {
+  languageInfo,
+  localizedSiteMetadata,
+  publicHomeCopy,
+} from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
   ogImagePath,
@@ -31,7 +35,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const metadata = localizedSiteMetadata[lang];
 
   return {
-    title: metadata.title,
+    title: {
+      absolute: metadata.title,
+    },
     description: metadata.description,
     keywords: siteKeywords[lang],
     other: {
@@ -71,6 +77,7 @@ export default async function LocalizedHome({ params }: Props) {
   const lang = normalizePublicLang((await params).lang);
   const locale = languageInfo[lang];
   const metadata = localizedSiteMetadata[lang];
+  const homeCopy = publicHomeCopy[lang];
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -101,6 +108,19 @@ export default async function LocalizedHome({ params }: Props) {
         priceCurrency: "USD",
       },
       featureList: siteFeatureList[lang],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      inLanguage: locale.schemaLanguage,
+      mainEntity: homeCopy.faqs.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
     },
   ];
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { PublicHomePage } from "@/components/public-home-page";
+import { publicHomeCopy } from "@/lib/platform-i18n";
 import {
   pageLanguageAlternates,
   pageUrl,
@@ -12,7 +13,9 @@ import {
 } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: siteMetadata.zhTitle,
+  title: {
+    absolute: siteMetadata.zhTitle,
+  },
   description: siteMetadata.zhDescription,
   keywords: siteKeywords.zh,
   alternates: {
@@ -22,6 +25,7 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
+  const homeCopy = publicHomeCopy.zh;
   const jsonLd = [
     {
       "@context": "https://schema.org",
@@ -52,6 +56,19 @@ export default function Home() {
         priceCurrency: "USD",
       },
       featureList: siteFeatureList.zh,
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      inLanguage: "zh-CN",
+      mainEntity: homeCopy.faqs.map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.answer,
+        },
+      })),
     },
   ];
 

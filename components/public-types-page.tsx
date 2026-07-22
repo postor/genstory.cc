@@ -62,15 +62,15 @@ const typesPageCopy: Record<
   { heading: string; intro: string; navLabel: string }
 > = {
   zh: {
-    heading: "探索故事与游戏创作工具",
+    heading: "探索浏览器里的故事与游戏创作工具",
     intro:
-      "选择一种创作类型，了解 GenStory.cc 的浏览器工作流、项目结构、预览方式和导出能力。",
+      "选择一种创作类型，了解 GenStory.cc 如何组织项目文件、素材、预览和导出。每个入口都说明真实能力和适合的创作阶段。",
     navLabel: "创作类型说明",
   },
   en: {
-    heading: "Explore story and game creation tools",
+    heading: "Explore browser story and game creation tools",
     intro:
-      "Choose a creation type to learn about GenStory.cc browser workflows, project structures, previews, and export options.",
+      "Choose a creation type to see how GenStory.cc organizes project files, assets, previews, and export options, with clear notes on what each workflow is best for.",
     navLabel: "Creation type guides",
   },
 };

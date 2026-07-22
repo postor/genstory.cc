@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import ProjectsClient from "./projects-client";
 
 export const metadata: Metadata = {
-  title: "GenStory.cc",
+  title: {
+    absolute: "Projects - GenStory.cc",
+  },
   description: "GenStory.cc local creative workspace.",
   robots: {
     index: false,

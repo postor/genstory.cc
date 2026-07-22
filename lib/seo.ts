@@ -30,35 +30,48 @@ export const languageAlternates: Record<string, string> = {
 
 export const siteMetadata = {
   name: "GenStory.cc",
-  zhTitle: "GenStory.cc - 100%开源、100%本地数据的故事创作工具",
-  enTitle: "GenStory.cc - 100% Open Source, Local-First Story Tool",
+  zhTitle: "GenStory.cc - 本地优先的故事与游戏创作工具",
+  enTitle: "GenStory.cc - Local-First Story and Game Creation Tool",
   zhDescription:
-    "GenStory.cc 是一个 100% 开源、100% 本地数据的浏览器故事创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目内容和素材保存在这台设备的浏览器中，可下载备份、选择性同步到自己的云盘并导出可运行项目。",
+    "GenStory.cc 是一个 100% 开源、本地优先的浏览器创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目文件和素材默认保存在当前浏览器中，可下载源码 ZIP、恢复备份、选择性同步到自己的云盘，并在支持的类型中预览或导出运行包。",
   enDescription:
-    "GenStory.cc is a 100% open-source, local-first story creation tool with 100% local project data by default. Create books, comics, visual novels, interactive videos, and Phaser games in the browser, then back up, export, or optionally sync to a cloud drive you authorize.",
+    "GenStory.cc is a 100% open-source, local-first browser workspace for books, comics, visual novels, interactive videos, and Phaser games. Keep project files on this device by default, download source ZIP backups, restore work later, optionally sync to your own cloud drive, and preview or export supported projects.",
   keywords: [
     "GenStory.cc",
-    "100%开源",
-    "100%本地数据",
     "100% 开源",
     "100% 本地数据",
     "开源故事创作工具",
-    "本地数据创作工具",
+    "本地优先故事创作工具",
+    "浏览器创作工具",
+    "AI故事生成器",
+    "AI创作工具",
+    "AI写作工具",
+    "AI插图生成器",
+    "AI角色设计",
     "视觉小说编辑器",
-    "OpenWebGal 编辑器",
-    "本地优先写作工具",
-    "漫画创作工具",
-    "互动视频创作工具",
+    "WebGAL 制作工具",
+    "OpenWebGal 导出工具",
+    "Phaser 游戏制作工具",
     "Phaser 游戏编辑器",
+    "浏览器写作工具",
+    "漫画分镜软件",
+    "互动视频创作工具",
+    "AI story generator",
+    "AI creative writing tool",
+    "AI writing tool",
+    "AI illustration generator",
+    "AI character design",
+    "AI character sheet generator",
     "browser visual novel editor",
-    "local-first writing app",
-    "OpenWebGal exporter",
-    "comic writing workspace",
-    "interactive video authoring tool",
-    "Phaser game editor",
-    "browser game editor",
     "100% open source",
     "100% local project data",
+    "local-first writing app",
+    "OpenWebGal export tool",
+    "comic storyboard software",
+    "Phaser game maker",
+    "Phaser game editor",
+    "browser game editor",
+    "interactive video authoring tool",
     "open-source story creation tool",
   ],
 };
@@ -66,35 +79,58 @@ export const siteMetadata = {
 export const siteKeywords: Record<PublicLang, string[]> = {
   zh: [
     "GenStory.cc",
-    "100%开源",
-    "100%本地数据",
+    "100% 开源",
+    "100% 本地数据",
     "开源故事创作工具",
+    "故事创作工具",
+    "AI故事生成器",
+    "AI创作工具",
+    "AI写作工具",
+    "AI插图生成器",
+    "AI角色设计",
     "本地优先创作工具",
     "浏览器故事创作工具",
     "视觉小说编辑器",
-    "漫画创作工具",
-    "互动视频创作工具",
+    "WebGAL 制作工具",
     "OpenWebGal 导出工具",
+    "Phaser 游戏制作工具",
     "Phaser 游戏编辑器",
+    "浏览器写作工具",
+    "漫画分镜软件",
+    "互动视频创作工具",
   ],
   en: [
     "GenStory.cc",
     "100% open source",
     "100% local project data",
     "open-source story creation tool",
+    "story creation tool",
+    "AI story generator",
+    "AI creative writing tool",
+    "AI writing tool",
+    "AI illustration generator",
+    "AI character design",
     "local-first creative workspace",
     "browser story creation tool",
     "visual novel editor",
-    "comic storyboard tool",
-    "interactive video authoring tool",
-    "OpenWebGal exporter",
+    "visual novel maker",
+    "OpenWebGal export tool",
+    "Phaser game maker",
     "Phaser game editor",
+    "browser writing app",
+    "comic storyboard software",
+    "interactive video authoring tool",
   ],
 };
 
+export const sharedPageKeywords: Record<PublicLang, string[]> = {
+  zh: ["GenStory.cc", "本地优先创作工具", "浏览器故事创作工具"],
+  en: ["GenStory.cc", "local-first creative workspace", "browser story creation tool"],
+};
+
 export const siteTrustSummary: Record<PublicLang, string> = {
-  zh: "100% 开源，项目数据默认 100% 保存在本地浏览器中；不会自动上传到 GenStory.cc 服务器。",
-  en: "100% open source, with 100% local project data by default; your work is not automatically uploaded to GenStory.cc servers.",
+  zh: "代码 100% 开源，项目数据默认保存在本地浏览器中；不会自动上传到 GenStory.cc 服务器，也可在授权后手动同步到自己的云盘。",
+  en: "100% open source and local-first by default; your work is not automatically uploaded to GenStory.cc servers, and can be manually synced to your own cloud drive after authorization.",
 };
 
 export const publicPageSlugs: PublicPageSlug[] = [
@@ -110,7 +146,7 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
     "作品保存在浏览器中",
     "图书、漫画、视觉小说、互动视频和 Phaser 游戏模板",
     "项目备份下载和导入",
-    "可选的 Google Drive 和 Dropbox 同步",
+    "可选的 Google Drive 同步",
     "视觉小说浏览器预览",
     "OpenWebGal 独立项目导出",
   ],
@@ -118,7 +154,7 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
     "Local-first project files",
     "Book, comic, visual novel, interactive video, and Phaser game templates",
     "Source ZIP backup and import",
-    "Optional Google Drive and Dropbox sync",
+    "Optional Google Drive sync",
     "Visual novel preview in the browser",
     "Standalone OpenWebGal project export",
   ],
@@ -129,24 +165,24 @@ export const publicPageKeywords: Record<
   Record<PublicLang, string[]>
 > = {
   book: {
-    zh: ["图书创作工具", "浏览器写作工具", "本地优先写作", "小说创作软件"],
-    en: ["book creation tool", "browser writing app", "local-first writing", "novel writing software"],
+    zh: ["浏览器写作工具", "小说创作软件", "AI小说生成器", "AI写作工具", "AI插图生成器", "文章插图生成", "开源写作工具", "本地优先写作"],
+    en: ["book creation tool", "browser writing app", "AI novel generator", "AI writing tool", "AI illustration generator", "article illustration prompt", "local-first writing", "novel writing software"],
   },
   comic: {
-    zh: ["漫画创作工具", "漫画分镜软件", "浏览器漫画编辑器", "漫画项目管理"],
-    en: ["comic creation tool", "comic storyboard software", "browser comic editor", "comic project workspace"],
+    zh: ["漫画分镜软件", "AI分镜生成器", "AI漫画生成器", "AI角色设计", "角色设定图生成", "漫画创作工具", "浏览器漫画编辑器", "漫画项目管理"],
+    en: ["comic creation tool", "AI comic generator", "AI storyboard generator", "AI character design", "AI character sheet generator", "character reference sheet", "comic storyboard software", "browser comic editor", "comic project workspace"],
   },
   "visual-novel": {
-    zh: ["视觉小说编辑器", "视觉小说制作工具", "浏览器视觉小说引擎", "OpenWebGal 编辑器"],
-    en: ["visual novel editor", "visual novel maker", "browser visual novel engine", "OpenWebGal editor"],
+    zh: ["视觉小说编辑器", "视觉小说制作工具", "AI视觉小说生成器", "AI互动故事生成器", "AI角色立绘生成", "角色设定图生成", "WebGAL 编辑器", "OpenWebGal 导出工具"],
+    en: ["visual novel editor", "visual novel maker", "AI visual novel generator", "AI interactive story generator", "AI character sprite generator", "character reference sheet", "browser visual novel editor", "OpenWebGal export"],
   },
   "interactive-video": {
-    zh: ["互动视频创作工具", "互动短片制作", "分支视频编辑器", "互动叙事工具"],
-    en: ["interactive video authoring", "interactive short film maker", "branching video editor", "interactive storytelling tool"],
+    zh: ["互动视频创作工具", "AI互动故事生成器", "AI分镜生成器", "AI视觉参考图", "互动短片制作", "分支视频编辑器", "互动叙事工具"],
+    en: ["interactive video authoring", "AI interactive story generator", "AI storyboard generator", "AI visual reference prompt", "interactive short film maker", "branching video editor", "interactive storytelling tool"],
   },
   "phaser-game": {
-    zh: ["Phaser 游戏编辑器", "Phaser 游戏制作工具", "浏览器游戏开发", "JavaScript 游戏模板"],
-    en: ["Phaser game editor", "Phaser game maker", "browser game development", "JavaScript game template"],
+    zh: ["Phaser 游戏制作工具", "AI游戏生成器", "AI游戏制作工具", "AI生成游戏代码", "AI角色设计", "游戏角色设定图", "Phaser 游戏编辑器", "HTML5 游戏制作工具", "浏览器游戏开发"],
+    en: ["Phaser game maker", "AI game generator", "AI game maker", "AI game code generator", "AI character design", "AI sprite generator", "character sheet generator", "Phaser game editor", "HTML5 game maker", "browser game development"],
   },
 };
 
@@ -170,21 +206,21 @@ export const publicPages: Record<
 > = {
   "visual-novel": {
     title: {
-      zh: "视觉小说编辑器 - GenStory.cc",
-      en: "Visual Novel Editor - GenStory.cc",
+      zh: "视觉小说编辑器 / WebGAL 制作工具 - GenStory.cc",
+      en: "Visual Novel Editor and OpenWebGal Export Tool - GenStory.cc",
     },
     description: {
-      zh: "在浏览器中创作视觉小说，管理剧本、场景、角色和资产，并导出 OpenWebGal 项目。",
-      en: "Create visual novels in the browser, manage scripts, scenes, characters, and assets, and export OpenWebGal projects.",
+      zh: "在浏览器中制作视觉小说和 Galgame，可选 AI 助手辅助剧本、分支、场景与素材提示词，预览后导出可运行的 OpenWebGal 项目。",
+      en: "Create visual novels in the browser with optional AI assistance for scripts, branches, scenes, and asset prompts, then preview and export a runnable OpenWebGal project.",
     },
-    kicker: { zh: "视觉小说", en: "Visual novels" },
+    kicker: { zh: "视觉小说编辑器", en: "Visual novel editor" },
     heading: {
-      zh: "用清晰的项目结构创作视觉小说",
-      en: "Create visual novels with a clear project structure",
+      zh: "在浏览器中制作视觉小说和 WebGAL 项目",
+      en: "Create visual novels and OpenWebGal projects in the browser",
     },
     intro: {
-      zh: "GenStory.cc 将剧本、场景、角色和素材整理成清晰的项目结构，让互动叙事更容易维护、预览和导出。",
-      en: "GenStory.cc organizes scripts, scenes, characters, and assets into a clear project structure for interactive stories that are easy to maintain, preview, and export.",
+      zh: "GenStory.cc 适合想把视觉小说剧本、舞台状态、角色、分支和选择项分开管理的创作者。你可以用 Markdown 写对白，用 YAML 维护场景状态，也可以让可选 AI 助手基于项目上下文生成场景草稿和资产 prompt，确认后再预览并导出 OpenWebGal ZIP。",
+      en: "GenStory.cc is for creators who want visual novel scripts, stage state, characters, branches, choices, and assets kept in clear project files. Write dialogue in Markdown, maintain scene state in YAML, and optionally ask the AI assistant to draft scenes or asset prompts from project context before you preview and export an OpenWebGal ZIP.",
     },
     sections: [
       {
@@ -197,8 +233,8 @@ export const publicPages: Record<
       {
         title: { zh: "浏览器内预览", en: "Preview in the browser" },
         body: {
-          zh: "视觉小说可以直接在浏览器中预览，无需额外安装编译环境。",
-          en: "Visual novels can be previewed directly in the browser without installing a separate build environment.",
+          zh: "创建后可以直接打开预览，快速检查对白、角色状态和场景衔接，无需单独安装运行环境。",
+          en: "Open a preview after creating the project to check dialogue, character state, and scene flow without installing a separate runtime.",
         },
       },
       {
@@ -211,39 +247,46 @@ export const publicPages: Record<
     ],
     faqs: [
       {
-        question: { zh: "GenStory.cc 会把项目上传到服务器吗？", en: "Does GenStory.cc upload my project to a server?" },
+        question: { zh: "GenStory.cc 和 WebGAL / OpenWebGal 是什么关系？", en: "How does GenStory.cc relate to WebGAL or OpenWebGal?" },
         answer: {
-          zh: "不会自动上传到 GenStory.cc 服务器。作品内容和素材默认保存在这台设备的浏览器中；如果你在设置页授权 Google Drive 或 Dropbox，项目页可以直接把文件同步到云盘的隔离目录。换设备或清理浏览器数据前，请先下载项目备份或完成一次云盘同步。",
-          en: "Not to GenStory.cc servers. Work and assets stay in this browser by default; if you authorize Google Drive or Dropbox in Settings, Projects can sync files directly to that provider's isolated app folder. Before changing devices or clearing browser data, download a source ZIP or complete a cloud sync.",
+          zh: "GenStory.cc 负责浏览器内的项目编辑、文件组织、预览准备和导出流程；OpenWebGal 是视觉小说项目的运行目标。完成后可以导出 OpenWebGal ZIP，用于运行或继续发布。",
+          en: "GenStory.cc handles browser-based editing, project files, preview preparation, and export. OpenWebGal is the runtime target for visual novel projects, so a finished work can be exported as an OpenWebGal ZIP.",
         },
       },
       {
-        question: { zh: "导出的 ZIP 可以直接发布吗？", en: "Can the exported ZIP be published directly?" },
+        question: { zh: "可以把项目导出成可以发布的视觉小说吗？", en: "Can I export a visual novel that can be published?" },
         answer: {
-          zh: "OpenWebGal 导出 ZIP 用于运行和发布；项目备份用于保存作品，并在之后重新导入继续编辑。",
-          en: "The OpenWebGal export ZIP is for running and publishing; the project backup is for keeping your work and importing it later for editing.",
+          zh: "可以。OpenWebGal 导出 ZIP 面向运行和发布；源码 ZIP 面向备份和继续编辑。两者用途不同，建议在发布前同时保留源码备份。",
+          en: "Yes. The OpenWebGal export ZIP is for running or publishing, while the source ZIP is for backup and continued editing. Keep both when you are preparing a release.",
         },
       },
       {
-        question: { zh: "OpenWebGal 在 GenStory.cc 中是什么？", en: "What is OpenWebGal in GenStory.cc?" },
+        question: { zh: "它适合 Ren'Py 用户吗？", en: "Is this useful for Ren'Py users?" },
         answer: {
-          zh: "OpenWebGal 是视觉小说的预览和导出运行目标，不是独立的 GenStory.cc 项目类型。视觉小说项目可以编译并导出为 OpenWebGal 项目。",
-          en: "OpenWebGal is the preview and export runtime target for visual novels, not a separate GenStory.cc project type. Visual novel projects can be compiled and exported as OpenWebGal projects.",
+          zh: "如果你想要浏览器内的轻量工作流、清晰的项目文件和 WebGAL/OpenWebGal 导出，它会很合适。它不是 Ren'Py 的完整替代品，也不会隐藏项目结构。",
+          en: "It is useful if you want a lighter browser workflow, clear project files, and WebGAL/OpenWebGal export. It is not a full Ren'Py replacement, and it keeps the project structure visible.",
+        },
+      },
+      {
+        question: { zh: "项目数据会不会上传到服务器？", en: "Does my project data get uploaded to GenStory.cc servers?" },
+        answer: {
+          zh: "不会自动上传到 GenStory.cc 服务器。作品内容和素材默认保存在这台设备的浏览器中；如果你授权 Google Drive，同步也只会在你主动操作后发生。",
+          en: "Not automatically. Work and assets stay in this browser by default. If you authorize Google Drive, sync only happens after you start it.",
         },
       },
     ],
   },
   comic: {
-    title: { zh: "漫画创作工具 - GenStory.cc", en: "Comic Creation Workspace - GenStory.cc" },
+    title: { zh: "漫画分镜与项目管理工具 - GenStory.cc", en: "Comic Storyboard Workspace - GenStory.cc" },
     description: {
-      zh: "用 GenStory.cc 在浏览器中组织漫画项目、分镜、页面、角色和视觉资产，保持源码可备份、可恢复。",
-      en: "Use GenStory.cc to organize comic projects, panels, pages, characters, and visual assets in a browser workspace with restorable source backups.",
+      zh: "用 GenStory.cc 在浏览器中组织漫画分镜、页面、角色和视觉资产，可选 AI 助手辅助分镜和图像提示词，管理连续画面作品的项目文件、备份和恢复。",
+      en: "Use GenStory.cc to organize comic panels, pages, characters, and visual assets with optional AI assistance for storyboards and image prompts in a browser workspace with restorable backups.",
     },
-    kicker: { zh: "漫画", en: "Comics" },
-    heading: { zh: "把漫画创作拆成可维护的项目结构", en: "Structure comic creation into maintainable project files" },
+    kicker: { zh: "漫画分镜", en: "Comic storyboard" },
+    heading: { zh: "用分镜、页面和素材管理漫画项目", en: "Plan comic projects with panels, pages, and visual assets" },
     intro: {
-      zh: "从分镜到页面，从角色到媒体附件，GenStory.cc 用浏览器中的项目文件承载连续画面作品的创作过程。",
-      en: "From panels to pages and characters to media attachments, GenStory.cc stores the comic creation process in project files in your browser.",
+      zh: "漫画和连续画面项目常常难在设定、页面、角色和素材越写越散。GenStory.cc 更适合做结构化的漫画创作工作台：先整理分镜和资产，也可以让可选 AI 助手生成分镜草稿和图像 prompt，再把源码 ZIP 保存下来，方便之后继续制作。",
+      en: "Comic and serial visual projects often become scattered across notes, pages, characters, and assets. GenStory.cc gives that planning work a structured browser workspace, can optionally help draft storyboards and image prompts with AI, then lets you keep a source ZIP for continued production.",
     },
     sections: [
       {
@@ -270,6 +313,13 @@ export const publicPages: Record<
     ],
     faqs: [
       {
+        question: { zh: "GenStory.cc 可以直接画漫画吗？", en: "Can GenStory.cc draw finished comic pages?" },
+        answer: {
+          zh: "可以。GenStory.cc 支持使用 AI 生图绘制漫画，并把分镜规划、页面组织、角色设定和素材登记放在同一个项目中管理，方便从构思到成稿持续迭代。",
+          en: "Yes. GenStory.cc can use AI image generation to create comic artwork while keeping storyboards, pages, character references, and assets organized in one project, so you can keep iterating from idea to finished pages.",
+        },
+      },
+      {
         question: { zh: "漫画项目可以导入恢复吗？", en: "Can comic projects be imported again?" },
         answer: {
           zh: "可以。使用 GenStory.cc 导出的项目备份可以从作品列表导入，恢复为新的作品。",
@@ -281,14 +331,14 @@ export const publicPages: Record<
   book: {
     title: { zh: "浏览器写作工具 - GenStory.cc", en: "Browser Writing App - GenStory.cc" },
     description: {
-      zh: "在浏览器中写作和管理图书项目，用章节、页面和媒体附件组织长篇文字叙事。",
-      en: "Write and manage book projects in the browser with chapters, pages, and media attachments for long-form narrative work.",
+      zh: "在浏览器中写小说、设定集和长篇内容，可选 AI 助手辅助大纲、续写和角色设定，用章节、页面和媒体附件组织项目，并下载源码 ZIP 备份。",
+      en: "Write novels, lore documents, and long-form projects in the browser with optional AI assistance for outlines, continuation drafts, and character notes, organized by chapters, pages, media attachments, and source ZIP backups.",
     },
-    kicker: { zh: "图书", en: "Books" },
-    heading: { zh: "适合长篇叙事的浏览器写作空间", en: "A browser writing space for long-form narratives" },
+    kicker: { zh: "浏览器写作", en: "Browser writing" },
+    heading: { zh: "适合小说和长篇内容的浏览器写作工具", en: "A browser writing app for novels and long-form projects" },
     intro: {
-      zh: "GenStory.cc 让图书项目以清晰的源文件存在于浏览器中，适合小说、设定集、章节式内容和带素材的长篇创作。",
-      en: "GenStory.cc keeps book projects as clear source files in the browser, suited for novels, lore documents, chaptered content, and media-rich writing.",
+      zh: "GenStory.cc 让图书项目以清晰的源文件存在于浏览器中，适合小说、设定集、章节式内容和带素材的长篇创作。可选 AI 助手可以参考项目上下文辅助大纲、续写和设定整理；作品仍关注可整理、可备份、可恢复，而不是把写作过程锁进单一云端编辑器。",
+      en: "GenStory.cc keeps book projects as clear source files in the browser, suited for novels, lore documents, chaptered content, and media-rich writing. The optional AI assistant can use project context to help with outlines, continuation drafts, and lore organization, while the project remains portable instead of being locked into one cloud editor.",
     },
     sections: [
       {
@@ -325,21 +375,21 @@ export const publicPages: Record<
   },
   "interactive-video": {
     title: {
-      zh: "互动视频创作工具 - GenStory.cc",
-      en: "Interactive Video Authoring Tool - GenStory.cc",
+      zh: "互动视频与分支叙事规划工具 - GenStory.cc",
+      en: "Interactive Video and Branching Story Planner - GenStory.cc",
     },
     description: {
-      zh: "用 GenStory.cc 组织互动视频的片段、镜头、视频、配音和选择点，规划可播放的分支叙事项目。",
-      en: "Use GenStory.cc to organize interactive video segments, shots, video, voice, and choice points into playable branching narratives.",
+      zh: "用 GenStory.cc 组织互动视频的片段、音频、时间线、镜头、配音和选择点，可选 AI 助手辅助分镜和选择点设计，规划可互动的分支叙事项目。",
+      en: "Use GenStory.cc to organize interactive video segments, audio, timelines, shots, voice, and choice points with optional AI assistance for storyboards and choice design.",
     },
-    kicker: { zh: "互动视频", en: "Interactive video" },
+    kicker: { zh: "互动视频规划", en: "Interactive video planning" },
     heading: {
-      zh: "把视频、声音和选择点组织成互动叙事",
-      en: "Turn video, sound, and choices into interactive narratives",
+      zh: "规划带选择点的互动视频故事",
+      en: "Plan interactive video stories with choices and timelines",
     },
     intro: {
-      zh: "互动视频项目以片段和时间线为骨架，将镜头、视频、配音与分支选择保存在清晰的浏览器项目文件中。",
-      en: "Interactive video projects use segments and timelines as their structure, keeping shots, video, voice, and branching choices in clear project files in your browser.",
+      zh: "互动视频项目以片段和时间线为骨架，将镜头、视频、音频、配音与分支选择保存在清晰的浏览器项目文件中。你可以让可选 AI 助手辅助设计选择点、镜头清单和配音计划；这个页面先服务可互动叙事的策划、整理和备份意图，避免把早期项目包装成完整的视频剪辑软件。",
+      en: "Interactive video projects use segments and timelines as their structure, keeping shots, video, audio, voice, and branching choices in clear project files in your browser. You can optionally use AI to draft choice points, shot lists, and voice plans; this page focuses on interactive narrative planning, organization, and backup rather than pretending to be a full video editor.",
     },
     sections: [
       {
@@ -373,6 +423,13 @@ export const publicPages: Record<
         },
       },
       {
+        question: { zh: "互动视频项目适合什么阶段？", en: "What stage of an interactive video project is this for?" },
+        answer: {
+          zh: "它尤其适合前期策划和结构整理：先把片段、镜头、选择点和素材关系放进项目文件，再进入实际拍摄、剪辑或发布流程。",
+          en: "It is especially useful during planning and structure work: map segments, shots, choices, and asset relationships before moving into shooting, editing, or publishing.",
+        },
+      },
+      {
         question: { zh: "互动视频的媒体文件如何管理？", en: "How are interactive video media files managed?" },
         answer: {
           zh: "媒体资产在 assets/index.yml 中使用逻辑 ID 登记，项目内容通过这些 ID 引用镜头、视频和配音。",
@@ -383,21 +440,21 @@ export const publicPages: Record<
   },
   "phaser-game": {
     title: {
-      zh: "游戏创作工具 - GenStory.cc",
-      en: "Game Creation Tool - GenStory.cc",
+      zh: "Phaser 游戏制作工具 - GenStory.cc",
+      en: "Phaser Game Maker for Browser Projects - GenStory.cc",
     },
     description: {
-      zh: "在浏览器中创建可运行的 Phaser 游戏项目，编辑菜单、场景、JavaScript、样式和资产计划，并导出源码。",
-      en: "Create runnable Phaser game projects in the browser, edit menus, scenes, JavaScript, styles, and asset plans, then export the source.",
+      zh: "在浏览器中创建可运行的 Phaser 游戏项目，可选 AI 助手辅助玩法循环、场景代码和资产 prompt，编辑 HTML、JavaScript、CSS 并下载源码 ZIP。",
+      en: "Create runnable Phaser game projects in the browser with optional AI assistance for gameplay loops, scene code, and asset prompts, then edit HTML, JavaScript, CSS, and download the source ZIP.",
     },
-    kicker: { zh: "游戏", en: "Games" },
+    kicker: { zh: "Phaser 游戏制作", en: "Phaser game maker" },
     heading: {
-      zh: "从可编辑源文件开始制作浏览器游戏",
-      en: "Build browser games from editable source files",
+      zh: "从浏览器开始制作 Phaser 游戏",
+      en: "Build Phaser games from editable browser project files",
     },
     intro: {
-      zh: "GenStory.cc 为 Phaser 游戏提供菜单场景、可操作测试场景和清晰的 HTML、JavaScript、CSS 项目结构，方便继续扩展。",
-      en: "GenStory.cc gives Phaser games a menu scene, a playable test scene, and a clear HTML, JavaScript, and CSS structure that is ready to extend.",
+      zh: "GenStory.cc 的 Phaser 模板不是空白占位，而是包含菜单、测试场景和可编辑源码的浏览器游戏项目。它适合快速验证玩法、整理资产计划，也可以让可选 AI 助手生成场景代码草稿和图片/音乐/音效 prompt，再把源码带出浏览器继续开发。",
+      en: "GenStory.cc starts Phaser projects with a menu, a playable test scene, and editable source files instead of an empty placeholder. Use it to test a game loop, plan assets, optionally draft scene code and image, music, or sound prompts with AI, and take the source out of the browser when you are ready.",
     },
     sections: [
       {
@@ -424,17 +481,31 @@ export const publicPages: Record<
     ],
     faqs: [
       {
-        question: { zh: "Phaser 游戏可以导出吗？", en: "Can Phaser games be exported?" },
+        question: { zh: "Phaser 游戏可以直接运行吗？", en: "Can Phaser games run right away?" },
         answer: {
-          zh: "可以。项目可以下载为 ZIP 备份，包含 HTML、JavaScript、CSS 和资产计划，适合继续开发或部署。",
-          en: "Yes. Projects can be downloaded as ZIP backups containing HTML, JavaScript, CSS, and the asset plan for further development or deployment.",
+          zh: "可以。模板包含菜单和测试场景，创建后即可在浏览器中预览基本运行链路，再逐步替换为自己的角色、关卡和资源。",
+          en: "Yes. The template includes a menu and test scene, so the basic loop can be previewed in the browser before you replace it with your own characters, levels, and assets.",
+        },
+      },
+      {
+        question: { zh: "导出的源码 ZIP 里包含什么？", en: "What is included in the source ZIP?" },
+        answer: {
+          zh: "源码 ZIP 包含 HTML、JavaScript、CSS、项目元数据和资产计划，适合带出浏览器继续开发、备份或接入自己的部署流程。",
+          en: "The source ZIP contains HTML, JavaScript, CSS, project metadata, and the asset plan, making it suitable for continued development, backup, or your own deployment flow.",
         },
       },
       {
         question: { zh: "没有生成图片和音频也能运行吗？", en: "Can a game run before images and audio are generated?" },
         answer: {
-          zh: "可以。Phaser 模板先提供无需外部媒体即可运行的菜单和测试场景，后续再按资产索引接入媒体。",
-          en: "Yes. The Phaser template provides menu and test scenes that run without external media, which can be added later from the asset index.",
+          zh: "可以。Phaser 模板先提供无需外部媒体即可运行的菜单和测试场景，后续再按 assets/index.yml 中的资产计划接入图片、音乐和音效。",
+          en: "Yes. The Phaser template provides menu and test scenes that run without external media. Images, music, and sound effects can be added later from assets/index.yml.",
+        },
+      },
+      {
+        question: { zh: "它和完整游戏引擎有什么区别？", en: "How is this different from a full game engine?" },
+        answer: {
+          zh: "GenStory.cc 更像一个浏览器内的项目起点和源码工作台。它帮助你创建、编辑、预览和备份 Phaser 项目，但不会取代完整的专业游戏编辑器。",
+          en: "GenStory.cc is closer to a browser-based project starter and source workspace. It helps create, edit, preview, and back up Phaser projects, but it does not replace a full professional game editor.",
         },
       },
     ],

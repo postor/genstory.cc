@@ -4,7 +4,9 @@ import type { Metadata } from "next";
 import EditorClient from "./editor-client";
 
 export const metadata: Metadata = {
-  title: "GenStory.cc",
+  title: {
+    absolute: "Editor - GenStory.cc",
+  },
   robots: {
     index: false,
     follow: false,

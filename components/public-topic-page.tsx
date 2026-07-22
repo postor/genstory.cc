@@ -10,6 +10,10 @@ import {
   CardTitle,
 
 } from "@/components/ui/card";
+import {
+  aiPromptChrome,
+  publicPagePromptExamples,
+} from "@/lib/ai-prompt-examples";
 import { languageInfo, publicTopicChrome } from "@/lib/platform-i18n";
 import {
   type PublicLang,
@@ -31,6 +35,8 @@ export function PublicTopicPage({
 }) {
   const page = publicPages[slug];
   const chrome = publicTopicChrome[lang];
+  const promptChrome = aiPromptChrome[lang];
+  const promptExamples = publicPagePromptExamples[slug];
 
   return (
     <main
@@ -78,8 +84,39 @@ export function PublicTopicPage({
       </section>
 
       <section className="border-t py-10">
+        <div className="mb-4 flex flex-col gap-2">
+          <h2 className="text-2xl font-semibold tracking-tight">
+            {promptChrome.title}
+          </h2>
+          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+            {promptChrome.intro}
+          </p>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {promptExamples.map((example) => (
+            <Card key={example.useCase[lang]}>
+              <CardHeader>
+                <CardTitle>{example.useCase[lang]}</CardTitle>
+                <CardDescription className="leading-6">
+                  <span className="font-medium text-foreground">
+                    {promptChrome.outcome}
+                  </span>
+                  {`: ${example.outcome[lang]}`}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <pre className="whitespace-pre-wrap rounded-md border bg-muted p-3 text-sm leading-6 text-foreground">
+                  {example.prompt[lang]}
+                </pre>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      <section className="border-t py-10">
         <h2 className="mb-4 text-2xl font-semibold tracking-tight">{chrome.faq}</h2>
-        <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {page.faqs.map((item) => (
             <Card key={item.question[lang]}>
               <CardHeader>

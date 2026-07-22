@@ -28,11 +28,14 @@ export function generateStaticParams() {
 
 function typesMetadata(lang: PublicLang) {
   return {
-    title: lang === "zh" ? "故事创作工具类型 - GenStory.cc" : "Story Creation Tools - GenStory.cc",
+    title:
+      lang === "zh"
+        ? "浏览器故事与游戏创作工具 - GenStory.cc"
+        : "Browser Story and Game Creation Tools - GenStory.cc",
     description:
       lang === "zh"
-        ? `探索图书、漫画、视觉小说、互动视频和 Phaser 游戏创作工具。${siteTrustSummary.zh}`
-        : `Explore book, comic, visual novel, interactive video, and Phaser game creation tools. ${siteTrustSummary.en}`,
+        ? `探索图书、漫画、视觉小说、互动视频和 Phaser 游戏的浏览器创作流程，了解项目结构、预览、备份和导出方式。${siteTrustSummary.zh}`
+        : `Explore browser workflows for books, comics, visual novels, interactive videos, and Phaser games, including project structure, previews, backups, and export options. ${siteTrustSummary.en}`,
   };
 }
 
@@ -42,7 +45,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const metadata = typesMetadata(lang);
 
   return {
-    title: metadata.title,
+    title: {
+      absolute: metadata.title,
+    },
     description: metadata.description,
     keywords: siteKeywords[lang],
     other: {

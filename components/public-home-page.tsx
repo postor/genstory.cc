@@ -88,6 +88,26 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
         </h2>
       </section>
       <LocalProjectSummary />
+
+      <section className="border-t py-10">
+        <h2 className="mb-4 text-2xl font-semibold tracking-tight">
+          {t.faqTitle}
+        </h2>
+        <div className="grid gap-4 md:grid-cols-2">
+          {t.faqs.map((item) => (
+            <Card key={item.question}>
+              <CardHeader>
+                <CardTitle>{item.question}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <CardDescription className="leading-6">
+                  {item.answer}
+                </CardDescription>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }

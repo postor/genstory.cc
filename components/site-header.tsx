@@ -36,7 +36,7 @@ export function SiteHeader() {
           GenStory.cc
         </Link>
 
-        <nav className="flex items-center gap-1 max-[400px]:w-full max-[400px]:justify-end">
+        <nav className="flex items-center gap-1 max-[400px]:w-full max-[400px]:flex-wrap max-[400px]:justify-start">
           {navItems.map((item) => {
             const active =
               item.href === localizedPath(publicLang)
@@ -68,6 +68,22 @@ export function SiteHeader() {
             title={labels.sourceCode}
           >
             <GitHubMark />
+          </Button>
+
+          <Button
+            render={
+              <a
+                href="https://github.com/postor/genstory.cc/issues/new"
+                target="_blank"
+                rel="noreferrer"
+              />
+            }
+            variant="ghost"
+            size="sm"
+            aria-label={labels.newIssue}
+            title={labels.newIssue}
+          >
+            Issue
           </Button>
 
           <div
@@ -114,6 +130,7 @@ const headerLabels: Record<
     language: string;
     languageName: string;
     sourceCode: string;
+    newIssue: string;
   }
 > = {
   zh: {
@@ -123,6 +140,7 @@ const headerLabels: Record<
     language: "语言",
     languageName: "中文",
     sourceCode: "在 GitHub 上关注和点赞",
+    newIssue: "提交 Issue",
   },
   en: {
     home: "Home",
@@ -131,6 +149,7 @@ const headerLabels: Record<
     language: "Language",
     languageName: "English",
     sourceCode: "Follow and star on GitHub",
+    newIssue: "Open a new Issue",
   },
 };
 

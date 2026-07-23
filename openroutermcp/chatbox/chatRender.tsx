@@ -120,18 +120,35 @@ export function ToolResult({
 // with { type: "image", ref }, storing the base64 as a data URL in `store`
 // keyed by a generated id so the (large) base64 never lands in the chat
 // context sent back to the model.
-export function extractImages(value: unknown, store: Record<string, string>): unknown {
-  if (Array.isArray(value)) return value.map((v) => extractImages(v, store));
+export interface ExtractedToolImage {
+  source: string;
+  mimeType: string;
+}
+
+export function extractImages(
+  value: unknown,
+  store: Record<string, string>,
+  extracted: ExtractedToolImage[] = []
+): unknown {
+  if (Array.isArray(value)) return value.map((v) => extractImages(v, store, extracted));
   if (value && typeof value === "object") {
     const obj = value as Record<string, unknown>;
-    if (obj.type === "image" && typeof obj.data === "string") {
+    const source = typeof obj.data === "string"
+      ? obj.data.startsWith("data:")
+        ? obj.data
+        : `data:${typeof obj.mimeType === "string" ? obj.mimeType : "image/png"};base64,${obj.data}`
+      : typeof obj.url === "string" ? obj.url : null;
+    if (obj.type === "image" && source) {
       const id = "img_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-      const mime = obj.data.startsWith("/9j/") ? "image/jpeg" : "image/png";
-      store[id] = `data:${mime};base64,${obj.data}`;
+      const mime = typeof obj.mimeType === "string"
+        ? obj.mimeType
+        : source.startsWith("data:image/jpeg") ? "image/jpeg" : "image/png";
+      store[id] = source;
+      extracted.push({ source, mimeType: mime });
       return { type: "image", ref: id };
     }
     const out: Record<string, unknown> = {};
-    for (const k of Object.keys(obj)) out[k] = extractImages(obj[k], store);
+    for (const k of Object.keys(obj)) out[k] = extractImages(obj[k], store, extracted);
     return out;
   }
   return value;

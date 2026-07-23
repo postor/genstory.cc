@@ -165,6 +165,21 @@ export async function writeFile(
   }
 }
 
+/** Move a project file while preserving its binary contents. */
+export async function moveFile(
+  root: FileSystemDirectoryHandle,
+  sourcePath: string,
+  targetPath: string
+): Promise<void> {
+  const source = normalizeRelativePath(sourcePath);
+  const target = normalizeRelativePath(targetPath);
+  if (source === target) throw new Error("源文件和目标文件不能相同");
+  const sourceFile = await readFile(root, source);
+  if (await fileExists(root, target)) throw new Error(`目标文件已存在: ${target}`);
+  await writeFile(root, target, sourceFile);
+  await deleteEntry(root, source);
+}
+
 export async function writeTextFile(
   root: FileSystemDirectoryHandle,
   path: string,

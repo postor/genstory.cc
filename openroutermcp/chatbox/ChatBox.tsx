@@ -63,7 +63,7 @@ import {
 } from "@/components/ui/popover";
 import { ModelSelect } from "./ModelSelect";
 import { ChatHistoryWindow } from "./ChatHistoryWindow";
-import { extractImages } from "./chatRender";
+import { extractImages, type ExtractedToolImage } from "./chatRender";
 import {
   estimateContextUsage,
   estimateContextTokens,
@@ -151,7 +151,7 @@ const CHAT_SYSTEM_COPY = {
       "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
       "只在确实需要的时调用工具，不要编造工具参数。",
     projectTools:
-      "项目正文和素材不会默认附带在请求中；当前项目概况会随请求发送。如果需要了解项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取。",
+      "项目正文和素材不会默认附带在请求中；当前项目概况会随请求发送。如果需要了解或操作项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取；移动图片等二进制文件时调用 genstory_move_project_file。",
     fileChanges:
       "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。",
     contextHeader: "当前项目概况（非完整文件内容）：",
@@ -170,7 +170,7 @@ const CHAT_SYSTEM_COPY = {
       "When the user's request needs a tool, call the most appropriate tool; after the tool returns, continue your answer based on the result. " +
       "Only call tools when they are actually needed, and do not invent tool arguments.",
     projectTools:
-      "Project content and assets are not included by default; the current project overview is sent with the request. If you need project content, first call genstory_list_project_files, genstory_read_project_file, or genstory_search_project_files to read it precisely.",
+      "Project content and assets are not included by default; the current project overview is sent with the request. If you need to inspect or operate on project content, first call genstory_list_project_files, genstory_read_project_file, or genstory_search_project_files; use genstory_move_project_file to move images and other binary files.",
     fileChanges:
       '\n\nIf you need to modify project files, append a JSON code block at the end of your answer in this format: ```json\n{"fileChanges":[{"path":"chapter-001/pages/page-001.md","content":"complete file content","description":"change description"}]}\n```. path must be project-relative, and content must contain the complete file content.',
     contextHeader: "Current project overview (not complete file content):",
@@ -268,6 +268,11 @@ export interface ChatBoxProps {
   onSend?: (text: string) => void;
   /** Applies explicit file edits returned by the assistant after user confirmation. */
   onFileChanges?: (changes: ChatFileChange[]) => void | Promise<void>;
+  onToolImages?: (input: {
+    images: ExtractedToolImage[];
+    toolCallId: string;
+    toolName: string;
+  }) => Promise<{ path: string; toolCallId: string; toolName: string }[]>;
   /** Local project tools, such as list/read/search files, exposed to the model on demand. */
   projectTools?: ChatProjectTool[];
   className?: string;
@@ -341,6 +346,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     onModelChange,
     onSend,
     onFileChanges,
+    onToolImages,
     projectTools = [],
     className,
   }: ChatBoxProps,
@@ -1106,8 +1112,17 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                 : await callTool(tc.function.name, args);
               // Replace inline image base64 with a stable id reference so the
               // data never enters the chat context sent back to the model.
-              const display = extractImages(res, collected);
-              resultText = JSON.stringify(display, null, 2);
+               const extracted: ExtractedToolImage[] = [];
+               const display = extractImages(res, collected, extracted);
+               resultText = JSON.stringify(display, null, 2);
+               if (extracted.length > 0 && onToolImages) {
+                 const saved = await onToolImages({
+                   images: extracted,
+                   toolCallId: tc.id,
+                   toolName: tc.function.name,
+                 });
+                 if (saved.length > 0) resultText += `\n[toolImages] ${JSON.stringify(saved)}`;
+               }
               trackToolCalled({
                 toolName: tc.function.name,
                 source: toolSource,
@@ -1209,6 +1224,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     maxToolRounds,
     model,
     onFileChanges,
+    onToolImages,
     onSend,
     projectToolNames,
     projectTools,

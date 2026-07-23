@@ -31,6 +31,7 @@ import {
   type ChatFileChange,
   type ChatProjectTool,
 } from "@/openroutermcp/chatbox";
+import type { ExtractedToolImage } from "@/openroutermcp/chatbox/chatRender";
 import { contentTypeById } from "@/lib/content-types";
 import type { ProjectFileEntry } from "@/lib/file-system/types";
 import { parentDirectoryPath, resolveNewEntryPath, uploadTargetDirectory } from "@/lib/file-system/ops";
@@ -45,10 +46,12 @@ import {
   deleteEntry,
   ensurePermission,
   listProjectFiles,
+  moveFile,
   openProjectDirectory,
   readFile,
   readTextFile,
   supportsFileSystemAccess,
+  writeFile,
   writeFilesToDirectory,
   writeTextFile,
 } from "@/lib/file-system/browser";
@@ -965,6 +968,27 @@ export default function EditorClient() {
     setSaved(true);
   }
 
+  async function persistToolImages(input: {
+    images: ExtractedToolImage[];
+    toolCallId: string;
+    toolName: string;
+  }): Promise<{ path: string; toolCallId: string; toolName: string }[]> {
+    if (!root) throw new Error("当前项目目录不可用");
+    const safeId = input.toolCallId.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 80) || "toolcall";
+    const saved: { path: string; toolCallId: string; toolName: string }[] = [];
+    for (const [index, image] of input.images.entries()) {
+      const extension = image.mimeType === "image/jpeg" || image.mimeType === "image/jpg" ? "jpg" : "png";
+      const suffix = input.images.length > 1 ? `-${index + 1}` : "";
+      const path = `tmp/tool-images/${safeId}${suffix}.${extension}`;
+      const response = await fetch(image.source);
+      if (!response.ok) throw new Error(`工具图片下载失败 (${response.status})`);
+      await writeFile(root, path, await response.blob());
+      saved.push({ path, toolCallId: input.toolCallId, toolName: input.toolName });
+    }
+    if (saved.length > 0) await reloadFiles(saved.at(-1)?.path, "file");
+    return saved;
+  }
+
   async function handleDownloadSource() {
     if (!project || !root) return;
     setExporting(true);
@@ -1222,8 +1246,38 @@ export default function EditorClient() {
           return { query, matches: matches.slice(0, 20) };
         },
       },
+      {
+        name: "genstory_move_project_file",
+        description: "Move a project file, including binary images, without changing its contents.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sourcePath: {
+              type: "string",
+              description: "Project-relative path of the existing file.",
+            },
+            targetPath: {
+              type: "string",
+              description: "Project-relative destination path, which must not already exist.",
+            },
+          },
+          required: ["sourcePath", "targetPath"],
+        },
+        call: async (args) => {
+          if (!root) throw new Error("当前项目目录不可用");
+          const sourcePath = normalizeRelativePath(String(args.sourcePath ?? ""));
+          const targetPath = normalizeRelativePath(String(args.targetPath ?? ""));
+          await ensurePermission(root, true);
+          await moveFile(root, sourcePath, targetPath);
+          await reloadFiles(targetPath, "file");
+          if (project?.template === "visual-novel") {
+            setVn(await readVNProjectFromDirectory(root));
+          }
+          return { moved: true, sourcePath, targetPath };
+        },
+      },
     ];
-  }, [contents, selectedPath, t]);
+  }, [contents, project, root, selectedPath, t]);
 
   const createDirectoryTarget = createDirectoryState
     ? uploadTargetDirectory(createDirectoryState.path, createDirectoryState.kind) ||
@@ -1552,6 +1606,7 @@ export default function EditorClient() {
                 context={context}
                 projectTools={projectTools}
                 onFileChanges={applyChatFileChanges}
+                onToolImages={persistToolImages}
                 className="h-full max-w-none"
               />
             </div>

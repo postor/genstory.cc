@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { OpenRouterMcpProvider } from "@/lib/openrouter-provider/OpenRouterMcpProvider";
 import { LangProvider } from "@/lib/i18n";
 import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 import {
   ogImagePath,
   pageLanguageAlternates,
@@ -80,6 +81,7 @@ export default function RootLayout({
             <div className="flex min-h-full flex-col">
               <SiteHeader />
               <div className="flex-1">{children}</div>
+              <SiteFooter />
             </div>
           </OpenRouterMcpProvider>
         </LangProvider>

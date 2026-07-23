@@ -16,16 +16,16 @@ import {
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { localizedPath, type PublicLang } from "@/lib/seo";
+import { isImmersiveRoute } from "@/components/site-layout-routes";
 
 export function SiteHeader() {
   const { lang, setLang } = useLang();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const immersiveRoutes = ["/projects/editor", "/projects/preview"];
   const publicLang = getPublicLang(pathname) ?? lang;
   const labels = headerLabels[publicLang];
 
-  if (immersiveRoutes.some((route) => pathname.startsWith(route))) {
+  if (isImmersiveRoute(pathname)) {
     return null;
   }
 

@@ -332,8 +332,8 @@ export const publicPages: Record<
   book: {
     title: { zh: "浏览器写作工具 - GenStory.cc", en: "Browser Writing App - GenStory.cc" },
     description: {
-      zh: "在浏览器中写小说、设定集和长篇内容，可选 AI 助手辅助大纲、续写和角色设定，用章节、页面和媒体附件组织项目，并下载源码 ZIP 备份。",
-      en: "Write novels, lore documents, and long-form projects in the browser with optional AI assistance for outlines, continuation drafts, and character notes, organized by chapters, pages, media attachments, and source ZIP backups.",
+      zh: "在浏览器中写小说、设定集和长篇内容，可选 AI 助手辅助大纲、续写和角色设定，用章节、页面和媒体附件组织项目，并保留项目备份或手动同步到自己的网盘。",
+      en: "Write novels, lore documents, and long-form projects in the browser with optional AI assistance for outlines, continuation drafts, and character notes, organized by chapters, pages, media attachments, restorable backups, and optional cloud drive sync.",
     },
     kicker: { zh: "浏览器写作", en: "Browser writing" },
     heading: { zh: "适合小说和长篇内容的浏览器写作工具", en: "A browser writing app for novels and long-form projects" },
@@ -357,10 +357,10 @@ export const publicPages: Record<
         },
       },
       {
-        title: { zh: "下载项目备份", en: "Download project backups" },
+        title: { zh: "备份与网盘同步", en: "Backup and cloud drive sync" },
         body: {
-          zh: "下载 ZIP 备份可以把作品带出浏览器，之后重新导入即可继续编辑。",
-          en: "Download a ZIP backup to move your work out of the browser and import it later for continued editing.",
+          zh: "下载 ZIP 备份可以把作品带出浏览器，之后重新导入即可继续编辑。也可以在设置中授权自己的网盘后，手动把作品同步过去；同步不会自动运行。",
+          en: "Download a ZIP backup to move your work out of the browser and import it later for continued editing. You can also authorize your own cloud drive in Settings and sync manually; sync does not run automatically.",
         },
       },
     ],

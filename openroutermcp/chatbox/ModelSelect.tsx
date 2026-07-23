@@ -28,6 +28,20 @@ export interface ModelSelectProps {
   disabled?: boolean;
 }
 
+function formatPricePerMillion(value?: string): string | null {
+  if (value === undefined) return null;
+  const price = Number(value) * 1_000_000;
+  if (!Number.isFinite(price)) return null;
+  return price === 0 ? "$0" : `$${price < 0.01 ? price.toFixed(4) : price.toFixed(2)}`;
+}
+
+function modelPriceLabel(model: ModelInfo): string | null {
+  const prompt = formatPricePerMillion(model.pricing?.prompt);
+  const completion = formatPricePerMillion(model.pricing?.completion);
+  if (!prompt && !completion) return null;
+  return `In ${prompt ?? "-"} / Out ${completion ?? "-"} per 1M tokens`;
+}
+
 export function ModelSelect({ models, value, onChange, loading, disabled }: ModelSelectProps) {
   const { t } = useLang();
   const [open, setOpen] = useState(false);
@@ -134,6 +148,7 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
                 <ul className="flex flex-col">
                   {filtered.map((m, i) => {
                     const isActive = i === activeIndex;
+                    const priceLabel = modelPriceLabel(m);
                     return (
                       <li key={m.id}>
                         <button
@@ -150,9 +165,13 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
                               : "hover:bg-accent hover:text-accent-foreground")
                           }
                         >
-                          <span className="truncate">
+                          <span className="min-w-0 truncate">
                             <span className="font-medium">{m.name}</span>
-                            <span className="ml-1 text-xs opacity-70">{m.id}</span>
+                            {priceLabel ? (
+                              <span className="block truncate text-[10px] opacity-65">
+                                {priceLabel}
+                              </span>
+                            ) : null}
                           </span>
                         </button>
                       </li>

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CloudUpload, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, CloudUpload, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Menu, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -267,7 +267,6 @@ function TreeNodeActions({
 function MobileProjectActions({
   project,
   hasRoot,
-  mode,
   vn,
   exporting,
   cloudOperation,
@@ -285,7 +284,6 @@ function MobileProjectActions({
 }: {
   project: Project | null;
   hasRoot: boolean;
-  mode: "source" | "scene";
   vn: VNProject | null;
   exporting: boolean;
   cloudOperation: "upload" | null;
@@ -382,7 +380,7 @@ function MobileProjectActions({
           />
         }
       >
-        <Ellipsis className="size-4" />
+        <Menu className="size-4" />
       </PopoverTrigger>
       <PopoverPortal>
         <PopoverPositioner side="bottom" align="end">
@@ -1359,7 +1357,6 @@ export default function EditorClient() {
         <MobileProjectActions
           project={project}
           hasRoot={root !== null}
-          mode={mode}
           vn={vn}
           exporting={exporting}
           cloudOperation={cloudOperation}

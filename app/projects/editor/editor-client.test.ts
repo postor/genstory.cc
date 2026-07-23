@@ -92,7 +92,7 @@ test("editor moves project actions into a mobile top-right menu", async () => {
 
   assert.match(source, /function MobileProjectActions/);
   assert.match(mobileMenuSource, /className="lg:hidden"/);
-  assert.match(mobileMenuSource, /Ellipsis/);
+  assert.match(mobileMenuSource, /Menu/);
   assert.match(mobileMenuSource, /editor\.preview/);
   assert.match(mobileMenuSource, /editor\.export/);
   assert.match(mobileMenuSource, /editor\.downloadSource/);

@@ -23,3 +23,13 @@ test("site header exposes the new issue link after the GitHub link", async () =>
   assert.match(source, /aria-label=\{labels\.newIssue\}/);
   assert.match(source, />\s*Issue\s*</);
 });
+
+test("site header collapses mobile navigation into a menu without the home link", async () => {
+  const source = await readFile(new URL("./site-header.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /MenuIcon/);
+  assert.match(source, /className="hidden items-center gap-1 sm:flex"/);
+  assert.match(source, /className="sm:hidden"/);
+  assert.match(source, /navItems\.filter\(\(item\) => item\.href !== localizedPath\(publicLang\)\)/);
+  assert.match(source, /aria-label=\{labels\.menu\}/);
+});

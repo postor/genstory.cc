@@ -1,15 +1,26 @@
 "use client";
 
+import { MenuIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverPopup,
+  PopoverPositioner,
+  PopoverPortal,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { useLang } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { localizedPath, type PublicLang } from "@/lib/seo";
 
 export function SiteHeader() {
   const { lang, setLang } = useLang();
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const immersiveRoutes = ["/projects/editor", "/projects/preview"];
   const publicLang = getPublicLang(pathname) ?? lang;
   const labels = headerLabels[publicLang];
@@ -28,7 +39,7 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex min-h-14 max-w-6xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-2 sm:h-14 sm:flex-nowrap sm:py-0 sm:px-6">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link href={localizedPath(publicLang)} className="flex items-center gap-2 font-semibold">
           <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground text-sm">
             G
@@ -36,83 +47,213 @@ export function SiteHeader() {
           GenStory.cc
         </Link>
 
-        <nav className="flex items-center gap-1 max-[400px]:w-full max-[400px]:flex-wrap max-[400px]:justify-start">
-          {navItems.map((item) => {
-            const active =
-              item.href === localizedPath(publicLang)
-                ? pathname === "/" || pathname === item.href
-                : pathname.startsWith(item.href);
-            return (
-              <Button
-                key={item.href}
-                render={<Link href={item.href} />}
-                variant={active ? "secondary" : "ghost"}
-                size="sm"
-              >
-                {item.label}
-              </Button>
-            );
-          })}
-
-          <Button
-            render={
-              <a
-                href="https://github.com/postor/genstory.cc"
-                target="_blank"
-                rel="noreferrer"
-              />
-            }
-            variant="ghost"
-            size="icon-sm"
-            aria-label={labels.sourceCode}
-            title={labels.sourceCode}
-          >
-            <GitHubMark />
-          </Button>
-
-          <Button
-            render={
-              <a
-                href="https://github.com/postor/genstory.cc/issues/new"
-                target="_blank"
-                rel="noreferrer"
-              />
-            }
-            variant="ghost"
-            size="sm"
-            aria-label={labels.newIssue}
-            title={labels.newIssue}
-          >
-            Issue
-          </Button>
-
-          <div
-            className="ml-1 flex items-center rounded-lg border p-0.5"
-            role="group"
-            aria-label={labels.language}
-          >
-            <Button
-              render={<Link href={zhHref} />}
-              variant={publicLang === "zh" ? "default" : "ghost"}
-              size="xs"
-              aria-pressed={publicLang === "zh"}
-              onClick={() => setLang("zh")}
-            >
-              {headerLabels.zh.languageName}
-            </Button>
-            <Button
-              render={<Link href={enHref} />}
-              variant={publicLang === "en" ? "default" : "ghost"}
-              size="xs"
-              aria-pressed={publicLang === "en"}
-              onClick={() => setLang("en")}
-            >
-              {headerLabels.en.languageName}
-            </Button>
-          </div>
+        <nav className="hidden items-center gap-1 sm:flex">
+          <HeaderNavLinks
+            navItems={navItems}
+            pathname={pathname}
+            publicLang={publicLang}
+          />
+          <HeaderExternalLinks labels={labels} />
+          <LanguageSwitcher
+            publicLang={publicLang}
+            zhHref={zhHref}
+            enHref={enHref}
+            labels={labels}
+            setLang={setLang}
+          />
         </nav>
+
+        <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                className="sm:hidden"
+                variant="ghost"
+                size="icon"
+                aria-label={labels.menu}
+                title={labels.menu}
+              />
+            }
+          >
+            <MenuIcon />
+          </PopoverTrigger>
+          <PopoverPortal>
+            <PopoverPositioner side="bottom" align="end" sideOffset={8}>
+              <PopoverPopup className="w-56">
+                <nav className="flex flex-col gap-1" aria-label={labels.menu}>
+                  <HeaderNavLinks
+                    navItems={navItems.filter((item) => item.href !== localizedPath(publicLang))}
+                    pathname={pathname}
+                    publicLang={publicLang}
+                    onNavigate={() => setMobileMenuOpen(false)}
+                    itemClassName="justify-start"
+                  />
+                  <HeaderExternalLinks
+                    labels={labels}
+                    onNavigate={() => setMobileMenuOpen(false)}
+                    itemClassName="justify-start"
+                    showSourceLabel
+                  />
+                  <LanguageSwitcher
+                    publicLang={publicLang}
+                    zhHref={zhHref}
+                    enHref={enHref}
+                    labels={labels}
+                    setLang={setLang}
+                    onNavigate={() => setMobileMenuOpen(false)}
+                    className="mt-1"
+                  />
+                </nav>
+              </PopoverPopup>
+            </PopoverPositioner>
+          </PopoverPortal>
+        </Popover>
       </div>
     </header>
+  );
+}
+
+type HeaderLabels = (typeof headerLabels)[PublicLang];
+
+type NavItem = {
+  href: string;
+  label: string;
+};
+
+function HeaderNavLinks({
+  navItems,
+  pathname,
+  publicLang,
+  onNavigate,
+  itemClassName,
+}: {
+  navItems: NavItem[];
+  pathname: string;
+  publicLang: PublicLang;
+  onNavigate?: () => void;
+  itemClassName?: string;
+}) {
+  return navItems.map((item) => {
+    const active =
+      item.href === localizedPath(publicLang)
+        ? pathname === "/" || pathname === item.href
+        : pathname.startsWith(item.href);
+    return (
+      <Button
+        key={item.href}
+        className={itemClassName}
+        render={<Link href={item.href} />}
+        variant={active ? "secondary" : "ghost"}
+        size="sm"
+        onClick={onNavigate}
+      >
+        {item.label}
+      </Button>
+    );
+  });
+}
+
+function HeaderExternalLinks({
+  labels,
+  onNavigate,
+  itemClassName,
+  showSourceLabel = false,
+}: {
+  labels: HeaderLabels;
+  onNavigate?: () => void;
+  itemClassName?: string;
+  showSourceLabel?: boolean;
+}) {
+  return (
+    <>
+      <Button
+        className={itemClassName}
+        render={
+          <a
+            href="https://github.com/postor/genstory.cc"
+            target="_blank"
+            rel="noreferrer"
+          />
+        }
+        variant="ghost"
+        size={showSourceLabel ? "sm" : "icon-sm"}
+        aria-label={labels.sourceCode}
+        title={labels.sourceCode}
+        onClick={onNavigate}
+      >
+        <GitHubMark />
+        {showSourceLabel ? labels.sourceCodeShort : null}
+      </Button>
+
+      <Button
+        className={itemClassName}
+        render={
+          <a
+            href="https://github.com/postor/genstory.cc/issues/new"
+            target="_blank"
+            rel="noreferrer"
+          />
+        }
+        variant="ghost"
+        size="sm"
+        aria-label={labels.newIssue}
+        title={labels.newIssue}
+        onClick={onNavigate}
+      >
+        Issue
+      </Button>
+    </>
+  );
+}
+
+function LanguageSwitcher({
+  publicLang,
+  zhHref,
+  enHref,
+  labels,
+  setLang,
+  onNavigate,
+  className,
+}: {
+  publicLang: PublicLang;
+  zhHref: string;
+  enHref: string;
+  labels: HeaderLabels;
+  setLang: (lang: PublicLang) => void;
+  onNavigate?: () => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn("flex items-center rounded-lg border p-0.5", className)}
+      role="group"
+      aria-label={labels.language}
+    >
+      <Button
+        render={<Link href={zhHref} />}
+        variant={publicLang === "zh" ? "default" : "ghost"}
+        size="xs"
+        aria-pressed={publicLang === "zh"}
+        onClick={() => {
+          setLang("zh");
+          onNavigate?.();
+        }}
+      >
+        {headerLabels.zh.languageName}
+      </Button>
+      <Button
+        render={<Link href={enHref} />}
+        variant={publicLang === "en" ? "default" : "ghost"}
+        size="xs"
+        aria-pressed={publicLang === "en"}
+        onClick={() => {
+          setLang("en");
+          onNavigate?.();
+        }}
+      >
+        {headerLabels.en.languageName}
+      </Button>
+    </div>
   );
 }
 
@@ -129,7 +270,9 @@ const headerLabels: Record<
     settings: string;
     language: string;
     languageName: string;
+    menu: string;
     sourceCode: string;
+    sourceCodeShort: string;
     newIssue: string;
   }
 > = {
@@ -139,7 +282,9 @@ const headerLabels: Record<
     settings: "设置",
     language: "语言",
     languageName: "中文",
+    menu: "打开导航菜单",
     sourceCode: "在 GitHub 上关注和点赞",
+    sourceCodeShort: "GitHub",
     newIssue: "提交 Issue",
   },
   en: {
@@ -148,7 +293,9 @@ const headerLabels: Record<
     settings: "Settings",
     language: "Language",
     languageName: "English",
+    menu: "Open navigation menu",
     sourceCode: "Follow and star on GitHub",
+    sourceCodeShort: "GitHub",
     newIssue: "Open a new Issue",
   },
 };

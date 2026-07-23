@@ -26,6 +26,10 @@ export interface ModelInfo {
   id: string;
   name: string;
   contextLength?: number;
+  pricing?: {
+    prompt?: string;
+    completion?: string;
+  };
 }
 
 export type ChatRole = "system" | "user" | "assistant" | "tool";
@@ -67,6 +71,7 @@ export async function listModels(): Promise<ModelInfo[]> {
         name?: string;
         context_length?: number;
         top_provider?: { context_length?: number };
+        pricing?: { prompt?: string; completion?: string };
       }[];
     };
     const data = (json.data || [])
@@ -75,6 +80,7 @@ export async function listModels(): Promise<ModelInfo[]> {
         id: m.id as string,
         name: m.name as string,
         contextLength: m.context_length ?? m.top_provider?.context_length,
+        pricing: m.pricing,
       }));
     return data.length ? data : FALLBACK_MODELS;
   } catch {

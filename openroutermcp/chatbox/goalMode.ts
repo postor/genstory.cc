@@ -233,3 +233,72 @@ export function decideGoalContinuation(input: {
     goal: nextGoal,
   };
 }
+
+export function applySetGoalToolInput(
+  currentGoal: GoalState | null,
+  input: Record<string, unknown>,
+  fallbackObjective: string,
+  now = Date.now()
+): GoalState {
+  const objective =
+    cleanString(input.objective) ||
+    currentGoal?.objective ||
+    fallbackObjective.trim();
+  const rawStatus = cleanString(input.status);
+  const assessmentStatus: GoalAssessmentStatus =
+    rawStatus === "complete" || rawStatus === "blocked"
+      ? rawStatus
+      : "in_progress";
+  const baseGoal = currentGoal
+    ? { ...currentGoal, objective }
+    : createGoalState(objective, now);
+  const next = applyGoalAssessment(
+    baseGoal,
+    {
+      status: assessmentStatus,
+      summary: cleanString(input.summary),
+      evidence: cleanStringList(input.evidence),
+      missingDependencies: cleanStringList(input.missingDependencies),
+      resolvableDependencies: cleanStringList(input.resolvableDependencies),
+      userDependencies: cleanStringList(input.userDependencies),
+      resolvedDependencies: cleanStringList(input.resolvedDependencies),
+      blocker: cleanString(input.blocker),
+      nextAction: cleanString(input.nextAction),
+    },
+    now
+  );
+
+  if (rawStatus === "stalled") {
+    return {
+      ...next,
+      status: "stalled",
+      blocker: next.blocker || "自动目标已暂停。",
+      updatedAt: now,
+    };
+  }
+  return rawStatus === "active" || rawStatus === "in_progress"
+    ? { ...next, status: "active", updatedAt: now }
+    : next;
+}
+
+export function pauseGoalAfterContinuationLimit(
+  goal: GoalState,
+  reason: GoalContinuationDecision["reason"],
+  now = Date.now()
+): GoalState {
+  if (goal.status !== "active") return goal;
+  const needsVerification = reason === "needs-verification";
+  return {
+    ...goal,
+    status: "stalled",
+    blocker: needsVerification
+      ? "自动继续轮次已用尽，仍缺少可检查的完成证据。"
+      : "自动继续轮次已用尽，仍需要执行下一步。",
+    nextAction:
+      goal.nextAction ||
+      (needsVerification
+        ? "补充可检查的完成证据"
+        : "继续执行目标的下一步"),
+    updatedAt: now,
+  };
+}

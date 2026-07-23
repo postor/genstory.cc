@@ -3,10 +3,12 @@ import test from "node:test";
 
 import {
   applyGoalAssessment,
+  applySetGoalToolInput,
   createGoalState,
   decideGoalContinuation,
-  isTaskLikeRequest,
   isGoalContinuationRequest,
+  isTaskLikeRequest,
+  pauseGoalAfterContinuationLimit,
   parseGoalAssessment,
 } from "./goalMode.ts";
 
@@ -229,4 +231,54 @@ test("stops a verified complete goal and a real blocker", () => {
     }).action,
     "stop-blocked"
   );
+});
+
+test("pauses an unfinished goal when automatic continuation is no longer available", () => {
+  const goal = {
+    ...createGoalState("修复登录表单"),
+    nextAction: "补充可验证的完成证据",
+  };
+
+  const paused = pauseGoalAfterContinuationLimit(goal, "needs-verification", 1000);
+
+  assert.equal(paused.status, "stalled");
+  assert.equal(paused.noProgressCount, goal.noProgressCount);
+  assert.equal(paused.updatedAt, 1000);
+  assert.match(paused.blocker, /自动继续|automatic continuation/iu);
+  assert.match(paused.nextAction, /补充可验证的完成证据/);
+});
+
+test("applies set_goal tool input to the local goal state", () => {
+  const started = applySetGoalToolInput(
+    null,
+    {
+      objective: "整理章节结构",
+      status: "in_progress",
+      summary: "正在读取章节",
+      nextAction: "读取剩余文件",
+    },
+    "用户原始请求",
+    100
+  );
+
+  assert.equal(started.objective, "整理章节结构");
+  assert.equal(started.status, "active");
+  assert.equal(started.summary, "正在读取章节");
+  assert.equal(started.nextAction, "读取剩余文件");
+
+  const completed = applySetGoalToolInput(
+    started,
+    {
+      status: "complete",
+      summary: "章节结构已整理",
+      evidence: ["写入了 chapter-001/meta.md"],
+    },
+    "用户原始请求",
+    200
+  );
+
+  assert.equal(completed.objective, "整理章节结构");
+  assert.equal(completed.status, "complete");
+  assert.deepEqual(completed.evidence, ["写入了 chapter-001/meta.md"]);
+  assert.equal(completed.updatedAt, 200);
 });

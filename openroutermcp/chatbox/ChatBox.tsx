@@ -21,11 +21,12 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import {
   chat,
   listModels,
+  OPENROUTER_WEB_SEARCH_TOOL,
   type ChatMessage,
   type ChatTool,
   type ModelInfo,
 } from "@/lib/openrouter";
-import { CircleAlert, CircleCheck, Loader2, SlidersHorizontal } from "lucide-react";
+import { CircleAlert, CircleCheck, Loader2, SlidersHorizontal, Trash2 } from "lucide-react";
 import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -71,16 +72,19 @@ import {
 } from "./contextCompression";
 import {
   applyGoalAssessment,
+  applySetGoalToolInput,
   createGoalState,
   decideGoalContinuation,
   isGoalContinuationRequest,
   isTaskLikeRequest,
+  pauseGoalAfterContinuationLimit,
   parseGoalAssessment,
   type GoalState,
 } from "./goalMode";
 import { pickInitialModelId } from "./modelSelection";
 import {
   createContextCompressionNotice,
+  createGoalStatusNotice,
   createModelSwitchNotice,
   llmMessagesFromTranscript,
   type ChatTranscriptItem,
@@ -100,6 +104,7 @@ const CHAT_SYSTEM_COPY = {
   zh: {
     tools:
       "你可以通过调用提供的 MCP 工具来获取信息或执行操作。" +
+      "如果用户需要当前或外部网页信息，请调用 web_search；它会返回网页标题、链接和摘要。" +
       "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
       "只在确实需要的时调用工具，不要编造工具参数。",
     projectTools:
@@ -112,13 +117,13 @@ const CHAT_SYSTEM_COPY = {
       "例如用户说“帮我画个人”，可以采用合理的中性默认设定继续，不要追问国籍等不影响任务完成的细节。" +
       "只有缺少改变任务含义或安全性的关键依赖、需要用户授权不可逆操作，或连续没有进展时才暂停。" +
       "每次准备结束前都要自检：目标是否完成、完成是否有工具结果或文件状态等证据、是否存在关键依赖、能否自行解决依赖、是否在空转。" +
-      "如果还没完成，继续调用工具或采取下一步；如果已完成、确实阻塞或已空转，在回答末尾追加 goal JSON：" +
-      "```json\n{\"goal\":{\"status\":\"in_progress|complete|blocked\",\"summary\":\"...\",\"evidence\":[\"...\"],\"missingDependencies\":[\"...\"],\"resolvableDependencies\":[\"...\"],\"userDependencies\":[\"...\"],\"resolvedDependencies\":[\"...\"],\"blocker\":\"...\",\"nextAction\":\"...\"}}\n```。" +
-      "complete 必须有可检查的 evidence；blocked 必须说明 blocker；in_progress 必须说明 nextAction。",
+      "目标状态必须通过本地工具 set_goal 或 clear_goal 更新，不要用普通文本或末尾 JSON 更新 goal。" +
+      "开始、进展、暂停或阻塞时调用 set_goal；完成时调用 set_goal 且 status=complete，并提供 evidence；如果目标不再需要展示，调用 clear_goal。",
   },
   en: {
     tools:
       "You can call the provided MCP tools to gather information or perform actions. " +
+      "When the user needs current or external web information, call web_search; it returns page titles, links, and excerpts. " +
       "When the user's request needs a tool, call the most appropriate tool; after the tool returns, continue your answer based on the result. " +
       "Only call tools when they are actually needed, and do not invent tool arguments.",
     projectTools:
@@ -131,9 +136,8 @@ const CHAT_SYSTEM_COPY = {
       'For example, if the user says "draw a person", choose a reasonable neutral default instead of asking about nationality or other details that do not affect completion.' +
       "Pause only when a missing dependency changes the meaning or safety of the task, an irreversible action needs user authorization, or there is repeated no progress." +
       "Before ending, self-check: is the goal complete, is there evidence such as a tool result or file state, are key dependencies missing, can the agent resolve them, and is it spinning?" +
-      "If unfinished, call another tool or take the next action. If complete, truly blocked, or stalled, append this goal JSON:" +
-      '```json\n{"goal":{"status":"in_progress|complete|blocked","summary":"...","evidence":["..."],"missingDependencies":["..."],"resolvableDependencies":["..."],"userDependencies":["..."],"resolvedDependencies":["..."],"blocker":"...","nextAction":"..."}}\n```.' +
-      "complete requires checkable evidence; blocked requires blocker; in_progress requires nextAction.",
+      "Update goal state only by calling the local set_goal or clear_goal tools; do not update goals with plain text or trailing JSON." +
+      "Call set_goal when starting, progressing, pausing, or blocking; when complete, call set_goal with status=complete and evidence; call clear_goal when the goal should no longer be shown.",
   },
 } satisfies Record<
   Lang,
@@ -335,11 +339,26 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     () => new Set(projectTools.map((tool) => tool.name)),
     [projectTools]
   );
-
   const updateGoal = useCallback((next: GoalState | null) => {
+    const previous = goalRef.current;
     goalRef.current = next;
     setGoal(next);
-  }, []);
+    const status = next?.status;
+    if (
+      next &&
+      (status === "blocked" || status === "stalled") &&
+      previous?.status !== status
+    ) {
+      setTranscript((current) => [
+        ...current,
+        createGoalStatusNotice({
+          status,
+          blocker: next.blocker,
+          nextAction: next.nextAction,
+        }, lang),
+      ]);
+    }
+  }, [lang]);
 
   // --- init: load models + attempt to connect to MCP ---
   useEffect(() => {
@@ -615,11 +634,76 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                 noProgressCount: 0,
                 lastProgressFingerprint: "",
                 updatedAt: Date.now(),
-              }
+            }
             : null;
       updateGoal(turnGoal);
+      let goalForTurn = turnGoal;
+
+      const goalTools: ChatProjectTool[] = goalModeActive
+        ? [
+            {
+              name: "set_goal",
+              description:
+                "Locally set the current goal state. Use this when starting, progressing, completing, blocking, or pausing a task goal.",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  objective: { type: "string" },
+                  status: {
+                    type: "string",
+                    enum: ["in_progress", "active", "complete", "blocked", "stalled"],
+                  },
+                  summary: { type: "string" },
+                  evidence: { type: "array", items: { type: "string" } },
+                  missingDependencies: { type: "array", items: { type: "string" } },
+                  resolvableDependencies: { type: "array", items: { type: "string" } },
+                  userDependencies: { type: "array", items: { type: "string" } },
+                  resolvedDependencies: { type: "array", items: { type: "string" } },
+                  blocker: { type: "string" },
+                  nextAction: { type: "string" },
+                },
+                required: ["status", "summary"],
+              },
+              call: (args) => {
+                const next = applySetGoalToolInput(
+                  goalForTurn ?? goalRef.current,
+                  args,
+                  text
+                );
+                goalForTurn = next;
+                updateGoal(next);
+                return { goal: next };
+              },
+            },
+            {
+              name: "clear_goal",
+              description:
+                "Locally clear the current goal when it is complete, cancelled, or no longer needs to be displayed.",
+              inputSchema: {
+                type: "object",
+                properties: {
+                  reason: { type: "string" },
+                },
+              },
+              call: (args) => {
+                goalForTurn = null;
+                updateGoal(null);
+                return {
+                  cleared: true,
+                  reason: typeof args.reason === "string" ? args.reason : "",
+                };
+              },
+            },
+          ]
+        : [];
+      const goalToolNames = new Set(goalTools.map((tool) => tool.name));
 
       const runtimeTools = [
+        ...goalTools.map((t) => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema ?? { type: "object", properties: {} },
+        })),
         ...tools.map((t) => ({
           name: t.name,
           description: t.description || "",
@@ -631,15 +715,17 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           inputSchema: t.inputSchema ?? { type: "object", properties: {} },
         })),
       ];
-      const mcpTools: ChatTool[] = runtimeTools.map((t) => ({
-        type: "function",
-        function: { name: t.name, description: t.description, parameters: t.inputSchema },
-      }));
+      const mcpTools: ChatTool[] = [
+        ...runtimeTools.map((t) => ({
+          type: "function" as const,
+          function: { name: t.name, description: t.description, parameters: t.inputSchema },
+        })),
+        OPENROUTER_WEB_SEARCH_TOOL,
+      ];
 
       const userMessage: ChatMessage = { role: "user", content: text };
       let displayTranscript: ChatTranscriptItem[] = [...transcript, userMessage];
       let history: ChatMessage[] = llmMessagesFromTranscript(displayTranscript);
-      let goalForTurn = turnGoal;
       setMessages(history);
       setTranscript(displayTranscript);
       setInput("");
@@ -735,14 +821,19 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           const collected: Record<string, string> = {};
           for (const tc of toolCalls) {
             let resultText: string;
-            const toolSource = projectToolNames.has(tc.function.name)
+            const toolSource = goalToolNames.has(tc.function.name)
+              ? "local"
+              : projectToolNames.has(tc.function.name)
               ? "project"
               : "mcp";
             try {
               const args = tc.function.arguments ? JSON.parse(tc.function.arguments) as Record<string, unknown> : {};
-              const localTool = toolSource === "project"
-                ? projectTools.find((tool) => tool.name === tc.function.name)
-                : undefined;
+              const localTool =
+                toolSource === "local"
+                  ? goalTools.find((tool) => tool.name === tc.function.name)
+                  : toolSource === "project"
+                    ? projectTools.find((tool) => tool.name === tc.function.name)
+                    : undefined;
               const res = localTool
                 ? await localTool.call(args)
                 : await callTool(tc.function.name, args);
@@ -820,6 +911,13 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
             });
             setMessages([...history]);
             continue;
+          }
+          if (decision.action === "continue") {
+            goalForTurn = pauseGoalAfterContinuationLimit(
+              goalForTurn,
+              decision.reason
+            );
+            updateGoal(goalForTurn);
           }
         }
         break;
@@ -934,22 +1032,34 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           )}
         >
           <div className="flex items-center gap-2 font-semibold">
-            {goal.status === "complete" ? (
-              <CircleCheck className="size-3.5 text-emerald-600" />
-            ) : goal.status === "active" ? (
-              <Loader2 className="size-3.5 animate-spin text-primary" />
-            ) : (
-              <CircleAlert className="size-3.5 text-amber-600" />
-            )}
-            <span>
-              {goal.status === "complete"
-                ? t("chat.goalComplete")
-                : goal.status === "blocked"
-                  ? t("chat.goalBlocked")
-                  : goal.status === "stalled"
-                    ? t("chat.goalStalled")
-                    : t("chat.goalActive")}
-            </span>
+            <div className="flex min-w-0 items-center gap-2">
+              {goal.status === "complete" ? (
+                <CircleCheck className="size-3.5 text-emerald-600" />
+              ) : goal.status === "active" && sending ? (
+                <Loader2 className="size-3.5 animate-spin text-primary" />
+              ) : (
+                <CircleAlert className="size-3.5 text-amber-600" />
+              )}
+              <span>
+                {goal.status === "complete"
+                  ? t("chat.goalComplete")
+                  : goal.status === "blocked"
+                    ? t("chat.goalBlocked")
+                    : goal.status === "stalled"
+                      ? t("chat.goalStalled")
+                      : t("chat.goalActive")}
+              </span>
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-xs"
+              aria-label={t("chat.clearGoal")}
+              title={t("chat.clearGoal")}
+              onClick={() => updateGoal(null)}
+            >
+              <Trash2 />
+            </Button>
           </div>
           <p className="mt-1 truncate text-muted-foreground">
             {t("chat.goalObjective", { objective: goal.objective })}
@@ -959,7 +1069,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
               {t("chat.goalBlocker", { blocker: goal.blocker })}
             </p>
           )}
-          {goal.nextAction && goal.status === "active" && (
+          {goal.nextAction && (goal.status === "active" || goal.status === "stalled") && (
             <p className="mt-1 text-muted-foreground">
               {t("chat.goalNextAction", { action: goal.nextAction })}
             </p>

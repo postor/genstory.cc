@@ -42,6 +42,19 @@ test("chatbox tracks model selections, sends, and tool calls", async () => {
   assert.match(source, /trackModelSelected\(\{ model: id \}\)/);
 });
 
+test("chatbox wires OpenRouter's server-side web search tool into chat requests", async () => {
+  const [chatboxSource, openrouterSource] = await Promise.all([
+    readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../../lib/openrouter.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(chatboxSource, /OPENROUTER_WEB_SEARCH_TOOL/);
+  assert.match(chatboxSource, /\.\.\.runtimeTools\.map\(/);
+  assert.match(openrouterSource, /type: "openrouter:web_search"/);
+  assert.match(openrouterSource, /search_context_size: "medium"/);
+  assert.doesNotMatch(openrouterSource, /Tavily|loadWebSearchApiKey|searchWeb/);
+});
+
 test("chatbox resolves model defaults per chat before global preferences and persists explicit choices to both scopes", async () => {
   const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
 
@@ -64,6 +77,13 @@ test("chatbox enables the default goal contract and persists its state", async (
   assert.match(source, /decideGoalContinuation\(\{/);
   assert.match(source, /MAX_GOAL_NO_PROGRESS = 2/);
   assert.match(source, /storageKey\(LS_GOAL, chatId\)/);
+  assert.match(source, /name: "set_goal"/);
+  assert.match(source, /name: "clear_goal"/);
+  assert.match(source, /applySetGoalToolInput\(/);
+  assert.match(source, /createGoalStatusNotice\(/);
+  assert.match(source, /<Trash2 \/>/);
+  assert.match(source, /aria-label=\{t\("chat\.clearGoal"\)\}/);
+  assert.match(source, /onClick=\{\(\) => updateGoal\(null\)\}/);
   assert.match(source, /resolvableDependencies/);
   assert.match(source, /userDependencies/);
 });
@@ -78,6 +98,7 @@ test("chat settings place the goal mode toggle below auto compression and defaul
   assert.match(source, /onChange=\{\(event\) => \{/);
   assert.match(source, /setGoalEnabled\(enabled\)/);
   assert.match(source, /t\("chat\.goalMode"\)/);
+  assert.match(source, /goal\.status === "active" && sending/);
 
   const autoCompressIndex = source.indexOf('id="chatbox-auto-compress"');
   const goalModeIndex = source.indexOf('id="chatbox-goal-mode"');

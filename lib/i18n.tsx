@@ -120,7 +120,6 @@ const zh: Dict = {
   "settings.cloud.apiDocs": "API 文档",
   "settings.cloud.oauthDocs": "OAuth 文档",
   "settings.cloud.clientIdNote": "client ID 是公开标识，不是 client secret。Google Drive 的公开 client ID 已内置；不要把 client secret、服务账号密钥或 refresh token 粘贴到页面。",
-
   "create.title": "新建作品",
   "create.template": "项目类型",
   "create.name": "作品名称",
@@ -288,6 +287,7 @@ const zh: Dict = {
   "chat.goalComplete": "目标已完成",
   "chat.goalBlocked": "目标需要依赖",
   "chat.goalStalled": "目标因无进展暂停",
+  "chat.clearGoal": "删除当前目标",
   "chat.goalObjective": "目标：{objective}",
   "chat.goalNextAction": "下一步：{action}",
   "chat.goalBlocker": "阻塞：{blocker}",
@@ -427,7 +427,6 @@ const en: Dict = {
   "settings.cloud.apiDocs": "API docs",
   "settings.cloud.oauthDocs": "OAuth docs",
   "settings.cloud.clientIdNote": "A client ID is public, not a client secret. The Google Drive client ID is built in. Never paste a client secret, service-account key, or refresh token into the page.",
-
   "create.title": "New work",
   "create.template": "Project type",
   "create.name": "Work name",
@@ -596,6 +595,7 @@ const en: Dict = {
   "chat.goalComplete": "Goal complete",
   "chat.goalBlocked": "Goal needs a dependency",
   "chat.goalStalled": "Goal paused after no progress",
+  "chat.clearGoal": "Clear current goal",
   "chat.goalObjective": "Goal: {objective}",
   "chat.goalNextAction": "Next: {action}",
   "chat.goalBlocker": "Blocked: {blocker}",

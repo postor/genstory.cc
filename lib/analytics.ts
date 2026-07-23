@@ -72,7 +72,7 @@ export function trackChatSent(input: {
 
 export function trackToolCalled(input: {
   toolName: string;
-  source: "mcp" | "project";
+  source: "mcp" | "project" | "local";
   success: boolean;
 }): void {
   trackEvent("tool_call", {

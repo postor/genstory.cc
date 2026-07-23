@@ -65,6 +65,56 @@ test("chatbox resolves model defaults per chat before global preferences and per
   assert.match(source, /window\.localStorage\.setItem\(storageKey\(LS_MODEL, chatId\), id\)/);
 });
 
+test("chatbox restores the saved model after the model list finishes loading", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /if \(modelLoading\) return;/);
+  assert.match(source, /const savedChatModel = loadJSON<string>\(storageKey\(LS_MODEL, chatId\), ""\)/);
+  assert.match(source, /const savedGlobalModel = loadJSON<string>\(LS_MODEL, ""\)/);
+  assert.match(source, /const savedModel = savedChatModel \|\| savedGlobalModel/);
+  assert.match(source, /const restoredModel = savedModel \|\| pickInitialModelId\(models, \{\}\)/);
+  assert.match(source, /setModel\(restoredModel\)/);
+  assert.match(source, /\[chatId, modelLoading, models\]/);
+});
+
+test("chatbox waits for a project chat id before restoring a scoped model", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /restoredStorageKeyRef/);
+  assert.match(source, /if \(!chatId && restoredStorageKeyRef\.current !== LS_MODEL\)/);
+  assert.match(source, /restore skipped until chat id is available/);
+  assert.match(source, /const chatStorageKey = storageKey\(LS_MODEL, chatId\)/);
+});
+
+test("chatbox reads model ids as raw localStorage strings", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /function loadStoredModel\(key: string\): string/);
+  assert.match(source, /window\.localStorage\.getItem\(key\) \?\? ""/);
+  assert.match(source, /const savedChatModel = loadStoredModel\(chatStorageKey\)/);
+  assert.match(source, /const savedGlobalModel = loadStoredModel\(LS_MODEL\)/);
+});
+
+test("chatbox logs model restoration diagnostics without logging chat content", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const MODEL_LOG_PREFIX = "\[ChatBox:model\]"/);
+  assert.match(source, /model restore decision/);
+  assert.match(source, /savedModelInLoadedList/);
+  assert.match(source, /loadedModelIds/);
+  assert.doesNotMatch(source, /logModelEvent\([^\n]*input/);
+});
+
+test("chatbox logs model storage write and readback diagnostics", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /model selection persisted/);
+  assert.match(source, /globalReadback/);
+  assert.match(source, /chatReadback/);
+  assert.match(source, /model selection persistence failed/);
+  assert.match(source, /window\.location\.origin/);
+});
+
 test("chatbox enables the default goal contract and persists its state", async () => {
   const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
 
@@ -107,6 +157,20 @@ test("chat settings place the goal mode toggle below auto compression and defaul
   assert.ok(goalModeIndex > -1);
   assert.ok(popoverEndIndex > goalModeIndex);
   assert.ok(autoCompressIndex < goalModeIndex);
+});
+
+test("chat settings persist per-model provider controls and apply provider routing", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const LS_DISABLED_PROVIDERS = "chatbox_disabled_providers"/);
+  assert.match(source, /loadJSON<Record<string, string\[\]>>\(LS_DISABLED_PROVIDERS, \{\}\)/);
+  assert.match(source, /providerOnly: selectedProviderOnly/);
+  assert.match(source, /getModelProviders/);
+  assert.match(source, /provider loading started/);
+  assert.match(source, /providerLoading/);
+  assert.match(source, /providerOptions/);
+  assert.match(source, /checked=\{checked\}/);
+  assert.match(source, /provider\.slug/);
 });
 
 test("chatbox restores the latest user message with ArrowUp when the input is empty", async () => {

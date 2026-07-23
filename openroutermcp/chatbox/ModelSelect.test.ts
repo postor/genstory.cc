@@ -26,3 +26,10 @@ test("model picker renders OpenRouter input and output pricing", async () => {
   assert.match(source, /per 1M tokens/);
   assert.match(source, /text-\[10px\]/);
 });
+
+test("model picker does not display provider names in model candidates", async () => {
+  const source = await readFile(new URL("./ModelSelect.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /providerNames/);
+  assert.doesNotMatch(source, /Provider/);
+});

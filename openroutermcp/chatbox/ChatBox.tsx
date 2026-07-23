@@ -20,6 +20,7 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from "react";
 import {
   chat,
+  getModelProviders,
   listModels,
   OPENROUTER_WEB_SEARCH_TOOL,
   type ChatMessage,
@@ -92,6 +93,7 @@ import {
 import { findLastUserInput } from "./inputHistory";
 
 const LS_MODEL = "chatbox_model";
+const LS_DISABLED_PROVIDERS = "chatbox_disabled_providers";
 const LS_MESSAGES = "chatbox_messages";
 const LS_IMAGES = "chatbox_images";
 const LS_AUTO_COMPRESS = "chatbox_auto_compress";
@@ -99,6 +101,29 @@ const LS_COMPRESSION = "chatbox_context_compression";
 const LS_GOAL = "chatbox_goal";
 const LS_GOAL_MODE = "chatbox_goal_mode";
 const MAX_GOAL_NO_PROGRESS = 2;
+const MODEL_LOG_PREFIX = "[ChatBox:model]";
+
+function logModelEvent(event: string, details?: Record<string, unknown>) {
+  console.info(MODEL_LOG_PREFIX, event, details ?? "");
+}
+
+function modelStorageDiagnostics() {
+  try {
+    return {
+      origin: window.location.origin,
+      keys: Object.keys(window.localStorage).filter((key) => key.startsWith(LS_MODEL)),
+      values: Object.fromEntries(
+        Object.keys(window.localStorage)
+          .filter((key) => key.startsWith(LS_MODEL))
+          .map((key) => [key, window.localStorage.getItem(key)])
+      ),
+    };
+  } catch (error) {
+    return {
+      storageError: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
 
 const CHAT_SYSTEM_COPY = {
   zh: {
@@ -194,6 +219,15 @@ function loadJSON<T>(key: string, fallback: T): T {
     return raw ? (JSON.parse(raw) as T) : fallback;
   } catch {
     return fallback;
+  }
+}
+
+function loadStoredModel(key: string): string {
+  if (typeof window === "undefined") return "";
+  try {
+    return window.localStorage.getItem(key) ?? "";
+  } catch {
+    return "";
   }
 }
 
@@ -301,6 +335,13 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelLoading, setModelLoading] = useState(true);
   const [model, setModel] = useState<string>("");
+  const [providersByModel, setProvidersByModel] = useState<
+    Record<string, { name: string; slug: string }[]>
+  >({});
+  const [providerLoading, setProviderLoading] = useState(false);
+  const [disabledProviders, setDisabledProviders] = useState<Record<string, string[]>>({});
+  const [providerStorageReady, setProviderStorageReady] = useState(false);
+  const restoredStorageKeyRef = useRef<string | null>(null);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [transcript, setTranscript] = useState<ChatTranscriptItem[]>([]);
@@ -330,9 +371,28 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     [context, messages, input]
   );
   const selectedModel = useMemo(
-    () => models.find((item) => item.id === model),
-    [model, models]
+    () => {
+      const item = models.find((candidate) => candidate.id === model);
+      return item ? { ...item, providers: providersByModel[model] } : undefined;
+    },
+    [model, models, providersByModel]
   );
+  const displayModels = useMemo(() => {
+    if (!model || models.some((item) => item.id === model)) return models;
+    return [{ id: model, name: model }, ...models];
+  }, [model, models]);
+  const selectedDisabledProviders = useMemo(
+    () => disabledProviders[model] ?? [],
+    [disabledProviders, model]
+  );
+  const selectedProviderOnly = useMemo(() => {
+    if (!selectedModel?.providers?.length) return undefined;
+    const disabled = new Set(selectedDisabledProviders);
+    const enabled = selectedModel.providers
+      .map((provider) => provider.slug)
+      .filter((slug) => !disabled.has(slug));
+    return enabled.length ? enabled : [selectedModel.providers[0].slug];
+  }, [selectedDisabledProviders, selectedModel]);
   const requestTokens = contextUsage.context + contextUsage.history + contextUsage.input;
   const goalModeActive = goalMode === "auto" && goalEnabled;
   const projectToolNames = useMemo(
@@ -364,33 +424,109 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   useEffect(() => {
     let cancelled = false;
     setModelLoading(true);
+    logModelEvent("model list loading started");
     listModels()
       .then((ms) => {
+        logModelEvent("model list loaded", {
+          cancelled,
+          count: ms.length,
+          modelIds: ms.map((item) => item.id),
+        });
         if (cancelled) return;
         setModels(ms);
       })
-      .catch(() => {
-        /* picker falls back to empty list */
+      .catch((error) => {
+        logModelEvent("model list failed", {
+          error: error instanceof Error ? error.message : String(error),
+        });
       })
-      .finally(() => !cancelled && setModelLoading(false));
+      .finally(() => {
+        logModelEvent("model list loading finished", { cancelled });
+        if (!cancelled) setModelLoading(false);
+      });
     return () => {
       cancelled = true;
     };
   }, []);
 
   useEffect(() => {
-    setModel(
-      pickInitialModelId(models, {
-        chatModelId: loadJSON<string>(storageKey(LS_MODEL, chatId), ""),
-        globalModelId: loadJSON<string>(LS_MODEL, ""),
+    if (modelLoading) {
+      logModelEvent("restore skipped while model list is loading", { chatId });
+      return;
+    }
+    // In project-scoped chats, wait for the project id. The editor initially
+    // renders ChatBox without chatId while the project is loading; restoring
+    // the global default at that point can overwrite the eventual project
+    // selection during the same mount.
+    if (!chatId && restoredStorageKeyRef.current !== LS_MODEL) {
+      logModelEvent("restore skipped until chat id is available");
+      return;
+    }
+    const chatStorageKey = storageKey(LS_MODEL, chatId);
+    if (restoredStorageKeyRef.current === chatStorageKey) return;
+    const savedChatModel = loadStoredModel(chatStorageKey);
+    const savedGlobalModel = loadStoredModel(LS_MODEL);
+    const savedModel = savedChatModel || savedGlobalModel;
+    const restoredModel = savedModel || pickInitialModelId(models, {});
+
+    logModelEvent("model restore decision", {
+      chatId: chatId ?? null,
+      chatStorageKey,
+      savedChatModel: savedChatModel || null,
+      savedGlobalModel: savedGlobalModel || null,
+      savedModel: savedModel || null,
+      restoredModel: restoredModel || null,
+      savedModelInLoadedList: savedModel ? models.some((item) => item.id === savedModel) : false,
+      loadedModelIds: models.map((item) => item.id),
+      storage: modelStorageDiagnostics(),
+    });
+
+    // Restore the saved id even when the model index is temporarily incomplete.
+    // The next model refresh can enrich it with provider metadata without
+    // silently replacing the user's choice with Free Models Router.
+    setModel(restoredModel);
+    restoredStorageKeyRef.current = chatStorageKey;
+  }, [chatId, modelLoading, models]);
+
+  useEffect(() => {
+    if (!model || providersByModel[model]) return;
+    let cancelled = false;
+    setProviderLoading(true);
+    logModelEvent("provider loading started", { modelId: model });
+    getModelProviders(model)
+      .then((providers) => {
+        if (cancelled) return;
+        setProvidersByModel((current) => ({ ...current, [model]: providers }));
+        logModelEvent("provider loading finished", { modelId: model, providers });
       })
-    );
-  }, [chatId, models]);
+      .catch((error) => {
+        logModelEvent("provider loading failed", {
+          modelId: model,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setProviderLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [model, providersByModel]);
 
   useEffect(() => {
     setAutoCompress(loadJSON<boolean>(LS_AUTO_COMPRESS, false));
     setCompressionStorageReady(true);
   }, []);
+
+  useEffect(() => {
+    setDisabledProviders(loadJSON<Record<string, string[]>>(LS_DISABLED_PROVIDERS, {}));
+    setProviderStorageReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!providerStorageReady) return;
+    window.localStorage.setItem(LS_DISABLED_PROVIDERS, JSON.stringify(disabledProviders));
+  }, [disabledProviders, providerStorageReady]);
 
   useEffect(() => {
     setGoalEnabled(goalMode === "auto" && loadJSON<boolean>(LS_GOAL_MODE, true));
@@ -560,7 +696,9 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
             previousSummary: currentCompression?.summary,
             messages: plan.summarySourceMessages,
             lang,
-          })
+          }),
+          undefined,
+          { providerOnly: selectedProviderOnly }
         );
         const summary = result.content?.trim();
         if (!summary) throw new Error(t("chat.emptySummary"));
@@ -598,7 +736,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         setCompressing(false);
       }
     },
-    [compression, context, lang, model, selectedModel?.contextLength, t]
+    [compression, context, lang, model, selectedModel?.contextLength, selectedProviderOnly, t]
   );
 
   const sendChat = useCallback(
@@ -782,6 +920,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         const apiMessages = runtimeTools.length ? [systemMsg, ...history] : history;
         let streamedContent = "";
         const { content, toolCalls } = await chat(tk, model, apiMessages, mcpTools, {
+          providerOnly: selectedProviderOnly,
           onTextDelta: (delta) => {
             streamedContent += delta;
             setStreamingText(true);
@@ -944,6 +1083,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     projectTools,
     refreshToken,
     sending,
+    selectedProviderOnly,
     t,
     tools,
     transcript,
@@ -1004,12 +1144,32 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       </div>
 
       <ModelSelect
-        models={models}
+        models={displayModels}
         value={model}
         onChange={(id) => {
+          logModelEvent("model selected by user", {
+            previousModel: model || null,
+            nextModel: id,
+            chatStorageKey: storageKey(LS_MODEL, chatId),
+          });
           setModel(id);
-          window.localStorage.setItem(LS_MODEL, id);
-          window.localStorage.setItem(storageKey(LS_MODEL, chatId), id);
+          try {
+            const chatStorageKey = storageKey(LS_MODEL, chatId);
+            window.localStorage.setItem(LS_MODEL, id);
+            window.localStorage.setItem(chatStorageKey, id);
+            logModelEvent("model selection persisted", {
+              globalKey: LS_MODEL,
+              chatKey: chatStorageKey,
+              globalReadback: window.localStorage.getItem(LS_MODEL),
+              chatReadback: window.localStorage.getItem(chatStorageKey),
+              storage: modelStorageDiagnostics(),
+            });
+          } catch (error) {
+            logModelEvent("model selection persistence failed", {
+              error: error instanceof Error ? error.message : String(error),
+              storage: modelStorageDiagnostics(),
+            });
+          }
           if (id !== model) {
             const modelName = models.find((item) => item.id === id)?.name ?? id;
             setTranscript((previous) => [...previous, createModelSwitchNotice(modelName, lang)]);
@@ -1187,6 +1347,45 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                           className="size-4 accent-primary"
                         />
                       </div>
+                      {providerLoading ? (
+                        <p className="text-xs text-muted-foreground">{t("chat.providerLoading")}</p>
+                      ) : selectedModel?.providers?.length ? (
+                        <div className="space-y-2">
+                          <div>
+                            <p className="text-sm font-medium">{t("chat.providerOptions")}</p>
+                            <p className="text-xs text-muted-foreground">{t("chat.providerDescription")}</p>
+                          </div>
+                          <div className="space-y-1 rounded-md bg-muted/40 p-2">
+                            {selectedModel.providers.map((provider) => {
+                              const checked = !selectedDisabledProviders.includes(provider.slug);
+                              const enabledCount =
+                                selectedModel.providers!.length - selectedDisabledProviders.length;
+                              return (
+                                <label key={provider.slug} className="flex items-center gap-2 px-1 py-1 text-xs">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(event) => {
+                                      setDisabledProviders((current) => {
+                                        const currentDisabled = new Set(current[model] ?? []);
+                                        if (event.target.checked) currentDisabled.delete(provider.slug);
+                                        else currentDisabled.add(provider.slug);
+                                        return {
+                                          ...current,
+                                          [model]: [...currentDisabled],
+                                        };
+                                      });
+                                    }}
+                                    disabled={!authorized || sending || compressing || (checked && enabledCount <= 1)}
+                                    className="size-4 accent-primary"
+                                  />
+                                  <span className="truncate">{provider.name}</span>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ) : null}
                       {!autoCompress && (
                         <Button
                           variant="outline"

@@ -11,6 +11,7 @@
 import { OpenRouterStreamParser } from "./openrouter-stream";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
+const MODEL_LOG_PREFIX = "[OpenRouter:model]";
 
 // Curated fallback models, used when the live /models endpoint is unreachable
 // (offline, CORS, or rate-limited). Keeps the model picker usable in all cases.
@@ -26,6 +27,7 @@ export interface ModelInfo {
   id: string;
   name: string;
   contextLength?: number;
+  providers?: { name: string; slug: string }[];
   pricing?: {
     prompt?: string;
     completion?: string;
@@ -77,10 +79,14 @@ export const OPENROUTER_WEB_SEARCH_TOOL: OpenRouterWebSearchTool = {
 // list on any failure so the picker always works.
 export async function listModels(): Promise<ModelInfo[]> {
   try {
+    console.info(MODEL_LOG_PREFIX, "fetching model index");
     const res = await fetch(`${OR_BASE}/models`, {
       headers: { Accept: "application/json" },
     });
-    if (!res.ok) return FALLBACK_MODELS;
+    if (!res.ok) {
+      console.info(MODEL_LOG_PREFIX, "model index failed", { status: res.status });
+      return FALLBACK_MODELS;
+    }
     const json = (await res.json()) as {
       data?: {
         id?: string;
@@ -98,9 +104,46 @@ export async function listModels(): Promise<ModelInfo[]> {
         contextLength: m.context_length ?? m.top_provider?.context_length,
         pricing: m.pricing,
       }));
-    return data.length ? data : FALLBACK_MODELS;
+    if (!data.length) {
+      console.info(MODEL_LOG_PREFIX, "model index was empty, using fallback models");
+      return FALLBACK_MODELS;
+    }
+
+    console.info(MODEL_LOG_PREFIX, "model index loaded", { count: data.length });
+    return data;
   } catch {
+    console.info(MODEL_LOG_PREFIX, "model index request threw, using fallback models");
     return FALLBACK_MODELS;
+  }
+}
+
+export async function getModelProviders(modelId: string): Promise<{ name: string; slug: string }[]> {
+  const slash = modelId.indexOf("/");
+  if (slash < 1 || slash === modelId.length - 1) return [];
+  const author = encodeURIComponent(modelId.slice(0, slash));
+  const slug = encodeURIComponent(modelId.slice(slash + 1));
+
+  try {
+    const res = await fetch(`${OR_BASE}/models/${author}/${slug}/endpoints`, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) return [];
+    const json = (await res.json()) as {
+      data?: { endpoints?: { provider_name?: string; tag?: string }[] };
+    };
+    const providers = new Map<string, { name: string; slug: string }>();
+    for (const endpoint of json.data?.endpoints || []) {
+      if (!endpoint.provider_name || !endpoint.tag) continue;
+      const slug = endpoint.tag.split("/")[0];
+      if (!providers.has(slug)) providers.set(slug, { name: endpoint.provider_name, slug });
+    }
+    const result = [...providers.values()];
+    if (result.length) {
+      console.info(MODEL_LOG_PREFIX, "providers loaded", { modelId, providers: result });
+    }
+    return result;
+  } catch {
+    return [];
   }
 }
 
@@ -111,6 +154,7 @@ export interface ChatResult {
 
 export interface ChatStreamOptions {
   onTextDelta?: (delta: string) => void;
+  providerOnly?: string[];
 }
 
 // Sends a chat completion request to OpenRouter using the caller-supplied token.
@@ -128,6 +172,9 @@ export async function chat(
   options?: ChatStreamOptions
 ): Promise<ChatResult> {
   const body: Record<string, unknown> = { model, messages, stream: true };
+  if (options?.providerOnly?.length) {
+    body.provider = { only: options.providerOnly, allow_fallbacks: false };
+  }
   if (tools && tools.length) {
     body.tools = tools;
     body.tool_choice = "auto";
@@ -147,10 +194,19 @@ export async function chat(
     const text = await res.text().catch(() => "");
     let detail = text.slice(0, 500);
     try {
-      const j = JSON.parse(text) as { error?: { message?: string } };
+      const j = JSON.parse(text) as {
+        error?: { message?: string; code?: number; metadata?: { raw?: string } };
+      };
       if (j.error?.message) detail = j.error.message;
+      if (j.error?.metadata?.raw) detail += `: ${j.error.metadata.raw.slice(0, 300)}`;
     } catch {
       // keep raw text
+    }
+    if (res.status === 429) {
+      const provider = options?.providerOnly?.join(", ");
+      detail = provider
+        ? `${detail}。Provider ${provider} 的配额或速率限制已触发，请检查该 provider 的 BYOK 配额。`
+        : `${detail}。上游 provider 的配额或速率限制已触发。`;
     }
     throw new Error(`OpenRouter 请求失败 (${res.status}): ${detail}`);
   }

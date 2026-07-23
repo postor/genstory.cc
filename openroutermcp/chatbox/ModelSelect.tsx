@@ -42,6 +42,10 @@ function modelPriceLabel(model: ModelInfo): string | null {
   return `In ${prompt ?? "-"} / Out ${completion ?? "-"} per 1M tokens`;
 }
 
+function modelSearchText(model: ModelInfo): string {
+  return `${model.name} ${model.id}`;
+}
+
 export function ModelSelect({ models, value, onChange, loading, disabled }: ModelSelectProps) {
   const { t } = useLang();
   const [open, setOpen] = useState(false);
@@ -53,7 +57,7 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
   const filtered = useMemo(
     () =>
       models.filter((m) =>
-        `${m.name} ${m.id}`.toLowerCase().includes(filter.toLowerCase())
+        modelSearchText(m).toLowerCase().includes(filter.toLowerCase())
       ),
     [models, filter]
   );
@@ -166,7 +170,7 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
                           }
                         >
                           <span className="min-w-0 truncate">
-                            <span className="font-medium">{m.name}</span>
+                            <span className="block truncate font-medium">{m.name}</span>
                             {priceLabel ? (
                               <span className="block truncate text-[10px] opacity-65">
                                 {priceLabel}

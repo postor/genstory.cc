@@ -70,3 +70,33 @@ test("editor uses mobile tabs defaulting to chat while preserving desktop column
   assert.match(source, /<div className="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-\[260px_1fr_360px\]">/);
   assert.match(source, /mobileTab === "chat" \? "block" : "hidden",\s*"lg:block"/);
 });
+
+test("editor places sync to cloud drive immediately after backup", async () => {
+  const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
+  const backupIndex = source.indexOf('{t("editor.downloadSource")}');
+  const syncIndex = source.indexOf('{t("projects.cloudUploadProject")}', backupIndex);
+
+  assert.ok(backupIndex >= 0);
+  assert.ok(syncIndex > backupIndex);
+  assert.match(source, /prepareCloudUpload\(\)/);
+  assert.match(source, /projects\.cloudUploadTitle/);
+  assert.match(source, /uploadLocalWorkspace/);
+});
+
+test("editor moves project actions into a mobile top-right menu", async () => {
+  const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
+  const mobileMenuSource = source.slice(
+    source.indexOf("function MobileProjectActions"),
+    source.indexOf("export default function EditorClient")
+  );
+
+  assert.match(source, /function MobileProjectActions/);
+  assert.match(mobileMenuSource, /className="lg:hidden"/);
+  assert.match(mobileMenuSource, /Ellipsis/);
+  assert.match(mobileMenuSource, /editor\.preview/);
+  assert.match(mobileMenuSource, /editor\.export/);
+  assert.match(mobileMenuSource, /editor\.downloadSource/);
+  assert.match(mobileMenuSource, /projects\.cloudUploadProject/);
+  assert.match(mobileMenuSource, /editor\.save/);
+  assert.match(source, /className="hidden gap-2 lg:flex"/);
+});

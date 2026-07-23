@@ -35,3 +35,19 @@ export type {
   CompressionPlan,
   CompressionPlanInput,
 } from "./contextCompression";
+export {
+  applyGoalAssessment,
+  createGoalState,
+  decideGoalContinuation,
+  isGoalContinuationRequest,
+  isTaskLikeRequest,
+  parseGoalAssessment,
+} from "./goalMode";
+export type {
+  GoalAssessment,
+  GoalAssessmentStatus,
+  GoalContinuationAction,
+  GoalContinuationDecision,
+  GoalState,
+  GoalStatus,
+} from "./goalMode";

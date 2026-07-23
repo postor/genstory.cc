@@ -25,7 +25,7 @@ import {
   type ChatTool,
   type ModelInfo,
 } from "@/lib/openrouter";
-import { SlidersHorizontal } from "lucide-react";
+import { CircleAlert, CircleCheck, Loader2, SlidersHorizontal } from "lucide-react";
 import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -69,6 +69,15 @@ import {
   planContextCompression,
   type ChatCompressionState,
 } from "./contextCompression";
+import {
+  applyGoalAssessment,
+  createGoalState,
+  decideGoalContinuation,
+  isGoalContinuationRequest,
+  isTaskLikeRequest,
+  parseGoalAssessment,
+  type GoalState,
+} from "./goalMode";
 import { pickInitialModelId } from "./modelSelection";
 import {
   createContextCompressionNotice,
@@ -76,12 +85,16 @@ import {
   llmMessagesFromTranscript,
   type ChatTranscriptItem,
 } from "./transcript";
+import { findLastUserInput } from "./inputHistory";
 
 const LS_MODEL = "chatbox_model";
 const LS_MESSAGES = "chatbox_messages";
 const LS_IMAGES = "chatbox_images";
 const LS_AUTO_COMPRESS = "chatbox_auto_compress";
 const LS_COMPRESSION = "chatbox_context_compression";
+const LS_GOAL = "chatbox_goal";
+const LS_GOAL_MODE = "chatbox_goal_mode";
+const MAX_GOAL_NO_PROGRESS = 2;
 
 const CHAT_SYSTEM_COPY = {
   zh: {
@@ -94,6 +107,14 @@ const CHAT_SYSTEM_COPY = {
     fileChanges:
       "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。",
     contextHeader: "当前项目概况（非完整文件内容）：",
+    goal:
+      "\n\n把任务型用户请求当作一个 goal，负责推进到完成，不要因为非关键偏好而停下来提问。" +
+      "例如用户说“帮我画个人”，可以采用合理的中性默认设定继续，不要追问国籍等不影响任务完成的细节。" +
+      "只有缺少改变任务含义或安全性的关键依赖、需要用户授权不可逆操作，或连续没有进展时才暂停。" +
+      "每次准备结束前都要自检：目标是否完成、完成是否有工具结果或文件状态等证据、是否存在关键依赖、能否自行解决依赖、是否在空转。" +
+      "如果还没完成，继续调用工具或采取下一步；如果已完成、确实阻塞或已空转，在回答末尾追加 goal JSON：" +
+      "```json\n{\"goal\":{\"status\":\"in_progress|complete|blocked\",\"summary\":\"...\",\"evidence\":[\"...\"],\"missingDependencies\":[\"...\"],\"resolvableDependencies\":[\"...\"],\"userDependencies\":[\"...\"],\"resolvedDependencies\":[\"...\"],\"blocker\":\"...\",\"nextAction\":\"...\"}}\n```。" +
+      "complete 必须有可检查的 evidence；blocked 必须说明 blocker；in_progress 必须说明 nextAction。",
   },
   en: {
     tools:
@@ -105,6 +126,14 @@ const CHAT_SYSTEM_COPY = {
     fileChanges:
       '\n\nIf you need to modify project files, append a JSON code block at the end of your answer in this format: ```json\n{"fileChanges":[{"path":"chapter-001/pages/page-001.md","content":"complete file content","description":"change description"}]}\n```. path must be project-relative, and content must contain the complete file content.',
     contextHeader: "Current project overview (not complete file content):",
+    goal:
+      "\n\nTreat task-like user requests as goals and keep working toward completion; do not stop for optional preferences." +
+      'For example, if the user says "draw a person", choose a reasonable neutral default instead of asking about nationality or other details that do not affect completion.' +
+      "Pause only when a missing dependency changes the meaning or safety of the task, an irreversible action needs user authorization, or there is repeated no progress." +
+      "Before ending, self-check: is the goal complete, is there evidence such as a tool result or file state, are key dependencies missing, can the agent resolve them, and is it spinning?" +
+      "If unfinished, call another tool or take the next action. If complete, truly blocked, or stalled, append this goal JSON:" +
+      '```json\n{"goal":{"status":"in_progress|complete|blocked","summary":"...","evidence":["..."],"missingDependencies":["..."],"resolvableDependencies":["..."],"userDependencies":["..."],"resolvedDependencies":["..."],"blocker":"...","nextAction":"..."}}\n```.' +
+      "complete requires checkable evidence; blocked requires blocker; in_progress requires nextAction.",
   },
 } satisfies Record<
   Lang,
@@ -113,6 +142,7 @@ const CHAT_SYSTEM_COPY = {
     projectTools: string;
     fileChanges: string;
     contextHeader: string;
+    goal: string;
   }
 >;
 
@@ -121,14 +151,31 @@ function buildChatSystemPrompt(input: {
   hasProjectTools: boolean;
   canChangeFiles: boolean;
   context?: string;
+  goalMode: "auto" | "off";
 }): string {
   const copy = CHAT_SYSTEM_COPY[input.lang];
   return (
     copy.tools +
     (input.hasProjectTools ? copy.projectTools : "") +
     (input.canChangeFiles ? copy.fileChanges : "") +
+    (input.goalMode === "auto" ? copy.goal : "") +
     (input.context ? `\n\n${copy.contextHeader}\n${input.context}` : "")
   );
+}
+
+function buildGoalContinuationPrompt(
+  lang: Lang,
+  reason: "needs-verification" | "needs-next-action",
+  goal: GoalState
+): string {
+  if (lang === "zh") {
+    return reason === "needs-verification"
+      ? `继续处理目标“${goal.objective}”。不要结束回复，先补充并检查可验证的完成证据；如果还缺关键依赖，优先自行解决。`
+      : `继续处理目标“${goal.objective}”。执行下一步：${goal.nextAction || "采取最直接的可执行动作"}。不要因可选偏好向用户提问。`;
+  }
+  return reason === "needs-verification"
+    ? `Continue working on "${goal.objective}". Do not end yet; add and verify checkable completion evidence, resolving any solvable dependency first.`
+    : `Continue working on "${goal.objective}". Take the next action: ${goal.nextAction || "take the most direct executable action"}. Do not ask the user about optional preferences.`;
 }
 
 /** Namespace a storage key by an optional chat/project id. */
@@ -151,6 +198,8 @@ export interface ChatBoxProps {
   placeholder?: string;
   /** Max agent-loop iterations per send. Defaults to 8. */
   maxToolRounds?: number;
+  /** Automatically track task-like requests as goals. Defaults to "auto". */
+  goalMode?: "auto" | "off";
   /** Lightweight project/workspace metadata appended to the system prompt.
    *  Full project files should be exposed through projectTools instead. */
   context?: string;
@@ -230,6 +279,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   {
     placeholder,
     maxToolRounds = 8,
+    goalMode = "auto",
     context,
     chatId,
     onModelChange,
@@ -247,14 +297,16 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelLoading, setModelLoading] = useState(true);
   const [model, setModel] = useState<string>("");
-  const [modelStorageReady, setModelStorageReady] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [transcript, setTranscript] = useState<ChatTranscriptItem[]>([]);
   const [images, setImages] = useState<Record<string, string>>({});
+  const [goal, setGoal] = useState<GoalState | null>(null);
+  const [goalEnabled, setGoalEnabled] = useState(goalMode === "auto");
   const [compression, setCompression] = useState<ChatCompressionState | null>(null);
   const [autoCompress, setAutoCompress] = useState(false);
   const [compressionStorageReady, setCompressionStorageReady] = useState(false);
+  const [goalModeStorageReady, setGoalModeStorageReady] = useState(false);
   const [compressing, setCompressing] = useState(false);
   const [chatStorageReady, setChatStorageReady] = useState(false);
   const [input, setInput] = useState("");
@@ -264,6 +316,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [pendingChanges, setPendingChanges] = useState<ChatFileChange[]>([]);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const goalRef = useRef<GoalState | null>(null);
 
   const [oauthOpen, setOauthOpen] = useState(false);
 
@@ -277,10 +330,16 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     [model, models]
   );
   const requestTokens = contextUsage.context + contextUsage.history + contextUsage.input;
+  const goalModeActive = goalMode === "auto" && goalEnabled;
   const projectToolNames = useMemo(
     () => new Set(projectTools.map((tool) => tool.name)),
     [projectTools]
   );
+
+  const updateGoal = useCallback((next: GoalState | null) => {
+    goalRef.current = next;
+    setGoal(next);
+  }, []);
 
   // --- init: load models + attempt to connect to MCP ---
   useEffect(() => {
@@ -290,10 +349,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       .then((ms) => {
         if (cancelled) return;
         setModels(ms);
-        // Models load asynchronously (independent of MCP init). Keep the last
-        // selected model (restored from localStorage) only if it still exists;
-        // otherwise prefer the first free model before falling back further.
-        setModel((cur) => pickInitialModelId(ms, cur));
       })
       .catch(() => {
         /* picker falls back to empty list */
@@ -305,14 +360,23 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   }, []);
 
   useEffect(() => {
-    setModel(loadJSON(LS_MODEL, ""));
-    setModelStorageReady(true);
-  }, []);
+    setModel(
+      pickInitialModelId(models, {
+        chatModelId: loadJSON<string>(storageKey(LS_MODEL, chatId), ""),
+        globalModelId: loadJSON<string>(LS_MODEL, ""),
+      })
+    );
+  }, [chatId, models]);
 
   useEffect(() => {
     setAutoCompress(loadJSON<boolean>(LS_AUTO_COMPRESS, false));
     setCompressionStorageReady(true);
   }, []);
+
+  useEffect(() => {
+    setGoalEnabled(goalMode === "auto" && loadJSON<boolean>(LS_GOAL_MODE, true));
+    setGoalModeStorageReady(true);
+  }, [goalMode]);
 
   useEffect(() => {
     setChatStorageReady(false);
@@ -323,6 +387,12 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     setMessages(llmMessagesFromTranscript(storedTranscript));
     setTranscript(storedTranscript);
     setImages(loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {}));
+    const storedGoal = loadJSON<GoalState | null>(
+      storageKey(LS_GOAL, chatId),
+      null
+    );
+    goalRef.current = storedGoal;
+    setGoal(storedGoal);
     setCompression(
       loadJSON<ChatCompressionState | null>(
         storageKey(LS_COMPRESSION, chatId),
@@ -356,13 +426,8 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   }, [ready, isAuthorized, status, oauthOpen]);
 
   // --- persist chat state to localStorage ---
-  // Model selection stays global (user preference); messages + images are
-  // scoped per chatId so each project keeps its own conversation.
-  useEffect(() => {
-    if (!modelStorageReady || !model) return;
-    if (model) window.localStorage.setItem(LS_MODEL, model);
-  }, [model, modelStorageReady]);
-
+  // Model selections are written only after an explicit user choice. Automatic
+  // defaults remain derived from the current chat and global preferences.
   useEffect(() => {
     if (!chatStorageReady) return;
     window.localStorage.setItem(
@@ -381,9 +446,24 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   }, [images, chatId, chatStorageReady]);
 
   useEffect(() => {
+    if (!chatStorageReady) return;
+    const key = storageKey(LS_GOAL, chatId);
+    if (goal) {
+      window.localStorage.setItem(key, JSON.stringify(goal));
+    } else {
+      window.localStorage.removeItem(key);
+    }
+  }, [goal, chatId, chatStorageReady]);
+
+  useEffect(() => {
     if (!compressionStorageReady) return;
     window.localStorage.setItem(LS_AUTO_COMPRESS, JSON.stringify(autoCompress));
   }, [autoCompress, compressionStorageReady]);
+
+  useEffect(() => {
+    if (!goalModeStorageReady || goalMode !== "auto") return;
+    window.localStorage.setItem(LS_GOAL_MODE, JSON.stringify(goalEnabled));
+  }, [goalEnabled, goalMode, goalModeStorageReady]);
 
   useEffect(() => {
     if (!chatStorageReady) return;
@@ -399,9 +479,10 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     setMessages([]);
     setTranscript([]);
     setImages({});
+    updateGoal(null);
     setCompression(null);
     setError(null);
-  }, []);
+  }, [updateGoal]);
 
   const compressHistory = useCallback(
     async (
@@ -506,62 +587,85 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       const text = (presetText ?? input).trim();
       if (!text || sending) return;
 
-    const tk = await refreshToken();
-    if (!tk) {
-      setError(t("chat.noToken"));
-      setOauthOpen(true);
-      return;
-    }
-    if (tools.length === 0 && projectTools.length === 0) {
-      setError(t("chat.noTools"));
-      return;
-    }
+      const tk = await refreshToken();
+      if (!tk) {
+        setError(t("chat.noToken"));
+        setOauthOpen(true);
+        return;
+      }
+      if (tools.length === 0 && projectTools.length === 0) {
+        setError(t("chat.noTools"));
+        return;
+      }
 
-    const runtimeTools = [
-      ...tools.map((t) => ({
-        name: t.name,
-        description: t.description || "",
-        inputSchema: t.inputSchema ?? { type: "object", properties: {} },
-      })),
-      ...projectTools.map((t) => ({
-        name: t.name,
-        description: t.description,
-        inputSchema: t.inputSchema ?? { type: "object", properties: {} },
-      })),
-    ];
-    const mcpTools: ChatTool[] = runtimeTools.map((t) => ({
-      type: "function",
-      function: { name: t.name, description: t.description, parameters: t.inputSchema },
-    }));
+      const previousGoal = goalRef.current;
+      const turnGoal =
+        goalModeActive && isTaskLikeRequest(text)
+          ? createGoalState(text)
+          : goalModeActive &&
+              previousGoal &&
+              previousGoal.status !== "complete" &&
+              (previousGoal.status === "blocked" ||
+                isGoalContinuationRequest(text))
+            ? {
+                ...previousGoal,
+                status: "active" as const,
+                blocker: "",
+                nextAction: "",
+                noProgressCount: 0,
+                lastProgressFingerprint: "",
+                updatedAt: Date.now(),
+              }
+            : null;
+      updateGoal(turnGoal);
 
-    const userMessage: ChatMessage = { role: "user", content: text };
-    let displayTranscript: ChatTranscriptItem[] = [...transcript, userMessage];
-    let history: ChatMessage[] = llmMessagesFromTranscript(displayTranscript);
-    setMessages(history);
-    setTranscript(displayTranscript);
-    setInput("");
-    setError(null);
-    setSending(true);
-    setStreamingText(false);
-    onSend?.(text);
-    trackChatSent({
-      model,
-      messageLength: text.length,
-      hasContext: Boolean(context),
-      mcpToolCount: tools.length,
-      projectToolCount: projectTools.length,
-      autoCompress,
-    });
+      const runtimeTools = [
+        ...tools.map((t) => ({
+          name: t.name,
+          description: t.description || "",
+          inputSchema: t.inputSchema ?? { type: "object", properties: {} },
+        })),
+        ...projectTools.map((t) => ({
+          name: t.name,
+          description: t.description,
+          inputSchema: t.inputSchema ?? { type: "object", properties: {} },
+        })),
+      ];
+      const mcpTools: ChatTool[] = runtimeTools.map((t) => ({
+        type: "function",
+        function: { name: t.name, description: t.description, parameters: t.inputSchema },
+      }));
 
-    const systemMsg: ChatMessage = {
-      role: "system",
-      content: buildChatSystemPrompt({
-        lang,
-        hasProjectTools: projectTools.length > 0,
-        canChangeFiles: Boolean(onFileChanges),
-        context,
-      }),
-    };
+      const userMessage: ChatMessage = { role: "user", content: text };
+      let displayTranscript: ChatTranscriptItem[] = [...transcript, userMessage];
+      let history: ChatMessage[] = llmMessagesFromTranscript(displayTranscript);
+      let goalForTurn = turnGoal;
+      setMessages(history);
+      setTranscript(displayTranscript);
+      setInput("");
+      setError(null);
+      setSending(true);
+      setStreamingText(false);
+      onSend?.(text);
+      trackChatSent({
+        model,
+        messageLength: text.length,
+        hasContext: Boolean(context),
+        mcpToolCount: tools.length,
+        projectToolCount: projectTools.length,
+        autoCompress,
+      });
+
+      const systemMsg: ChatMessage = {
+        role: "system",
+        content: buildChatSystemPrompt({
+          lang,
+          hasProjectTools: projectTools.length > 0,
+          canChangeFiles: Boolean(onFileChanges),
+          context,
+          goalMode: goalModeActive ? "auto" : "off",
+        }),
+      };
 
     try {
       if (autoCompress) {
@@ -605,6 +709,19 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
         if (toolCalls.length > 0) {
           setStreamingText(false);
+          if (!goalForTurn && goalModeActive) {
+            goalForTurn = createGoalState(text);
+            updateGoal(goalForTurn);
+          }
+          if (goalForTurn) {
+            goalForTurn = {
+              ...goalForTurn,
+              noProgressCount: 0,
+              lastProgressFingerprint: "",
+              updatedAt: Date.now(),
+            };
+            updateGoal(goalForTurn);
+          }
           const assistantMessage: ChatMessage = {
             role: "assistant",
             content: finalContent,
@@ -672,6 +789,39 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         if (fileChanges.length > 0) setPendingChanges(fileChanges);
         setMessages([...history]);
         setTranscript(displayTranscript);
+
+        if (goalForTurn) {
+          const assessment = parseGoalAssessment(finalContent);
+          if (assessment) {
+            goalForTurn = applyGoalAssessment(goalForTurn, assessment);
+          }
+          const decision = decideGoalContinuation({
+            goal: goalForTurn,
+            responseFingerprint: fingerprintMessages([
+              { role: "assistant", content: finalContent ?? "" },
+            ]),
+            maxNoProgress: MAX_GOAL_NO_PROGRESS,
+          });
+          goalForTurn = decision.goal;
+          updateGoal(goalForTurn);
+          if (decision.action === "continue" && i < maxToolRounds - 1) {
+            const continuationReason =
+              decision.reason === "needs-verification" ||
+              decision.reason === "needs-next-action"
+                ? decision.reason
+                : "needs-next-action";
+            history.push({
+              role: "user",
+              content: buildGoalContinuationPrompt(
+                lang,
+                continuationReason,
+                goalForTurn
+              ),
+            });
+            setMessages([...history]);
+            continue;
+          }
+        }
         break;
       }
     } catch (e) {
@@ -685,6 +835,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     callTool,
     compressHistory,
     context,
+    goalModeActive,
     input,
     lang,
     maxToolRounds,
@@ -698,6 +849,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     t,
     tools,
     transcript,
+    updateGoal,
   ]);
 
   async function applyPendingChanges() {
@@ -758,6 +910,8 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         value={model}
         onChange={(id) => {
           setModel(id);
+          window.localStorage.setItem(LS_MODEL, id);
+          window.localStorage.setItem(storageKey(LS_MODEL, chatId), id);
           if (id !== model) {
             const modelName = models.find((item) => item.id === id)?.name ?? id;
             setTranscript((previous) => [...previous, createModelSwitchNotice(modelName, lang)]);
@@ -768,6 +922,50 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         loading={modelLoading}
         disabled={!authorized}
       />
+
+      {goal && goalModeActive && (
+        <div
+          className={cn(
+            "rounded-md border px-3 py-2 text-xs",
+            goal.status === "complete" && "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950",
+            goal.status === "blocked" && "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950",
+            goal.status === "stalled" && "border-destructive/30 bg-destructive/10",
+            goal.status === "active" && "border-primary/30 bg-primary/5"
+          )}
+        >
+          <div className="flex items-center gap-2 font-semibold">
+            {goal.status === "complete" ? (
+              <CircleCheck className="size-3.5 text-emerald-600" />
+            ) : goal.status === "active" ? (
+              <Loader2 className="size-3.5 animate-spin text-primary" />
+            ) : (
+              <CircleAlert className="size-3.5 text-amber-600" />
+            )}
+            <span>
+              {goal.status === "complete"
+                ? t("chat.goalComplete")
+                : goal.status === "blocked"
+                  ? t("chat.goalBlocked")
+                  : goal.status === "stalled"
+                    ? t("chat.goalStalled")
+                    : t("chat.goalActive")}
+            </span>
+          </div>
+          <p className="mt-1 truncate text-muted-foreground">
+            {t("chat.goalObjective", { objective: goal.objective })}
+          </p>
+          {goal.blocker && goal.status === "blocked" && (
+            <p className="mt-1 text-amber-700 dark:text-amber-300">
+              {t("chat.goalBlocker", { blocker: goal.blocker })}
+            </p>
+          )}
+          {goal.nextAction && goal.status === "active" && (
+            <p className="mt-1 text-muted-foreground">
+              {t("chat.goalNextAction", { action: goal.nextAction })}
+            </p>
+          )}
+        </div>
+      )}
 
       <ChatHistoryWindow messages={transcript} loading={sending && !streamingText} images={images} />
 
@@ -803,6 +1001,14 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           ref={textareaRef}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => {
+            if (e.key === "ArrowUp" && !input.trim()) {
+              const previousInput = findLastUserInput(transcript);
+              if (previousInput) {
+                e.preventDefault();
+                setInput(previousInput);
+              }
+              return;
+            }
             if (e.key === "Enter" && !e.shiftKey) {
               e.preventDefault();
               void sendChat();
@@ -813,29 +1019,25 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           disabled={!authorized}
           className="min-h-24 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0"
         />
-        <div className="border-t px-3 pt-2 text-xs" aria-live="polite">
-          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1">
-            <span className="font-medium text-foreground">{t("chat.context")}</span>
-            <span className="text-muted-foreground">
-              {formatContextSize(requestTokens)} / {formatContextLimitForLang(selectedModel?.contextLength, lang)}
+        <div className="flex items-center gap-2 border-t px-3 pb-2 pt-2" aria-live="polite">
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {formatContextSize(requestTokens).replace(/\s+tokens$/, "")}/{formatContextLimitForLang(selectedModel?.contextLength, lang)}
               {compression ? ` · ${t("chat.compressedCount", { count: compression.coveredMessageCount })}` : ""}
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center justify-end gap-2 px-3 pb-2 pt-2">
+          </span>
+          <div className="flex shrink-0 items-center gap-2">
             <Popover>
               <PopoverTrigger
                 render={
                   <Button
                     variant="outline"
-                    size="sm"
+                    size="icon-sm"
                     disabled={!authorized}
                     aria-label={t("chat.compressionOptionsLabel")}
+                    title={t("chat.compressionOptionsLabel")}
                   />
                 }
               >
-                <SlidersHorizontal data-icon="inline-start" />
-                {t("chat.compress")}
+                <SlidersHorizontal />
               </PopoverTrigger>
               <PopoverPortal>
                 <PopoverPositioner side="top" align="end" sideOffset={6} className="w-72">
@@ -854,6 +1056,23 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                           type="checkbox"
                           checked={autoCompress}
                           onChange={(event) => setAutoCompress(event.target.checked)}
+                          disabled={!authorized || sending || compressing}
+                          className="size-4 accent-primary"
+                        />
+                      </div>
+                      <div className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2">
+                        <Label htmlFor="chatbox-goal-mode" className="cursor-pointer text-xs">
+                          {t("chat.goalMode")}
+                        </Label>
+                        <input
+                          id="chatbox-goal-mode"
+                          type="checkbox"
+                          checked={goalEnabled}
+                          onChange={(event) => {
+                            const enabled = event.target.checked;
+                            setGoalEnabled(enabled);
+                            if (!enabled) updateGoal(null);
+                          }}
                           disabled={!authorized || sending || compressing}
                           className="size-4 accent-primary"
                         />
@@ -908,6 +1127,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
             >
               {sending ? t("chat.sending") : t("chat.send")}
             </Button>
+          </div>
         </div>
       </div>
 

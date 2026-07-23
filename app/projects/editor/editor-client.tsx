@@ -3,11 +3,18 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, CloudUpload, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InteractionModal, PromptModal } from "@/components/ui/interaction-modal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Tree, type TreeViewElement } from "@/components/ui/file-tree";
 import { CodeEditor } from "@/components/ui/code-editor";
@@ -62,6 +69,29 @@ import { readProjectPreview } from "@/lib/project-source";
 import { buildVNProjectFiles } from "@/lib/vn/project-files";
 import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
 import type { VNProject } from "@/lib/vn/types";
+import {
+  createCloudRemoteStore,
+  type CloudRemoteStore,
+} from "@/lib/cloud-sync/providers";
+import { loadCloudSyncSettings } from "@/lib/cloud-sync/storage";
+import {
+  prepareCloudUploadPlan,
+  uploadLocalWorkspace,
+  type LocalWorkspaceSnapshot,
+} from "@/lib/cloud-sync/sync";
+import {
+  CLOUD_PROVIDER_LABELS,
+  type CloudConflict,
+  type CloudRemoteFile,
+  type CloudSyncPhase,
+  type CloudSyncProgress,
+} from "@/lib/cloud-sync/types";
+import {
+  beginCloudOAuth,
+  CLOUD_OAUTH_CONFIG,
+  loadCloudToken,
+  requestGoogleToken,
+} from "@/lib/cloud-sync/oauth";
 import { VNEditor } from "./vn-editor";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
@@ -131,6 +161,21 @@ interface EntryDialogState {
   path: string;
   kind: EntryKind;
 }
+
+interface CloudUploadPlan {
+  snapshot: LocalWorkspaceSnapshot;
+  remoteFiles: CloudRemoteFile[];
+  conflicts: CloudConflict[];
+}
+
+const CLOUD_PROGRESS_KEYS: Record<CloudSyncPhase, string> = {
+  authorizing: "projects.cloudPreparing",
+  listing: "projects.cloudPreparing",
+  comparing: "projects.cloudComparing",
+  downloading: "projects.cloudDownloading",
+  writing: "projects.cloudWriting",
+  uploading: "projects.cloudUploading",
+};
 
 function entryDialogStateFromTreeElement(element: TreeViewElement): EntryDialogState {
   if (element.id === "root") return { path: "", kind: "directory" };
@@ -219,6 +264,155 @@ function TreeNodeActions({
   );
 }
 
+function MobileProjectActions({
+  project,
+  hasRoot,
+  mode,
+  vn,
+  exporting,
+  cloudOperation,
+  saving,
+  saved,
+  dirty,
+  status,
+  t,
+  onPreview,
+  onExport,
+  onDownloadSource,
+  onCloudUpload,
+  onToggleScene,
+  onSave,
+}: {
+  project: Project | null;
+  hasRoot: boolean;
+  mode: "source" | "scene";
+  vn: VNProject | null;
+  exporting: boolean;
+  cloudOperation: "upload" | null;
+  saving: boolean;
+  saved: boolean;
+  dirty: boolean;
+  status: EditorStatus;
+  t: (key: string, values?: Record<string, string | number>) => string;
+  onPreview: () => void;
+  onExport: () => void;
+  onDownloadSource: () => void;
+  onCloudUpload: () => void;
+  onToggleScene: () => void;
+  onSave: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+
+  function run(action: () => void) {
+    setOpen(false);
+    action();
+  }
+
+  const projectReady = Boolean(project && hasRoot);
+  const exportLabel =
+    project?.template === "visual-novel"
+      ? t("vn.exportOpenwebgal")
+      : project?.template === "phaser-game"
+        ? t("phaser.export")
+        : t("editor.export");
+  const actions: {
+    label: string;
+    icon: ReactNode;
+    disabled?: boolean;
+    onSelect: () => void;
+  }[] = [
+    {
+      label: t("editor.preview"),
+      icon: <Play />,
+      disabled: !projectReady,
+      onSelect: onPreview,
+    },
+    {
+      label: exportLabel,
+      icon: exporting ? <Loader2 className="animate-spin" /> : <FileDown />,
+      disabled: !projectReady || exporting,
+      onSelect: onExport,
+    },
+    {
+      label: t("editor.downloadSource"),
+      icon: exporting ? <Loader2 className="animate-spin" /> : <FileDown />,
+      disabled: !projectReady || exporting,
+      onSelect: onDownloadSource,
+    },
+    {
+      label: t("projects.cloudUploadProject"),
+      icon:
+        cloudOperation === "upload" ? (
+          <Loader2 className="animate-spin" />
+        ) : (
+          <CloudUpload />
+        ),
+      disabled: !projectReady || exporting || cloudOperation !== null,
+      onSelect: onCloudUpload,
+    },
+  ];
+
+  if (project?.template === "visual-novel") {
+    actions.push({
+      label: t("vn.structuredEditor"),
+      icon: <Pencil />,
+      disabled: !vn,
+      onSelect: onToggleScene,
+    });
+  }
+
+  actions.push({
+    label: saved && !saving ? `${t("editor.save")} · ${t("editor.saved")}` : t("editor.save"),
+    icon: saving ? <Loader2 className="animate-spin" /> : <Save />,
+    disabled: !dirty || saving || status !== "ready",
+    onSelect: onSave,
+  });
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
+        render={
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="lg:hidden"
+            title={t("editor.actions")}
+            aria-label={t("editor.actions")}
+          />
+        }
+      >
+        <Ellipsis className="size-4" />
+      </PopoverTrigger>
+      <PopoverPortal>
+        <PopoverPositioner side="bottom" align="end">
+          <PopoverPopup className="min-w-56">
+            <p className="px-2 py-1 text-xs font-semibold text-muted-foreground">
+              {t("editor.actions")}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {actions.map((action) => (
+                <Button
+                  key={action.label}
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-start"
+                  disabled={action.disabled}
+                  onClick={() => run(action.onSelect)}
+                >
+                  {action.icon}
+                  {action.label}
+                </Button>
+              ))}
+            </div>
+          </PopoverPopup>
+        </PopoverPositioner>
+      </PopoverPortal>
+    </Popover>
+  );
+}
+
 export default function EditorClient() {
   const { lang, t } = useLang();
   const router = useRouter();
@@ -249,6 +443,13 @@ export default function EditorClient() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [cloudOperation, setCloudOperation] = useState<"upload" | null>(null);
+  const [cloudProgress, setCloudProgress] = useState<CloudSyncProgress | null>(null);
+  const [cloudFeedback, setCloudFeedback] = useState<string | null>(null);
+  const [cloudAuthorizationExpired, setCloudAuthorizationExpired] = useState(false);
+  const [reconnectingCloud, setReconnectingCloud] = useState(false);
+  const [cloudConfirm, setCloudConfirm] = useState(false);
+  const [uploadPlan, setUploadPlan] = useState<CloudUploadPlan | null>(null);
   const chatRef = useRef<ChatBoxHandle>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const uploadTargetRef = useRef<EntryDialogState | null>(null);
@@ -778,6 +979,159 @@ export default function EditorClient() {
     }
   }
 
+  function requireCloudStore(): CloudRemoteStore {
+    const settings = loadCloudSyncSettings();
+    if (!CLOUD_OAUTH_CONFIG[settings.provider].clientId) {
+      throw new Error(t("projects.cloudProviderNotConfigured"));
+    }
+    if (!loadCloudToken(settings.provider)) {
+      throw new Error(t("projects.cloudProviderMissing"));
+    }
+    return createCloudRemoteStore(settings.provider);
+  }
+
+  async function ensureCloudAuthorization(): Promise<void> {
+    const settings = loadCloudSyncSettings();
+    if (!CLOUD_OAUTH_CONFIG[settings.provider].clientId) {
+      throw new Error(t("projects.cloudProviderNotConfigured"));
+    }
+    if (loadCloudToken(settings.provider)) return;
+
+    if (settings.provider === "google-drive") {
+      await requestGoogleToken(settings.rememberAuthorization);
+      return;
+    }
+
+    await beginCloudOAuth(settings.provider, settings.rememberAuthorization);
+  }
+
+  function isCloudAuthorizationExpired(reason: unknown): boolean {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    return message.includes("云端授权已过期") || message.includes("Cloud authorization has expired");
+  }
+
+  function setCloudError(reason: unknown) {
+    const message = reason instanceof Error ? reason.message : String(reason);
+    setCloudAuthorizationExpired(isCloudAuthorizationExpired(reason));
+    setError(t("projects.cloudOperationFailed", { message }));
+  }
+
+  async function handleCloudReconnect() {
+    const settings = loadCloudSyncSettings();
+    setReconnectingCloud(true);
+    setError("");
+    setCloudFeedback(null);
+    try {
+      if (settings.provider === "google-drive") {
+        await requestGoogleToken(settings.rememberAuthorization, true);
+      } else {
+        await beginCloudOAuth(settings.provider, settings.rememberAuthorization);
+      }
+      setCloudAuthorizationExpired(false);
+      setCloudFeedback(
+        t("settings.cloud.connected", {
+          provider: CLOUD_PROVIDER_LABELS[settings.provider][lang],
+        })
+      );
+    } catch (reason) {
+      setCloudError(reason);
+    } finally {
+      setReconnectingCloud(false);
+    }
+  }
+
+  async function prepareCloudUpload() {
+    if (!project || !root) return;
+    setCloudProgress(null);
+    setCloudFeedback(null);
+    setCloudAuthorizationExpired(false);
+    setCloudConfirm(false);
+    setUploadPlan(null);
+    setError("");
+    setCloudOperation("upload");
+    try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) return;
+      }
+      await ensureCloudAuthorization();
+      const store = requireCloudStore();
+      const plan = await prepareCloudUploadPlan(
+        store,
+        [project],
+        setCloudProgress
+      );
+      setUploadPlan(plan);
+      setCloudConfirm(true);
+    } catch (reason) {
+      setCloudError(reason);
+    } finally {
+      setCloudOperation(null);
+    }
+  }
+
+  async function handleCloudUpload() {
+    const plan = uploadPlan;
+    if (!plan || !project) return;
+    setCloudConfirm(false);
+    setCloudOperation("upload");
+    setCloudProgress(null);
+    setError("");
+    try {
+      const store = requireCloudStore();
+      await uploadLocalWorkspace(
+        store,
+        plan.snapshot,
+        plan.remoteFiles,
+        setCloudProgress
+      );
+      setCloudFeedback(
+        t("projects.cloudSuccessUploadProject", {
+          title: project.title,
+        })
+      );
+      setUploadPlan(null);
+    } catch (reason) {
+      setCloudError(reason);
+    } finally {
+      setCloudOperation(null);
+      setCloudProgress(null);
+    }
+  }
+
+  function progressText() {
+    if (!cloudProgress) return t("projects.cloudPreparing");
+    return t(CLOUD_PROGRESS_KEYS[cloudProgress.phase], {
+      completed: Math.min(cloudProgress.total, Math.floor(cloudProgress.completed)),
+      total: cloudProgress.total,
+    });
+  }
+
+  function conflictPreview(conflicts: CloudConflict[]) {
+    if (conflicts.length === 0) return null;
+    const preview = conflicts.slice(0, 5);
+    const moreCount = Math.max(0, conflicts.length - preview.length);
+    return (
+      <div className="rounded-lg border bg-muted/40 p-3 text-xs">
+        <p className="mb-2 font-medium">
+          {t("projects.cloudUploadConflictCount", { count: conflicts.length })}
+        </p>
+        <ul className="space-y-1 text-muted-foreground">
+          {preview.map((conflict) => (
+            <li key={`${conflict.direction}:${conflict.path}`} className="break-all">
+              {conflict.path}
+            </li>
+          ))}
+        </ul>
+        {moreCount > 0 ? (
+          <p className="mt-2 text-muted-foreground">
+            {t("projects.cloudConflictMore", { count: moreCount })}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
+
   async function handleExport() {
     if (!project || !root) return;
     setExporting(true);
@@ -881,11 +1235,20 @@ export default function EditorClient() {
     ? uploadTargetDirectory(createFileState.path, createFileState.kind) ||
       t("editor.projectRoot")
     : t("editor.projectRoot");
+  const uploadConflictCount = uploadPlan?.conflicts.length ?? 0;
+  const uploadDescription = [
+    t("projects.cloudUploadProjectDescription"),
+    uploadConflictCount > 0
+      ? t("projects.cloudUploadConflictCount", { count: uploadConflictCount })
+      : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   return (
     <main className="flex h-svh flex-col overflow-hidden">
-      <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-3 sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <Button render={<Link href="/projects" />} variant="ghost" size="icon" aria-label={t("editor.back")}>
             <ArrowLeft className="size-4" />
           </Button>
@@ -936,14 +1299,14 @@ export default function EditorClient() {
             <h1 className="text-lg font-bold tracking-tight">{t("editor.title")}</h1>
           )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <input
-            ref={uploadInputRef}
-            type="file"
-            multiple
-            className="sr-only"
-            onChange={(event) => void handleUploadFiles(event.currentTarget.files)}
-          />
+        <input
+          ref={uploadInputRef}
+          type="file"
+          multiple
+          className="sr-only"
+          onChange={(event) => void handleUploadFiles(event.currentTarget.files)}
+        />
+        <div className="hidden gap-2 lg:flex">
           {project && root && (
             <>
               <Button variant="outline" size="sm" onClick={() => void handlePreview()}>
@@ -961,6 +1324,19 @@ export default function EditorClient() {
               <Button variant="outline" size="sm" onClick={() => void handleDownloadSource()} disabled={exporting}>
                 {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
                 {t("editor.downloadSource")}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void prepareCloudUpload()}
+                disabled={exporting || cloudOperation !== null}
+              >
+                {cloudOperation === "upload" ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <CloudUpload className="size-4" />
+                )}
+                {t("projects.cloudUploadProject")}
               </Button>
               {project.template === "visual-novel" && (
                 <Button
@@ -980,15 +1356,56 @@ export default function EditorClient() {
             {saved && !saving ? ` · ${t("editor.saved")}` : ""}
           </Button>
         </div>
+        <MobileProjectActions
+          project={project}
+          hasRoot={root !== null}
+          mode={mode}
+          vn={vn}
+          exporting={exporting}
+          cloudOperation={cloudOperation}
+          saving={saving}
+          saved={saved}
+          dirty={dirty}
+          status={status}
+          t={t}
+          onPreview={() => void handlePreview()}
+          onExport={() => void handleExport()}
+          onDownloadSource={() => void handleDownloadSource()}
+          onCloudUpload={() => void prepareCloudUpload()}
+          onToggleScene={() =>
+            setMode((previous) => (previous === "scene" ? "source" : "scene"))
+          }
+          onSave={() => void handleSave()}
+        />
       </div>
 
       {error && (
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-          <span>{error}</span>
-          <Button variant="outline" size="sm" onClick={() => id && void loadProject(id)}>
-            {t("projects.reconnect")}
-          </Button>
+          <span className="min-w-0">{error}</span>
+          <div className="flex shrink-0 gap-2">
+            {cloudAuthorizationExpired ? (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleCloudReconnect()}
+                disabled={reconnectingCloud}
+              >
+                <RefreshCw className={reconnectingCloud ? "size-4 animate-spin" : "size-4"} />
+                {reconnectingCloud
+                  ? t("settings.cloud.connecting")
+                  : t("settings.cloud.reconnect")}
+              </Button>
+            ) : null}
+            <Button variant="outline" size="sm" onClick={() => id && void loadProject(id)}>
+              {t("projects.reconnect")}
+            </Button>
+          </div>
         </div>
+      )}
+      {cloudFeedback && (
+        <p className="flex shrink-0 items-center border-b border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm text-emerald-700 dark:text-emerald-300">
+          {cloudFeedback}
+        </p>
       )}
 
       <Tabs value={mobileTab} onValueChange={selectMobileTab} className="shrink-0 border-b p-2 lg:hidden">
@@ -1209,6 +1626,44 @@ export default function EditorClient() {
         cancelLabel={t("common.cancel")}
         onConfirm={() => void handleDeleteSelected()}
       />
+      <InteractionModal
+        open={cloudConfirm}
+        onOpenChange={(open) => {
+          if (!open) setCloudConfirm(false);
+        }}
+        title={t("projects.cloudUploadTitle")}
+        description={uploadDescription}
+        confirmLabel={t("projects.cloudUploadConfirm")}
+        confirmVariant="destructive"
+        confirmDisabled={!uploadPlan}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleCloudUpload()}
+      >
+        {uploadPlan ? conflictPreview(uploadPlan.conflicts) : null}
+      </InteractionModal>
+      <Dialog open={cloudOperation !== null}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t("settings.cloud.title")}</DialogTitle>
+            <DialogDescription>{progressText()}</DialogDescription>
+          </DialogHeader>
+          <progress
+            role="progressbar"
+            className="h-2 w-full"
+            max={100}
+            value={
+              cloudProgress && cloudProgress.total > 0
+                ? Math.min(
+                    100,
+                    Math.round(
+                      (cloudProgress.completed / cloudProgress.total) * 100
+                    )
+                  )
+                : 0
+            }
+          />
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }

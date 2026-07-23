@@ -3,55 +3,77 @@ import test from "node:test";
 
 import { pickInitialModelId } from "./modelSelection.ts";
 
-test("keeps the previously selected model when it still exists", () => {
+test("prefers the previous model from this chat over the global model", () => {
   const models = [
     { id: "openai/gpt-4o-mini", name: "OpenAI: GPT-4o mini" },
     { id: "openai/gpt-4o", name: "OpenAI: GPT-4o" },
   ];
 
-  assert.equal(pickInitialModelId(models, "openai/gpt-4o"), "openai/gpt-4o");
-});
-
-test("falls back to the first free model when the previous selection is unavailable", () => {
-  const models = [
-    { id: "openai/gpt-4.1", name: "OpenAI: GPT-4.1" },
-    { id: "google/gemini-2.5-flash-lite", name: "Google: Gemini 2.5 Flash Lite (free)" },
-    { id: "deepseek/deepseek-chat-v3-0324", name: "DeepSeek: Chat V3 0324 (free)" },
-  ];
-
   assert.equal(
-    pickInitialModelId(models, "anthropic/claude-sonnet-4"),
-    "google/gemini-2.5-flash-lite"
+    pickInitialModelId(models, {
+      chatModelId: "openai/gpt-4o-mini",
+      globalModelId: "openai/gpt-4o",
+    }),
+    "openai/gpt-4o-mini"
   );
 });
 
-test("prefers NVIDIA Nemotron 3 Ultra when the previous selection is unavailable", () => {
+test("uses the previous global model when this chat has no valid previous model", () => {
   const models = [
-    { id: "openai/gpt-4.1", name: "OpenAI: GPT-4.1" },
-    { id: "google/gemini-2.5-flash-lite:free", name: "Google: Gemini 2.5 Flash Lite (free)" },
-    { id: "nvidia/nemotron-3-ultra:free", name: "NVIDIA: Nemotron 3 Ultra (free)" },
+    { id: "openai/gpt-4o-mini", name: "OpenAI: GPT-4o mini" },
+    { id: "openai/gpt-4o", name: "OpenAI: GPT-4o" },
   ];
 
   assert.equal(
-    pickInitialModelId(models, "anthropic/claude-sonnet-4"),
-    "nvidia/nemotron-3-ultra:free"
+    pickInitialModelId(models, {
+      chatModelId: "anthropic/claude-sonnet-4",
+      globalModelId: "openai/gpt-4o",
+    }),
+    "openai/gpt-4o"
   );
 });
 
-test("keeps the previous model ahead of the preferred default", () => {
+test("prefers the model named Free Models Router before the first model", () => {
   const models = [
     { id: "openai/gpt-4.1", name: "OpenAI: GPT-4.1" },
-    { id: "nvidia/nemotron-3-ultra:free", name: "NVIDIA: Nemotron 3 Ultra (free)" },
+    { id: "openrouter/free", name: "Free Models Router" },
   ];
 
-  assert.equal(pickInitialModelId(models, "openai/gpt-4.1"), "openai/gpt-4.1");
+  assert.equal(
+    pickInitialModelId(models, {
+      chatModelId: "anthropic/claude-sonnet-4",
+      globalModelId: "google/gemini-2.5-flash",
+    }),
+    "openrouter/free"
+  );
 });
 
-test("falls back to the first model when there is no previous selection and no free model", () => {
+test("falls back to the first model when no previous selection or Free Models Router exists", () => {
   const models = [
     { id: "openai/gpt-4.1", name: "OpenAI: GPT-4.1" },
     { id: "openai/gpt-4o", name: "OpenAI: GPT-4o" },
   ];
 
-  assert.equal(pickInitialModelId(models, ""), "openai/gpt-4.1");
+  assert.equal(
+    pickInitialModelId(models, {
+      chatModelId: "",
+      globalModelId: "",
+    }),
+    "openai/gpt-4.1"
+  );
+});
+
+test("ignores previous selections that are no longer in the model list", () => {
+  const models = [
+    { id: "openrouter/free", name: "Free Models Router" },
+    { id: "openai/gpt-4o", name: "OpenAI: GPT-4o" },
+  ];
+
+  assert.equal(
+    pickInitialModelId(models, {
+      chatModelId: "openai/missing-chat-model",
+      globalModelId: "openai/missing-global-model",
+    }),
+    "openrouter/free"
+  );
 });

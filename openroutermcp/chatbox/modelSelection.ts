@@ -1,19 +1,26 @@
 import type { ModelInfo } from "@/lib/openrouter";
 
-const PREFERRED_FREE_MODEL_NAME = "nvidia: nemotron 3 ultra (free)";
+const PREFERRED_MODEL_NAME = "free models router";
 
-function isFreeModel(model: ModelInfo): boolean {
-  return model.name.toLowerCase().includes("(free)") || model.id.toLowerCase().includes(":free");
+export interface ModelSelectionPreferences {
+  chatModelId?: string;
+  globalModelId?: string;
 }
 
-function isPreferredFreeModel(model: ModelInfo): boolean {
-  return model.name.trim().toLowerCase() === PREFERRED_FREE_MODEL_NAME;
+function findAvailableModelId(models: ModelInfo[], preferredId?: string): string {
+  if (!preferredId) return "";
+  return models.some((model) => model.id === preferredId) ? preferredId : "";
 }
 
-export function pickInitialModelId(models: ModelInfo[], preferredId: string): string {
-  if (preferredId && models.some((model) => model.id === preferredId)) {
-    return preferredId;
-  }
-
-  return models.find(isPreferredFreeModel)?.id ?? models.find(isFreeModel)?.id ?? models[0]?.id ?? "";
+export function pickInitialModelId(
+  models: ModelInfo[],
+  preferences: ModelSelectionPreferences
+): string {
+  return (
+    findAvailableModelId(models, preferences.chatModelId) ||
+    findAvailableModelId(models, preferences.globalModelId) ||
+    models.find((model) => model.name.trim().toLowerCase() === PREFERRED_MODEL_NAME)?.id ||
+    models[0]?.id ||
+    ""
+  );
 }

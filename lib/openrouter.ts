@@ -51,11 +51,27 @@ export interface ChatMessage {
   name?: string;
 }
 
-// OpenAI-compatible tool definition, derived from MCP tools.
-export interface ChatTool {
+// OpenAI-compatible function tool definition, derived from MCP tools.
+export interface ChatFunctionTool {
   type: "function";
   function: { name: string; description?: string; parameters?: unknown };
 }
+
+// OpenRouter-hosted server tool. It runs on OpenRouter and does not expose a
+// search provider key to the browser.
+export interface OpenRouterWebSearchTool {
+  type: "openrouter:web_search";
+  parameters?: {
+    search_context_size?: "low" | "medium" | "high";
+  };
+}
+
+export type ChatTool = ChatFunctionTool | OpenRouterWebSearchTool;
+
+export const OPENROUTER_WEB_SEARCH_TOOL: OpenRouterWebSearchTool = {
+  type: "openrouter:web_search",
+  parameters: { search_context_size: "medium" },
+};
 
 // Fetches the available model list from OpenRouter. Falls back to a curated
 // list on any failure so the picker always works.

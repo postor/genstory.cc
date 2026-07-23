@@ -85,6 +85,10 @@ Open [http://localhost:3000](http://localhost:3000).
 
 The development command syncs the Phaser runtime and the vendored OpenWebGal engine before starting Next.js.
 
+### Optional web search for chat
+
+The chat assistant can use OpenRouter's server-side `openrouter:web_search` tool. It runs on OpenRouter, so there is no extra browser-side search key to configure. The model sees normalized web results as part of the OpenRouter tool flow, and the browser never has to call a third-party search API directly.
+
 ### Build a static export
 
 ```bash

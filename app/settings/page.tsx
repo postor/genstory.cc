@@ -4,10 +4,10 @@ import SettingsClient from "./settings-client";
 
 export const metadata: Metadata = {
   title: {
-    absolute: "Cloud Sync Settings - GenStory.cc",
+    absolute: "Settings - GenStory.cc",
   },
   description:
-    "Configure optional browser-only Google Drive sync for your local GenStory.cc workspace.",
+    "Configure browser-only cloud sync and OpenAI-compatible API settings for GenStory.cc.",
   robots: {
     index: false,
     follow: false,

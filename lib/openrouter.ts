@@ -8,10 +8,36 @@
 //
 // Usage: pass the live bearer token (from loadTokens()/getToken()) into chat().
 
-import { OpenRouterStreamParser } from "./openrouter-stream";
+import { OpenRouterStreamParser } from "./openrouter-stream.ts";
+import {
+  isOpenAICompatibleConfigured,
+  loadOpenAICompatibleSettings,
+  type OpenAICompatibleSettings,
+} from "./openai-compatible-settings.ts";
 
 const OR_BASE = "https://openrouter.ai/api/v1";
 const MODEL_LOG_PREFIX = "[OpenRouter:model]";
+
+interface ResolvedApi {
+  baseUrl: string;
+  apiKey: string;
+  custom: boolean;
+}
+
+function resolveApi(
+  settings?: OpenAICompatibleSettings | null,
+  fallbackToken = ""
+): ResolvedApi {
+  const configured = settings === undefined ? loadOpenAICompatibleSettings() : settings;
+  if (configured && isOpenAICompatibleConfigured(configured)) {
+    return {
+      baseUrl: configured.baseUrl,
+      apiKey: configured.apiKey,
+      custom: true,
+    };
+  }
+  return { baseUrl: OR_BASE, apiKey: fallbackToken, custom: false };
+}
 
 // Curated fallback models, used when the live /models endpoint is unreachable
 // (offline, CORS, or rate-limited). Keeps the model picker usable in all cases.
@@ -77,14 +103,22 @@ export const OPENROUTER_WEB_SEARCH_TOOL: OpenRouterWebSearchTool = {
 
 // Fetches the available model list from OpenRouter. Falls back to a curated
 // list on any failure so the picker always works.
-export async function listModels(): Promise<ModelInfo[]> {
+export async function listModels(
+  apiSettings?: OpenAICompatibleSettings | null
+): Promise<ModelInfo[]> {
+  const api = resolveApi(apiSettings);
   try {
     console.info(MODEL_LOG_PREFIX, "fetching model index");
-    const res = await fetch(`${OR_BASE}/models`, {
-      headers: { Accept: "application/json" },
+    const headers: Record<string, string> = { Accept: "application/json" };
+    if (api.apiKey) headers.Authorization = `Bearer ${api.apiKey}`;
+    const res = await fetch(`${api.baseUrl}/models`, {
+      headers,
     });
     if (!res.ok) {
       console.info(MODEL_LOG_PREFIX, "model index failed", { status: res.status });
+      if (api.custom) {
+        throw new Error(`custom model index request failed (${res.status})`);
+      }
       return FALLBACK_MODELS;
     }
     const json = (await res.json()) as {
@@ -97,27 +131,42 @@ export async function listModels(): Promise<ModelInfo[]> {
       }[];
     };
     const data = (json.data || [])
-      .filter((m) => typeof m.id === "string" && typeof m.name === "string")
-      .map((m) => ({
-        id: m.id as string,
-        name: m.name as string,
-        contextLength: m.context_length ?? m.top_provider?.context_length,
-        pricing: m.pricing,
-      }));
+      .filter((m) => typeof m.id === "string")
+      .map((m) => {
+        const model: ModelInfo = {
+          id: m.id as string,
+          name: typeof m.name === "string" && m.name ? m.name : (m.id as string),
+        };
+        const contextLength = m.context_length ?? m.top_provider?.context_length;
+        if (contextLength !== undefined) model.contextLength = contextLength;
+        if (m.pricing) model.pricing = m.pricing;
+        return model;
+      });
     if (!data.length) {
       console.info(MODEL_LOG_PREFIX, "model index was empty, using fallback models");
+      if (api.custom) {
+        throw new Error("custom model index was empty");
+      }
       return FALLBACK_MODELS;
     }
 
     console.info(MODEL_LOG_PREFIX, "model index loaded", { count: data.length });
     return data;
-  } catch {
+  } catch (error) {
     console.info(MODEL_LOG_PREFIX, "model index request threw, using fallback models");
+    if (api.custom) {
+      throw error instanceof Error ? error : new Error("custom model index request failed");
+    }
     return FALLBACK_MODELS;
   }
 }
 
-export async function getModelProviders(modelId: string): Promise<{ name: string; slug: string }[]> {
+export async function getModelProviders(
+  modelId: string,
+  apiSettings?: OpenAICompatibleSettings | null
+): Promise<{ name: string; slug: string }[]> {
+  const api = resolveApi(apiSettings);
+  if (api.custom) return [];
   const slash = modelId.indexOf("/");
   if (slash < 1 || slash === modelId.length - 1) return [];
   const author = encodeURIComponent(modelId.slice(0, slash));
@@ -155,6 +204,7 @@ export interface ChatResult {
 export interface ChatStreamOptions {
   onTextDelta?: (delta: string) => void;
   providerOnly?: string[];
+  apiSettings?: OpenAICompatibleSettings | null;
 }
 
 // Sends a chat completion request to OpenRouter using the caller-supplied token.
@@ -171,8 +221,9 @@ export async function chat(
   tools?: ChatTool[],
   options?: ChatStreamOptions
 ): Promise<ChatResult> {
+  const api = resolveApi(options?.apiSettings, token);
   const body: Record<string, unknown> = { model, messages, stream: true };
-  if (options?.providerOnly?.length) {
+  if (!api.custom && options?.providerOnly?.length) {
     body.provider = { only: options.providerOnly, allow_fallbacks: false };
   }
   if (tools && tools.length) {
@@ -180,12 +231,12 @@ export async function chat(
     body.tool_choice = "auto";
   }
 
-  const res = await fetch(`${OR_BASE}/chat/completions`, {
+  const res = await fetch(`${api.baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       // Token is supplied at runtime; never embedded in source.
-      Authorization: `Bearer ${token}`,
+      Authorization: `Bearer ${api.apiKey}`,
     },
     body: JSON.stringify(body),
   });
@@ -205,13 +256,17 @@ export async function chat(
     if (res.status === 429) {
       const provider = options?.providerOnly?.join(", ");
       detail = provider
-        ? `${detail}。Provider ${provider} 的配额或速率限制已触发，请检查该 provider 的 BYOK 配额。`
+        ? `Provider ${provider} 的配额或速率限制已触发，请检查该 provider 的 BYOK 配额。${detail}`
         : `${detail}。上游 provider 的配额或速率限制已触发。`;
     }
-    throw new Error(`OpenRouter 请求失败 (${res.status}): ${detail}`);
+    throw new Error(
+      `${api.custom ? "兼容 API" : "OpenRouter"} 请求失败 (${res.status}): ${detail}`
+    );
   }
 
-  if (!res.body) throw new Error("OpenRouter 未返回可读取的流");
+  if (!res.body) {
+    throw new Error(`${api.custom ? "兼容 API" : "OpenRouter"} 未返回可读取的流`);
+  }
 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
@@ -251,6 +306,8 @@ export async function chat(
   const orderedToolCalls = [...toolCalls.entries()]
     .sort(([left], [right]) => left - right)
     .map(([, call]) => call);
-  if (!content && orderedToolCalls.length === 0) throw new Error("OpenRouter 返回内容为空");
+  if (!content && orderedToolCalls.length === 0) {
+    throw new Error(`${api.custom ? "兼容 API" : "OpenRouter"} 返回内容为空`);
+  }
   return { content: content || null, toolCalls: orderedToolCalls };
 }

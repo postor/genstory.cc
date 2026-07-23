@@ -36,6 +36,12 @@ import { useLang, type Lang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { cn } from "@/lib/utils";
 import {
+  isOpenAICompatibleConfigured,
+  loadOpenAICompatibleSettings,
+  DEFAULT_OPENAI_COMPATIBLE_SETTINGS,
+  type OpenAICompatibleSettings,
+} from "@/lib/openai-compatible-settings";
+import {
   trackChatSent,
   trackModelSelected,
   trackToolCalled,
@@ -93,6 +99,7 @@ import {
 import { findLastUserInput } from "./inputHistory";
 
 const LS_MODEL = "chatbox_model";
+const LS_CHAT_PROVIDER = "chatbox_provider";
 const LS_DISABLED_PROVIDERS = "chatbox_disabled_providers";
 const LS_MESSAGES = "chatbox_messages";
 const LS_IMAGES = "chatbox_images";
@@ -102,6 +109,7 @@ const LS_GOAL = "chatbox_goal";
 const LS_GOAL_MODE = "chatbox_goal_mode";
 const MAX_GOAL_NO_PROGRESS = 2;
 const MODEL_LOG_PREFIX = "[ChatBox:model]";
+type ChatProviderId = "openrouter" | "custom-openai";
 
 function logModelEvent(event: string, details?: Record<string, unknown>) {
   console.info(MODEL_LOG_PREFIX, event, details ?? "");
@@ -122,6 +130,16 @@ function modelStorageDiagnostics() {
     return {
       storageError: error instanceof Error ? error.message : String(error),
     };
+  }
+}
+
+function loadStoredChatProvider(): ChatProviderId {
+  try {
+    return window.localStorage.getItem(LS_CHAT_PROVIDER) === "custom-openai"
+      ? "custom-openai"
+      : "openrouter";
+  } catch {
+    return "openrouter";
   }
 }
 
@@ -331,6 +349,15 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const { lang, t } = useLang();
   const { status, isAuthorized, ready, tools, connect, callTool, refreshToken, authorize } =
     useOpenRouterMcp();
+  const [apiSettings, setApiSettings] = useState<OpenAICompatibleSettings>(
+    DEFAULT_OPENAI_COMPATIBLE_SETTINGS
+  );
+  const [apiSettingsReady, setApiSettingsReady] = useState(false);
+  const customApiConfigured =
+    apiSettingsReady && isOpenAICompatibleConfigured(apiSettings);
+  const [chatProvider, setChatProvider] =
+    useState<ChatProviderId>("openrouter");
+  const [chatProviderStorageReady, setChatProviderStorageReady] = useState(false);
 
   const [models, setModels] = useState<ModelInfo[]>([]);
   const [modelLoading, setModelLoading] = useState(true);
@@ -365,7 +392,39 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
   const [oauthOpen, setOauthOpen] = useState(false);
 
-  const authorized = isAuthorized && status === "connected";
+  useEffect(() => {
+    setApiSettings(loadOpenAICompatibleSettings());
+    setApiSettingsReady(true);
+  }, []);
+
+  useEffect(() => {
+    // Restore the selected provider after hydration because it is browser-only state.
+    setChatProvider(loadStoredChatProvider());
+    setChatProviderStorageReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (chatProvider === "custom-openai" && apiSettingsReady && !customApiConfigured) {
+      setChatProvider("openrouter");
+    }
+  }, [apiSettingsReady, chatProvider, customApiConfigured]);
+
+  const activeCustomApi = chatProvider === "custom-openai" && customApiConfigured;
+  const activeApiSettings = activeCustomApi ? apiSettings : null;
+  const providerOptions = useMemo(
+    () => [
+      { id: "openrouter", name: t("chat.providerOpenRouter") },
+      { id: "custom-openai", name: t("chat.providerCustomOpenAI") },
+    ],
+    [t]
+  );
+  const selectedProviderLabel =
+    providerOptions.find((option) => option.id === chatProvider)?.name ??
+    t("chat.providerOpenRouter");
+  const authorized =
+    chatProvider === "openrouter"
+      ? isAuthorized && status === "connected"
+      : activeCustomApi;
   const contextUsage = useMemo(
     () => estimateContextUsage({ context, messages, input }),
     [context, messages, input]
@@ -420,15 +479,35 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     }
   }, [lang]);
 
-  // --- init: load models + attempt to connect to MCP ---
+  const handleChatProviderChange = useCallback((next: string) => {
+    if (next !== "openrouter" && next !== "custom-openai") return;
+    const nextProvider = next as ChatProviderId;
+    if (nextProvider === chatProvider) return;
+    if (nextProvider === "custom-openai" && !customApiConfigured) {
+      setError(t("chat.customApiNotConfigured"));
+      return;
+    }
+    setChatProvider(nextProvider);
+    setModels([]);
+    setModel("");
+    setProvidersByModel({});
+    setProviderLoading(false);
+    setError(null);
+    setOauthOpen(false);
+    restoredStorageKeyRef.current = null;
+  }, [chatProvider, customApiConfigured, t]);
+
+  // --- init: load models for the selected provider ---
   useEffect(() => {
+    if (!apiSettingsReady || !chatProviderStorageReady) return;
     let cancelled = false;
     setModelLoading(true);
-    logModelEvent("model list loading started");
-    listModels()
+    logModelEvent("model list loading started", { provider: chatProvider });
+    listModels(activeApiSettings)
       .then((ms) => {
         logModelEvent("model list loaded", {
           cancelled,
+          provider: chatProvider,
           count: ms.length,
           modelIds: ms.map((item) => item.id),
         });
@@ -437,17 +516,33 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       })
       .catch((error) => {
         logModelEvent("model list failed", {
+          provider: chatProvider,
           error: error instanceof Error ? error.message : String(error),
         });
+        if (!cancelled && activeCustomApi) {
+          setModels([]);
+          setModel("");
+          setError(t("chat.customApiModelListFailed"));
+        }
       })
       .finally(() => {
-        logModelEvent("model list loading finished", { cancelled });
+        logModelEvent("model list loading finished", {
+          cancelled,
+          provider: chatProvider,
+        });
         if (!cancelled) setModelLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [
+    activeApiSettings,
+    activeCustomApi,
+    apiSettingsReady,
+    chatProvider,
+    chatProviderStorageReady,
+    t,
+  ]);
 
   useEffect(() => {
     if (modelLoading) {
@@ -467,7 +562,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     const savedChatModel = loadStoredModel(chatStorageKey);
     const savedGlobalModel = loadStoredModel(LS_MODEL);
     const savedModel = savedChatModel || savedGlobalModel;
-    const restoredModel = savedModel || pickInitialModelId(models, {});
+    const restoredModel =
+      pickInitialModelId(models, {
+        chatModelId: savedChatModel,
+        globalModelId: savedGlobalModel,
+      }) || savedModel;
 
     logModelEvent("model restore decision", {
       chatId: chatId ?? null,
@@ -493,7 +592,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     let cancelled = false;
     setProviderLoading(true);
     logModelEvent("provider loading started", { modelId: model });
-    getModelProviders(model)
+    getModelProviders(model, activeApiSettings)
       .then((providers) => {
         if (cancelled) return;
         setProvidersByModel((current) => ({ ...current, [model]: providers }));
@@ -511,7 +610,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     return () => {
       cancelled = true;
     };
-  }, [model, providersByModel]);
+  }, [activeApiSettings, model, providersByModel]);
 
   useEffect(() => {
     setAutoCompress(loadJSON<boolean>(LS_AUTO_COMPRESS, false));
@@ -527,6 +626,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     if (!providerStorageReady) return;
     window.localStorage.setItem(LS_DISABLED_PROVIDERS, JSON.stringify(disabledProviders));
   }, [disabledProviders, providerStorageReady]);
+
+  useEffect(() => {
+    if (!chatProviderStorageReady) return;
+    window.localStorage.setItem(LS_CHAT_PROVIDER, chatProvider);
+  }, [chatProvider, chatProviderStorageReady]);
 
   useEffect(() => {
     setGoalEnabled(goalMode === "auto" && loadJSON<boolean>(LS_GOAL_MODE, true));
@@ -563,6 +667,14 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     // callback exchange on the redirect-return load, wrongly popping the dialog
     // even though we just authorized. Once `ready`, the provider's isAuthorized
     // is the source of truth.
+    if (
+      !apiSettingsReady ||
+      !chatProviderStorageReady ||
+      chatProvider !== "openrouter"
+    ) {
+      setOauthOpen(false);
+      return;
+    }
     if (!ready) return;
     if (isAuthorized) {
       void connect();
@@ -571,14 +683,20 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     }
     // Run once when the provider becomes ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [apiSettingsReady, chatProvider, chatProviderStorageReady, ready]);
 
   // Close the dialog automatically once the handshake completes successfully.
   useEffect(() => {
-    if (ready && isAuthorized && status === "connected" && oauthOpen) {
+    if (
+      chatProvider === "openrouter" &&
+      ready &&
+      isAuthorized &&
+      status === "connected" &&
+      oauthOpen
+    ) {
       setOauthOpen(false);
     }
-  }, [ready, isAuthorized, status, oauthOpen]);
+  }, [chatProvider, ready, isAuthorized, status, oauthOpen]);
 
   // --- persist chat state to localStorage ---
   // Model selections are written only after an explicit user choice. Automatic
@@ -698,7 +816,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
             lang,
           }),
           undefined,
-          { providerOnly: selectedProviderOnly }
+          { providerOnly: selectedProviderOnly, apiSettings: activeApiSettings }
         );
         const summary = result.content?.trim();
         if (!summary) throw new Error(t("chat.emptySummary"));
@@ -736,7 +854,16 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         setCompressing(false);
       }
     },
-    [compression, context, lang, model, selectedModel?.contextLength, selectedProviderOnly, t]
+    [
+      activeApiSettings,
+      compression,
+      context,
+      lang,
+      model,
+      selectedModel?.contextLength,
+      selectedProviderOnly,
+      t,
+    ]
   );
 
   const sendChat = useCallback(
@@ -744,7 +871,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       const text = (presetText ?? input).trim();
       if (!text || sending) return;
 
-      const tk = await refreshToken();
+      const tk = activeCustomApi ? apiSettings.apiKey : await refreshToken();
       if (!tk) {
         setError(t("chat.noToken"));
         setOauthOpen(true);
@@ -858,7 +985,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           type: "function" as const,
           function: { name: t.name, description: t.description, parameters: t.inputSchema },
         })),
-        OPENROUTER_WEB_SEARCH_TOOL,
+        ...(activeCustomApi ? [] : [OPENROUTER_WEB_SEARCH_TOOL]),
       ];
 
       const userMessage: ChatMessage = { role: "user", content: text };
@@ -921,6 +1048,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         let streamedContent = "";
         const { content, toolCalls } = await chat(tk, model, apiMessages, mcpTools, {
           providerOnly: selectedProviderOnly,
+          apiSettings: activeApiSettings,
           onTextDelta: (delta) => {
             streamedContent += delta;
             setStreamingText(true);
@@ -1069,6 +1197,9 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     }
   }, [
     autoCompress,
+    activeApiSettings,
+    activeCustomApi,
+    apiSettings,
     callTool,
     compressHistory,
     context,
@@ -1122,10 +1253,10 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
   // Click anywhere on the widget re-opens the OAuth dialog while unauthenticated.
   const handleRootClick = useCallback(() => {
-    if (!authorized && !oauthOpen) {
+    if (!authorized && !customApiConfigured && !oauthOpen) {
       setOauthOpen(true);
     }
-  }, [authorized, oauthOpen]);
+  }, [authorized, customApiConfigured, oauthOpen]);
 
   return (
     <div
@@ -1177,8 +1308,12 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           }
           onModelChange?.(id);
         }}
+        providerOptions={providerOptions}
+        selectedProvider={chatProvider}
+        onProviderChange={handleChatProviderChange}
+        providerLabel={selectedProviderLabel}
         loading={modelLoading}
-        disabled={!authorized}
+        disabled={!apiSettingsReady}
       />
 
       {goal && goalModeActive && (
@@ -1392,7 +1527,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                           size="sm"
                           onClick={async (event) => {
                             event.stopPropagation();
-                            const tk = await refreshToken();
+                            const tk = activeCustomApi ? apiSettings.apiKey : await refreshToken();
                             if (!tk) {
                               setError(t("chat.noToken"));
                               setOauthOpen(true);

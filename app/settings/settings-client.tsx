@@ -26,6 +26,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useLang } from "@/lib/i18n";
 import {
   beginCloudOAuth,
@@ -41,6 +43,14 @@ import {
   type CloudProviderId,
   type CloudSyncSettings,
 } from "@/lib/cloud-sync/types";
+import {
+  isOpenAICompatibleConfigured,
+  loadOpenAICompatibleSettings,
+  normalizeOpenAICompatibleSettings,
+  saveOpenAICompatibleSettings,
+  DEFAULT_OPENAI_COMPATIBLE_SETTINGS,
+  type OpenAICompatibleSettings,
+} from "@/lib/openai-compatible-settings";
 
 const GOOGLE_DRIVE_PROVIDER = "google-drive" satisfies CloudProviderId;
 const PROVIDERS = [GOOGLE_DRIVE_PROVIDER] as const;
@@ -60,6 +70,9 @@ export default function SettingsClient() {
     ...loadCloudSyncSettings(),
     provider: GOOGLE_DRIVE_PROVIDER,
   }));
+  const [apiSettings, setApiSettings] = useState<OpenAICompatibleSettings>(
+    DEFAULT_OPENAI_COMPATIBLE_SETTINGS
+  );
   const [connected, setConnected] = useState<Record<CloudProviderId, boolean>>(() =>
     Object.fromEntries(
       PROVIDERS.map((provider) => [provider, loadCloudToken(provider) !== null])
@@ -73,6 +86,13 @@ export default function SettingsClient() {
   useEffect(() => {
     document.title = t("meta.settingsTitle");
   }, [t]);
+
+  useEffect(() => {
+    // Read browser-only credentials after hydration to keep the server and
+    // first client render identical.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setApiSettings(loadOpenAICompatibleSettings());
+  }, []);
 
   const visibleSettings = useMemo<CloudSyncSettings>(
     () => ({ ...settings, provider: GOOGLE_DRIVE_PROVIDER }),
@@ -124,6 +144,21 @@ export default function SettingsClient() {
   function savePreferences() {
     saveCloudSyncSettings(visibleSettings);
     setFeedback(t("settings.cloud.preferencesSaved"));
+  }
+
+  function saveApiPreferences() {
+    const next = normalizeOpenAICompatibleSettings(apiSettings);
+    const hasBaseUrl = Boolean(next.baseUrl);
+    const hasApiKey = Boolean(next.apiKey);
+    if (hasBaseUrl !== hasApiKey) {
+      setError(t("settings.ai.incomplete"));
+      setFeedback(null);
+      return;
+    }
+    saveOpenAICompatibleSettings(next);
+    setApiSettings(next);
+    setError(null);
+    setFeedback(t("settings.ai.saved"));
   }
 
   return (
@@ -235,6 +270,59 @@ export default function SettingsClient() {
           <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm leading-6 text-amber-800 dark:text-amber-200">
             {t("settings.cloud.folderNote")}
           </p>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>{t("settings.ai.title")}</CardTitle>
+          <CardDescription>{t("settings.ai.description")}</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="custom-ai-base-url">{t("settings.ai.baseUrlLabel")}</Label>
+              <Input
+                id="custom-ai-base-url"
+                type="url"
+                value={apiSettings.baseUrl}
+                onChange={(event) =>
+                  setApiSettings((current) => ({
+                    ...current,
+                    baseUrl: event.target.value,
+                  }))
+                }
+                placeholder={t("settings.ai.baseUrlPlaceholder")}
+                autoComplete="url"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="custom-ai-api-key">{t("settings.ai.apiKeyLabel")}</Label>
+              <Input
+                id="custom-ai-api-key"
+                type="password"
+                value={apiSettings.apiKey}
+                onChange={(event) =>
+                  setApiSettings((current) => ({
+                    ...current,
+                    apiKey: event.target.value,
+                  }))
+                }
+                placeholder={t("settings.ai.apiKeyPlaceholder")}
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          <p className="text-xs leading-5 text-muted-foreground">{t("settings.ai.hint")}</p>
+          <p className="text-sm text-muted-foreground">
+            {isOpenAICompatibleConfigured(apiSettings)
+              ? t("settings.ai.active")
+              : t("settings.ai.inactive")}
+          </p>
+          <Button type="button" onClick={saveApiPreferences}>
+            <Save className="size-4" />
+            {t("settings.ai.save")}
+          </Button>
         </CardContent>
       </Card>
 

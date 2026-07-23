@@ -42,6 +42,56 @@ test("loads model metadata without requesting provider endpoints", async () => {
   }
 });
 
+test("uses a configured OpenAI-compatible base URL and API key for model loading", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls: string[] = [];
+  const headers: Headers[] = [];
+
+  globalThis.fetch = async (input, init) => {
+    urls.push(String(input));
+    headers.push(new Headers(init?.headers));
+    return new Response(
+      JSON.stringify({
+        data: [{ id: "custom-model", name: "Custom model", context_length: 4096 }],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } }
+    );
+  };
+
+  try {
+    assert.deepEqual(
+      await listModels({
+        baseUrl: "https://api.example.com/v1",
+        apiKey: "custom-key",
+      }),
+      [{ id: "custom-model", name: "Custom model", contextLength: 4096 }]
+    );
+    assert.deepEqual(urls, ["https://api.example.com/v1/models"]);
+    assert.equal(headers[0]?.get("Authorization"), "Bearer custom-key");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("does not hide custom API model-list failures behind OpenRouter fallback models", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => {
+    throw new TypeError("Failed to fetch");
+  };
+
+  try {
+    await assert.rejects(
+      listModels({
+        baseUrl: "https://api.example.com/v1",
+        apiKey: "custom-key",
+      }),
+      /Failed to fetch/
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("loads providers only when the selected model requests them", async () => {
   const originalFetch = globalThis.fetch;
   const urls: string[] = [];
@@ -69,6 +119,101 @@ test("loads providers only when the selected model requests them", async () => {
     ]);
   } finally {
     globalThis.fetch = originalFetch;
+  }
+});
+
+test("sends chat completions to the configured OpenAI-compatible endpoint", async () => {
+  const originalFetch = globalThis.fetch;
+  const encoder = new TextEncoder();
+  let requestUrl = "";
+  let requestHeaders: Headers | undefined;
+
+  globalThis.fetch = async (input, init) => {
+    requestUrl = String(input);
+    requestHeaders = new Headers(init?.headers);
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    return new Response(body, { status: 200 });
+  };
+
+  try {
+    const result = await chat(
+      "fallback-token",
+      "custom-model",
+      [{ role: "user", content: "hello" }],
+      undefined,
+      {
+        apiSettings: {
+          baseUrl: "https://api.example.com/v1",
+          apiKey: "custom-key",
+        },
+      }
+    );
+
+    assert.equal(requestUrl, "https://api.example.com/v1/chat/completions");
+    assert.equal(requestHeaders?.get("Authorization"), "Bearer custom-key");
+    assert.deepEqual(result, { content: "ok", toolCalls: [] });
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("can explicitly keep OpenRouter active when a custom API is configured", async () => {
+  const originalFetch = globalThis.fetch;
+  const originalWindow = globalThis.window;
+  let requestUrl = "";
+  const encoder = new TextEncoder();
+
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: {
+      localStorage: {
+        getItem: () =>
+          JSON.stringify({
+            baseUrl: "https://api.example.com/v1",
+            apiKey: "custom-key",
+          }),
+      },
+    },
+  });
+  globalThis.fetch = async (input) => {
+    requestUrl = String(input);
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(encoder.encode('data: {"choices":[{"delta":{"content":"ok"}}]}\n\n'));
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+        controller.close();
+      },
+    });
+    return new Response(body, { status: 200 });
+  };
+
+  try {
+    await chat(
+      "openrouter-token",
+      "openai/gpt-4o-mini",
+      [{ role: "user", content: "hello" }],
+      undefined,
+      {
+        apiSettings: null,
+      }
+    );
+    assert.equal(requestUrl, "https://openrouter.ai/api/v1/chat/completions");
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalWindow === undefined) {
+      Reflect.deleteProperty(globalThis, "window");
+    } else {
+      Object.defineProperty(globalThis, "window", {
+        configurable: true,
+        value: originalWindow,
+      });
+    }
   }
 });
 

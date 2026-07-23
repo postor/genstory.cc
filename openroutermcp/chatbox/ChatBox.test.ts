@@ -59,20 +59,20 @@ test("chatbox resolves model defaults per chat before global preferences and per
   const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
 
   assert.match(source, /pickInitialModelId\(\s*models,\s*\{/);
-  assert.match(source, /chatModelId: loadJSON<string>\(storageKey\(LS_MODEL, chatId\), ""\)/);
-  assert.match(source, /globalModelId: loadJSON<string>\(LS_MODEL, ""\)/);
+  assert.match(source, /chatModelId: savedChatModel/);
+  assert.match(source, /globalModelId: savedGlobalModel/);
   assert.match(source, /window\.localStorage\.setItem\(LS_MODEL, id\)/);
-  assert.match(source, /window\.localStorage\.setItem\(storageKey\(LS_MODEL, chatId\), id\)/);
+  assert.match(source, /window\.localStorage\.setItem\(chatStorageKey, id\)/);
 });
 
 test("chatbox restores the saved model after the model list finishes loading", async () => {
   const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /if \(modelLoading\) return;/);
-  assert.match(source, /const savedChatModel = loadJSON<string>\(storageKey\(LS_MODEL, chatId\), ""\)/);
-  assert.match(source, /const savedGlobalModel = loadJSON<string>\(LS_MODEL, ""\)/);
+  assert.match(source, /if \(modelLoading\) \{/);
+  assert.match(source, /const savedChatModel = loadStoredModel\(chatStorageKey\)/);
+  assert.match(source, /const savedGlobalModel = loadStoredModel\(LS_MODEL\)/);
   assert.match(source, /const savedModel = savedChatModel \|\| savedGlobalModel/);
-  assert.match(source, /const restoredModel = savedModel \|\| pickInitialModelId\(models, \{\}\)/);
+  assert.match(source, /const restoredModel =[\s\S]*pickInitialModelId\(models,/);
   assert.match(source, /setModel\(restoredModel\)/);
   assert.match(source, /\[chatId, modelLoading, models\]/);
 });
@@ -162,6 +162,11 @@ test("chat settings place the goal mode toggle below auto compression and defaul
 test("chat settings persist per-model provider controls and apply provider routing", async () => {
   const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
 
+  assert.match(source, /const LS_CHAT_PROVIDER = "chatbox_provider"/);
+  assert.match(source, /id: "custom-openai"/);
+  assert.match(source, /t\("chat\.providerCustomOpenAI"\)/);
+  assert.match(source, /disabled=\{!apiSettingsReady\}/);
+  assert.match(source, /const activeApiSettings = activeCustomApi \? apiSettings : null/);
   assert.match(source, /const LS_DISABLED_PROVIDERS = "chatbox_disabled_providers"/);
   assert.match(source, /loadJSON<Record<string, string\[\]>>\(LS_DISABLED_PROVIDERS, \{\}\)/);
   assert.match(source, /providerOnly: selectedProviderOnly/);

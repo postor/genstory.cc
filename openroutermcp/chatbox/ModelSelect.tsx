@@ -24,6 +24,10 @@ export interface ModelSelectProps {
   models: ModelInfo[];
   value: string;
   onChange: (id: string) => void;
+  providerOptions?: { id: string; name: string }[];
+  selectedProvider?: string;
+  onProviderChange?: (id: string) => void;
+  providerLabel?: string;
   loading?: boolean;
   disabled?: boolean;
 }
@@ -46,7 +50,17 @@ function modelSearchText(model: ModelInfo): string {
   return `${model.name} ${model.id}`;
 }
 
-export function ModelSelect({ models, value, onChange, loading, disabled }: ModelSelectProps) {
+export function ModelSelect({
+  models,
+  value,
+  onChange,
+  providerOptions = [],
+  selectedProvider,
+  onProviderChange,
+  providerLabel,
+  loading,
+  disabled,
+}: ModelSelectProps) {
   const { t } = useLang();
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState("");
@@ -108,11 +122,12 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
     }
   };
 
+  const modelLabel = selected ? selected.name : t("chat.modelSelect");
   const triggerLabel = loading
     ? t("chat.modelLoading")
-    : selected
-      ? selected.name
-      : t("chat.modelSelect");
+    : providerLabel
+      ? `${providerLabel} · ${modelLabel}`
+      : modelLabel;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -123,6 +138,7 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
             disabled={disabled}
             className="w-full justify-between font-normal"
             aria-label={t("chat.modelSelectLabel")}
+            onClick={(event) => event.stopPropagation()}
           />
         }
       >
@@ -136,6 +152,31 @@ export function ModelSelect({ models, value, onChange, loading, disabled }: Mode
       <PopoverPortal>
         <PopoverPositioner side="bottom" align="start" sideOffset={4} className="w-80">
           <PopoverPopup onKeyDown={handleKeyDown}>
+            {providerOptions.length > 0 && onProviderChange ? (
+              <div className="mb-2 space-y-1 border-b pb-2">
+                <p className="px-1 text-xs font-medium text-muted-foreground">
+                  {t("chat.providerSelect")}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {providerOptions.map((option) => (
+                    <Button
+                      key={option.id}
+                      type="button"
+                      variant={selectedProvider === option.id ? "default" : "outline"}
+                      size="xs"
+                      aria-pressed={selectedProvider === option.id}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onProviderChange(option.id);
+                        setFilter("");
+                      }}
+                    >
+                      {option.name}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <div className="relative mb-2">
               <Input
                 ref={inputRef}

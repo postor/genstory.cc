@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, CloudUpload, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Menu, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
@@ -756,7 +756,10 @@ export default function EditorClient() {
     }
   }
 
-  async function reloadFiles(preferredPath = selectedPath, preferredKind: "file" | "directory" | null = selectedKind) {
+  const reloadFiles = useCallback(async (
+    preferredPath = selectedPath,
+    preferredKind: "file" | "directory" | null = selectedKind
+  ) => {
     if (!root) return;
     const entries = await listProjectFiles(root);
     const textFiles: Record<string, string> = {};
@@ -791,7 +794,7 @@ export default function EditorClient() {
     if (project?.template === "visual-novel") {
       setVn(await readVNProjectFromDirectory(root));
     }
-  }
+  }, [project?.template, root, selectedKind, selectedPath]);
 
   async function handleRefreshEntry(target: EntryDialogState) {
     if (!root) return;
@@ -1213,14 +1216,24 @@ export default function EditorClient() {
           type: "object",
           properties: {
             path: { type: "string", description: t("editor.toolReadFilePathDesc") },
+            paths: {
+              type: "array",
+              items: { type: "string" },
+              description: t("editor.toolReadFilePathsDesc"),
+            },
           },
-          required: ["path"],
         },
         call: (args) => {
-          const path = normalizeRelativePath(String(args.path ?? ""));
-          const content = contents[path];
-          if (content === undefined) throw new Error(t("editor.toolMissingTextFile", { path }));
-          return { path, content };
+          const rawPaths = Array.isArray(args.paths) && args.paths.length > 0
+            ? args.paths
+            : [args.path];
+          const paths = rawPaths.map((value) => normalizeRelativePath(String(value ?? "")));
+          const files = paths.map((path) => {
+            const content = contents[path];
+            if (content === undefined) throw new Error(t("editor.toolMissingTextFile", { path }));
+            return { path, content };
+          });
+          return files.length === 1 ? { ...files[0], files } : { files };
         },
       },
       {
@@ -1260,24 +1273,53 @@ export default function EditorClient() {
               type: "string",
               description: "Project-relative destination path, which must not already exist.",
             },
+            moves: {
+              type: "array",
+              description: "Multiple file moves to perform in one tool call.",
+              items: {
+                type: "object",
+                properties: {
+                  sourcePath: {
+                    type: "string",
+                    description: "Project-relative path of the existing file.",
+                  },
+                  targetPath: {
+                    type: "string",
+                    description: "Project-relative destination path, which must not already exist.",
+                  },
+                },
+                required: ["sourcePath", "targetPath"],
+              },
+            },
           },
-          required: ["sourcePath", "targetPath"],
         },
         call: async (args) => {
           if (!root) throw new Error("当前项目目录不可用");
-          const sourcePath = normalizeRelativePath(String(args.sourcePath ?? ""));
-          const targetPath = normalizeRelativePath(String(args.targetPath ?? ""));
+          const rawMoves = Array.isArray(args.moves) && args.moves.length > 0
+            ? args.moves
+            : [{ sourcePath: args.sourcePath, targetPath: args.targetPath }];
+          const moves = rawMoves.map((move) => {
+            const item = move && typeof move === "object" ? move as Record<string, unknown> : {};
+            return {
+              sourcePath: normalizeRelativePath(String(item.sourcePath ?? "")),
+              targetPath: normalizeRelativePath(String(item.targetPath ?? "")),
+            };
+          });
           await ensurePermission(root, true);
-          await moveFile(root, sourcePath, targetPath);
-          await reloadFiles(targetPath, "file");
+          for (const move of moves) {
+            await moveFile(root, move.sourcePath, move.targetPath);
+          }
+          await reloadFiles(moves[moves.length - 1]?.targetPath ?? "", "file");
           if (project?.template === "visual-novel") {
             setVn(await readVNProjectFromDirectory(root));
           }
-          return { moved: true, sourcePath, targetPath };
+          return moves.length === 1
+            ? { moved: true, ...moves[0], moves }
+            : { moved: true, moves };
         },
       },
     ];
-  }, [contents, project, root, selectedPath, t]);
+  }, [contents, project, reloadFiles, root, selectedPath, t]);
 
   const createDirectoryTarget = createDirectoryState
     ? uploadTargetDirectory(createDirectoryState.path, createDirectoryState.kind) ||

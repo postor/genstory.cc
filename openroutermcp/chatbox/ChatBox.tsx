@@ -12,7 +12,8 @@
 //
 // Composed of ModelSelect (filter + loading) and ChatHistoryWindow
 // (auto-scroll to latest, markdown + image rendering). Chat history, selected
-// model, and tool images are persisted to localStorage. Requires the
+// model and small settings are persisted to localStorage; chat history and tool
+// images live in IndexedDB. Requires the
 // OpenRouterMcpProvider ancestor (already mounted in the root layout).
 //
 // Styling uses shadcn primitives + Tailwind utilities only — no inline `style`.
@@ -97,6 +98,12 @@ import {
   type ChatTranscriptItem,
 } from "./transcript";
 import { findLastUserInput } from "./inputHistory";
+import {
+  loadStoredChatImages,
+  loadStoredChatTranscript,
+  persistChatImages,
+  persistChatTranscript,
+} from "./chatStorage";
 
 const LS_MODEL = "chatbox_model";
 const LS_CHAT_PROVIDER = "chatbox_provider";
@@ -108,6 +115,7 @@ const LS_COMPRESSION = "chatbox_context_compression";
 const LS_GOAL = "chatbox_goal";
 const LS_GOAL_MODE = "chatbox_goal_mode";
 const MAX_GOAL_NO_PROGRESS = 2;
+const MAX_CONSECUTIVE_TOOL_REQUEST_FAILURES = 5;
 const MODEL_LOG_PREFIX = "[ChatBox:model]";
 type ChatProviderId = "openrouter" | "custom-openai";
 
@@ -223,6 +231,11 @@ function buildGoalContinuationPrompt(
   return reason === "needs-verification"
     ? `Continue working on "${goal.objective}". Do not end yet; add and verify checkable completion evidence, resolving any solvable dependency first.`
     : `Continue working on "${goal.objective}". Take the next action: ${goal.nextAction || "take the most direct executable action"}. Do not ask the user about optional preferences.`;
+}
+
+function isToolRequestFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /tool request failed|工具调用失败|server tool/i.test(message);
 }
 
 /** Namespace a storage key by an optional chat/project id. */
@@ -381,6 +394,8 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [images, setImages] = useState<Record<string, string>>({});
   const [goal, setGoal] = useState<GoalState | null>(null);
   const [goalEnabled, setGoalEnabled] = useState(goalMode === "auto");
+  const [goalDetailsOpen, setGoalDetailsOpen] = useState(false);
+  const [goalObjectiveOpen, setGoalObjectiveOpen] = useState(false);
   const [compression, setCompression] = useState<ChatCompressionState | null>(null);
   const [autoCompress, setAutoCompress] = useState(false);
   const [compressionStorageReady, setCompressionStorageReady] = useState(false);
@@ -460,6 +475,10 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   }, [selectedDisabledProviders, selectedModel]);
   const requestTokens = contextUsage.context + contextUsage.history + contextUsage.input;
   const goalModeActive = goalMode === "auto" && goalEnabled;
+  const interruptedGoal =
+    goalModeActive && goal && (goal.status === "blocked" || goal.status === "stalled")
+      ? goal
+      : null;
   const projectToolNames = useMemo(
     () => new Set(projectTools.map((tool) => tool.name)),
     [projectTools]
@@ -645,13 +664,9 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
 
   useEffect(() => {
     setChatStorageReady(false);
-    const storedTranscript = loadJSON<ChatTranscriptItem[]>(
-      storageKey(LS_MESSAGES, chatId),
-      []
-    );
-    setMessages(llmMessagesFromTranscript(storedTranscript));
-    setTranscript(storedTranscript);
-    setImages(loadJSON<Record<string, string>>(storageKey(LS_IMAGES, chatId), {}));
+    let cancelled = false;
+    const messagesKey = storageKey(LS_MESSAGES, chatId);
+    const imagesKey = storageKey(LS_IMAGES, chatId);
     const storedGoal = loadJSON<GoalState | null>(
       storageKey(LS_GOAL, chatId),
       null
@@ -664,7 +679,21 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         null
       )
     );
-    setChatStorageReady(true);
+
+    void Promise.all([
+      loadStoredChatTranscript(messagesKey),
+      loadStoredChatImages(imagesKey),
+    ]).then(([storedTranscript, storedImages]) => {
+      if (cancelled) return;
+      setMessages(llmMessagesFromTranscript(storedTranscript));
+      setTranscript(storedTranscript);
+      setImages(storedImages);
+      setChatStorageReady(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, [chatId]);
 
   useEffect(() => {
@@ -704,24 +733,17 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     }
   }, [chatProvider, ready, isAuthorized, status, oauthOpen]);
 
-  // --- persist chat state to localStorage ---
+  // --- persist chat state ---
   // Model selections are written only after an explicit user choice. Automatic
   // defaults remain derived from the current chat and global preferences.
   useEffect(() => {
     if (!chatStorageReady) return;
-    window.localStorage.setItem(
-      storageKey(LS_MESSAGES, chatId),
-      JSON.stringify(transcript)
-    );
+    void persistChatTranscript(storageKey(LS_MESSAGES, chatId), transcript);
   }, [transcript, chatId, chatStorageReady]);
 
   useEffect(() => {
     if (!chatStorageReady) return;
-    try {
-      window.localStorage.setItem(storageKey(LS_IMAGES, chatId), JSON.stringify(images));
-    } catch {
-      /* localStorage may overflow with many/large images; ignore. */
-    }
+    void persistChatImages(storageKey(LS_IMAGES, chatId), images);
   }, [images, chatId, chatStorageReady]);
 
   useEffect(() => {
@@ -1023,6 +1045,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           goalMode: goalModeActive ? "auto" : "off",
         }),
       };
+      let consecutiveToolRequestFailures = 0;
 
     try {
       if (autoCompress) {
@@ -1052,18 +1075,35 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       for (let i = 0; i < maxToolRounds; i++) {
         const apiMessages = runtimeTools.length ? [systemMsg, ...history] : history;
         let streamedContent = "";
-        const { content, toolCalls } = await chat(tk, model, apiMessages, mcpTools, {
-          providerOnly: selectedProviderOnly,
-          apiSettings: activeApiSettings,
-          onTextDelta: (delta) => {
-            streamedContent += delta;
-            setStreamingText(true);
-            setTranscript([
-              ...displayTranscript,
-              { role: "assistant", content: streamedContent },
-            ]);
-          },
-        });
+        let content: string | null;
+        let toolCalls: Awaited<ReturnType<typeof chat>>["toolCalls"];
+        try {
+          const result = await chat(tk, model, apiMessages, mcpTools, {
+            providerOnly: selectedProviderOnly,
+            apiSettings: activeApiSettings,
+            onTextDelta: (delta) => {
+              streamedContent += delta;
+              setStreamingText(true);
+              setTranscript([
+                ...displayTranscript,
+                { role: "assistant", content: streamedContent },
+              ]);
+            },
+          });
+          content = result.content;
+          toolCalls = result.toolCalls;
+        } catch (error) {
+          if (!isToolRequestFailure(error)) throw error;
+          consecutiveToolRequestFailures += 1;
+          if (
+            consecutiveToolRequestFailures >=
+            MAX_CONSECUTIVE_TOOL_REQUEST_FAILURES
+          ) {
+            throw error;
+          }
+          setStreamingText(false);
+          continue;
+        }
         const finalContent = content ?? (streamedContent || null);
 
         if (toolCalls.length > 0) {
@@ -1092,6 +1132,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           setTranscript(displayTranscript);
 
           const collected: Record<string, string> = {};
+          let stopAfterToolFailure: Error | null = null;
           for (const tc of toolCalls) {
             let resultText: string;
             const toolSource = goalToolNames.has(tc.function.name)
@@ -1110,6 +1151,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
               const res = localTool
                 ? await localTool.call(args)
                 : await callTool(tc.function.name, args);
+              consecutiveToolRequestFailures = 0;
               // Replace inline image base64 with a stable id reference so the
               // data never enters the chat context sent back to the model.
                const extracted: ExtractedToolImage[] = [];
@@ -1137,6 +1179,14 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                   resultText = t("chat.toolCallFailed", {
                     message: e instanceof Error ? e.message : String(e),
                   });
+                  consecutiveToolRequestFailures += 1;
+                  if (
+                    consecutiveToolRequestFailures >=
+                    MAX_CONSECUTIVE_TOOL_REQUEST_FAILURES
+                  ) {
+                    stopAfterToolFailure =
+                      e instanceof Error ? e : new Error(String(e));
+                  }
                 }
             const toolMessage: ChatMessage = {
               role: "tool",
@@ -1146,15 +1196,18 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
             };
             history.push(toolMessage);
             displayTranscript = [...displayTranscript, toolMessage];
+            if (stopAfterToolFailure) break;
           }
           if (Object.keys(collected).length > 0) {
             setImages((prev) => ({ ...prev, ...collected }));
           }
           setMessages([...history]);
           setTranscript(displayTranscript);
+          if (stopAfterToolFailure) throw stopAfterToolFailure;
           continue;
         }
 
+        consecutiveToolRequestFailures = 0;
         const assistantMessage: ChatMessage = { role: "assistant", content: finalContent ?? "" };
         history.push(assistantMessage);
         displayTranscript = [...displayTranscript, assistantMessage];
@@ -1348,6 +1401,102 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                 <CircleCheck className="size-3.5 text-emerald-600" />
               ) : goal.status === "active" && sending ? (
                 <Loader2 className="size-3.5 animate-spin text-primary" />
+              ) : interruptedGoal ? (
+                <Popover open={goalDetailsOpen} onOpenChange={setGoalDetailsOpen}>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-xs"
+                        className="-m-1 size-5 text-amber-600 hover:text-amber-700 dark:text-amber-300 dark:hover:text-amber-200"
+                        aria-label={t("chat.goalDetailsLabel")}
+                        title={t("chat.goalDetailsLabel")}
+                        onMouseEnter={() => setGoalDetailsOpen(true)}
+                        onMouseLeave={() => setGoalDetailsOpen(false)}
+                        onFocus={() => setGoalDetailsOpen(true)}
+                        onBlur={() => setGoalDetailsOpen(false)}
+                      />
+                    }
+                  >
+                    <CircleAlert className="size-3.5" />
+                  </PopoverTrigger>
+                  <PopoverPortal>
+                    <PopoverPositioner side="bottom" align="start" sideOffset={6} className="w-80 max-w-[calc(100vw-2rem)]">
+                      <PopoverPopup
+                        className="max-h-80 overflow-y-auto p-3 text-xs"
+                        onMouseEnter={() => setGoalDetailsOpen(true)}
+                        onMouseLeave={() => setGoalDetailsOpen(false)}
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-semibold">{t("chat.goalDetailsTitle")}</p>
+                            <p className="mt-1 text-muted-foreground">
+                              {interruptedGoal.status === "blocked" ? t("chat.goalBlocked") : t("chat.goalStalled")}
+                            </p>
+                          </div>
+                          {interruptedGoal.blocker ? (
+                            <div>
+                              <p className="font-medium">{t("chat.goalDetailsReason")}</p>
+                              <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{interruptedGoal.blocker}</p>
+                            </div>
+                          ) : (
+                            <p className="text-muted-foreground">{t("chat.goalDetailsNoDetails")}</p>
+                          )}
+                          {interruptedGoal.missingDependencies.length > 0 && (
+                            <div>
+                              <p className="font-medium">{t("chat.goalDetailsMissingDependencies")}</p>
+                              <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
+                                {interruptedGoal.missingDependencies.map((item) => (
+                                  <li key={item} className="break-words">
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {interruptedGoal.userDependencies.length > 0 && (
+                            <div>
+                              <p className="font-medium">{t("chat.goalDetailsUserDependencies")}</p>
+                              <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
+                                {interruptedGoal.userDependencies.map((item) => (
+                                  <li key={item} className="break-words">
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {interruptedGoal.nextAction && (
+                            <div>
+                              <p className="font-medium">{t("chat.goalDetailsNextAction")}</p>
+                              <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{interruptedGoal.nextAction}</p>
+                            </div>
+                          )}
+                          {interruptedGoal.summary && (
+                            <div>
+                              <p className="font-medium">{t("chat.goalDetailsSummary")}</p>
+                              <p className="mt-1 whitespace-pre-wrap break-words text-muted-foreground">{interruptedGoal.summary}</p>
+                            </div>
+                          )}
+                          {interruptedGoal.evidence.length > 0 && (
+                            <div>
+                              <p className="font-medium">{t("chat.goalDetailsEvidence")}</p>
+                              <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
+                                {interruptedGoal.evidence.map((item) => (
+                                  <li key={item} className="break-words">
+                                    {item}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      </PopoverPopup>
+                    </PopoverPositioner>
+                  </PopoverPortal>
+                </Popover>
               ) : (
                 <CircleAlert className="size-3.5 text-amber-600" />
               )}
@@ -1372,9 +1521,43 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
               <Trash2 />
             </Button>
           </div>
-          <p className="mt-1 truncate text-muted-foreground">
-            {t("chat.goalObjective", { objective: goal.objective })}
-          </p>
+          <Popover open={goalObjectiveOpen} onOpenChange={setGoalObjectiveOpen}>
+            <PopoverTrigger
+              render={
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="xs"
+                  className="mt-1 h-auto w-full justify-start px-0 py-0 text-left text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-muted-foreground aria-expanded:bg-transparent"
+                  aria-label={t("chat.goalObjectiveDetailsLabel")}
+                  title={t("chat.goalObjectiveDetailsLabel")}
+                  onMouseEnter={() => setGoalObjectiveOpen(true)}
+                  onMouseLeave={() => setGoalObjectiveOpen(false)}
+                  onFocus={() => setGoalObjectiveOpen(true)}
+                  onBlur={() => setGoalObjectiveOpen(false)}
+                />
+              }
+            >
+              <span className="min-w-0 truncate">
+                {t("chat.goalObjective", { objective: goal.objective })}
+              </span>
+            </PopoverTrigger>
+            <PopoverPortal>
+              <PopoverPositioner side="bottom" align="start" sideOffset={6} className="w-80 max-w-[calc(100vw-2rem)]">
+                <PopoverPopup
+                  className="max-h-64 overflow-y-auto p-3 text-xs"
+                  onMouseEnter={() => setGoalObjectiveOpen(true)}
+                  onMouseLeave={() => setGoalObjectiveOpen(false)}
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold">{t("chat.goalObjectiveDetailsTitle")}</p>
+                    <p className="whitespace-pre-wrap break-words text-muted-foreground">{goal.objective}</p>
+                  </div>
+                </PopoverPopup>
+              </PopoverPositioner>
+            </PopoverPortal>
+          </Popover>
           {goal.blocker && goal.status === "blocked" && (
             <p className="mt-1 text-amber-700 dark:text-amber-300">
               {t("chat.goalBlocker", { blocker: goal.blocker })}

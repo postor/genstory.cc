@@ -100,3 +100,31 @@ test("editor moves project actions into a mobile top-right menu", async () => {
   assert.match(mobileMenuSource, /editor\.save/);
   assert.match(source, /className="hidden gap-2 lg:flex"/);
 });
+
+test("project read tool supports batch file paths while keeping single path compatibility", async () => {
+  const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
+  const readToolSource = source.slice(
+    source.indexOf('name: "genstory_read_project_file"'),
+    source.indexOf('name: "genstory_search_project_files"')
+  );
+
+  assert.match(readToolSource, /path: \{ type: "string"/);
+  assert.match(readToolSource, /paths: \{\s*type: "array"/);
+  assert.match(readToolSource, /items: \{ type: "string"/);
+  assert.match(readToolSource, /const files = paths\.map/);
+});
+
+test("project move tool supports batch moves while keeping single move compatibility", async () => {
+  const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
+  const moveToolSource = source.slice(
+    source.indexOf('name: "genstory_move_project_file"'),
+    source.indexOf("const createDirectoryTarget")
+  );
+
+  assert.match(moveToolSource, /sourcePath: \{/);
+  assert.match(moveToolSource, /targetPath: \{/);
+  assert.match(moveToolSource, /moves: \{\s*type: "array"/);
+  assert.match(moveToolSource, /items: \{\s*type: "object"/);
+  assert.match(moveToolSource, /for \(const move of moves\)/);
+  assert.match(moveToolSource, /: \{ moved: true, moves \}/);
+});

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { modelMatchesFilter, normalizeModelSearchText } from "./modelFilter.ts";
 
 test("model picker links to OpenRouter benchmark rankings from the dropdown footer", async () => {
   const source = await readFile(new URL("./ModelSelect.tsx", import.meta.url), "utf8");
@@ -16,6 +17,33 @@ test("model picker keyboard navigation only handles keys from the filter input",
   const source = await readFile(new URL("./ModelSelect.tsx", import.meta.url), "utf8");
 
   assert.match(source, /if \(e\.target !== inputRef\.current\) return;/);
+});
+
+test("model picker does not select a model when typing a space in the filter input", async () => {
+  const source = await readFile(new URL("./ModelSelect.tsx", import.meta.url), "utf8");
+
+  assert.doesNotMatch(source, /e\.key === " "/);
+  assert.match(source, /e\.key === "Enter"/);
+});
+
+test("model picker filters by normalized case-insensitive prefix", async () => {
+  const source = await readFile(new URL("./ModelSelect.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /import \{ modelMatchesFilter \} from "\.\/modelFilter";/);
+  assert.match(source, /models\.filter\(\(m\) => modelMatchesFilter\(m, filter\)\)/);
+});
+
+test("model filter ignores case, spaces, and punctuation before prefix matching", () => {
+  const model = {
+    id: "openai/gpt-4.1-mini",
+    name: "GPT 4.1 Mini",
+  };
+
+  assert.equal(normalizeModelSearchText(" GPT-4.1 "), "gpt41");
+  assert.equal(modelMatchesFilter(model, "gpt 4.1"), true);
+  assert.equal(modelMatchesFilter(model, "OPENAI GPT"), true);
+  assert.equal(modelMatchesFilter(model, "openai/gpt 4"), true);
+  assert.equal(modelMatchesFilter(model, "4.1"), false);
 });
 
 test("model picker renders OpenRouter input and output pricing", async () => {

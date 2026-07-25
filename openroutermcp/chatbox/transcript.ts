@@ -38,6 +38,8 @@ export interface ChatNotice {
 
 export type ChatTranscriptItem = ChatMessage | ChatNotice;
 
+const DEFAULT_TOOL_STORAGE_CONTENT_LIMIT = 12_000;
+
 export function createModelSwitchNotice(modelName: string, lang: Lang = "zh"): ChatNotice {
   return {
     kind: "notice",
@@ -80,4 +82,27 @@ export function isChatNotice(item: ChatTranscriptItem): item is ChatNotice {
 
 export function llmMessagesFromTranscript(items: ChatTranscriptItem[]): ChatMessage[] {
   return items.filter((item): item is ChatMessage => !isChatNotice(item));
+}
+
+export function compactTranscriptForStorage(
+  items: ChatTranscriptItem[],
+  maxToolContentChars = DEFAULT_TOOL_STORAGE_CONTENT_LIMIT
+): ChatTranscriptItem[] {
+  return items.map((item) => {
+    if (isChatNotice(item)) return item;
+    if (
+      item.role !== "tool" ||
+      typeof item.content !== "string" ||
+      item.content.length <= maxToolContentChars
+    ) {
+      return item;
+    }
+    const omitted = item.content.length - maxToolContentChars;
+    return {
+      ...item,
+      content:
+        item.content.slice(0, maxToolContentChars) +
+        `\n\n[truncated for local storage: ${omitted} characters omitted]`,
+    };
+  });
 }

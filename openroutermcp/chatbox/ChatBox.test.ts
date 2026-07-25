@@ -42,6 +42,27 @@ test("chatbox tracks model selections, sends, and tool calls", async () => {
   assert.match(source, /trackModelSelected\(\{ model: id \}\)/);
 });
 
+test("chatbox persists large chat state through IndexedDB-backed chat storage", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /loadStoredChatTranscript/);
+  assert.match(source, /persistChatTranscript/);
+  assert.match(source, /loadStoredChatImages/);
+  assert.match(source, /persistChatImages/);
+  assert.doesNotMatch(source, /window\.localStorage\.setItem\(\s*storageKey\(LS_MESSAGES, chatId\),\s*JSON\.stringify\(transcript\)\s*\)/);
+  assert.doesNotMatch(source, /window\.localStorage\.setItem\(storageKey\(LS_IMAGES, chatId\), JSON\.stringify\(images\)\)/);
+});
+
+test("chatbox keeps going until five consecutive tool request failures", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const MAX_CONSECUTIVE_TOOL_REQUEST_FAILURES = 5/);
+  assert.match(source, /let consecutiveToolRequestFailures = 0/);
+  assert.match(source, /consecutiveToolRequestFailures \+= 1/);
+  assert.match(source, /consecutiveToolRequestFailures >=\s+MAX_CONSECUTIVE_TOOL_REQUEST_FAILURES/);
+  assert.match(source, /consecutiveToolRequestFailures = 0/);
+});
+
 test("chatbox wires OpenRouter's server-side web search tool into chat requests", async () => {
   const [chatboxSource, openrouterSource] = await Promise.all([
     readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8"),
@@ -136,6 +157,21 @@ test("chatbox enables the default goal contract and persists its state", async (
   assert.match(source, /onClick=\{\(\) => updateGoal\(null\)\}/);
   assert.match(source, /resolvableDependencies/);
   assert.match(source, /userDependencies/);
+  assert.match(source, /const \[goalDetailsOpen, setGoalDetailsOpen\] = useState\(false\)/);
+  assert.match(source, /const \[goalObjectiveOpen, setGoalObjectiveOpen\] = useState\(false\)/);
+  assert.match(source, /goal\.status === "blocked" \|\| goal\.status === "stalled"/);
+  assert.match(source, /<Popover open=\{goalDetailsOpen\} onOpenChange=\{setGoalDetailsOpen\}>/);
+  assert.match(source, /<Popover open=\{goalObjectiveOpen\} onOpenChange=\{setGoalObjectiveOpen\}>/);
+  assert.match(source, /aria-label=\{t\("chat\.goalDetailsLabel"\)\}/);
+  assert.match(source, /aria-label=\{t\("chat\.goalObjectiveDetailsLabel"\)\}/);
+  assert.match(source, /onMouseEnter=\{\(\) => setGoalDetailsOpen\(true\)\}/);
+  assert.match(source, /onMouseEnter=\{\(\) => setGoalObjectiveOpen\(true\)\}/);
+  assert.match(source, /onFocus=\{\(\) => setGoalDetailsOpen\(true\)\}/);
+  assert.match(source, /onFocus=\{\(\) => setGoalObjectiveOpen\(true\)\}/);
+  assert.match(source, /t\("chat\.goalDetailsReason"\)/);
+  assert.match(source, /t\("chat\.goalObjectiveDetailsTitle"\)/);
+  assert.match(source, /interruptedGoal\.missingDependencies\.map/);
+  assert.match(source, /interruptedGoal\.userDependencies\.map/);
 });
 
 test("chat settings place the goal mode toggle below auto compression and default it on", async () => {
@@ -152,7 +188,7 @@ test("chat settings place the goal mode toggle below auto compression and defaul
 
   const autoCompressIndex = source.indexOf('id="chatbox-auto-compress"');
   const goalModeIndex = source.indexOf('id="chatbox-goal-mode"');
-  const popoverEndIndex = source.indexOf("</PopoverPopup>");
+  const popoverEndIndex = source.indexOf("</PopoverPopup>", goalModeIndex);
   assert.ok(autoCompressIndex > -1);
   assert.ok(goalModeIndex > -1);
   assert.ok(popoverEndIndex > goalModeIndex);

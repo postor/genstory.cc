@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  compactTranscriptForStorage,
   createContextCompressionNotice,
   createGoalStatusNotice,
   createModelSwitchNotice,
@@ -58,4 +59,27 @@ test("goal issue notices explain the problem and the next user action", () => {
   });
   assert.match(stalled.content, /暂停一下/);
   assert.match(stalled.content, /回复“继续”/);
+});
+
+test("storage compaction truncates large tool results without changing live messages", () => {
+  const largeToolContent = "x".repeat(200);
+  const transcript = [
+    { role: "user" as const, content: "读取多个文件" },
+    {
+      role: "tool" as const,
+      tool_call_id: "call_1",
+      name: "genstory_read_project_file",
+      content: largeToolContent,
+    },
+  ];
+
+  const compacted = compactTranscriptForStorage(transcript, 40);
+  const compactedToolContent = compacted[1].content;
+
+  assert.equal(transcript[1].content, largeToolContent);
+  assert.equal(compacted[0], transcript[0]);
+  assert.equal(typeof compactedToolContent, "string");
+  if (typeof compactedToolContent !== "string") throw new Error("Expected compacted tool content");
+  assert.match(compactedToolContent, /\[truncated for local storage/);
+  assert.ok(compactedToolContent.length < largeToolContent.length);
 });

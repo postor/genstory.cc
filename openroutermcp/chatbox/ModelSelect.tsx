@@ -3,7 +3,7 @@
 // Model picker built as a proper dropdown (shadcn Popover + Base UI): a trigger
 // button shows the selected model and the panel opens on click, closing on
 // selection, outside-click, or Escape. The panel has a client-side filter and
-// keyboard navigation (ArrowUp/Down move the highlight, Enter/Space select).
+// keyboard navigation (ArrowUp/Down move the highlight, Enter selects).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDownIcon, ExternalLink, Loader2 } from "lucide-react";
@@ -19,6 +19,7 @@ import {
   PopoverPositioner,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { modelMatchesFilter } from "./modelFilter";
 
 export interface ModelSelectProps {
   models: ModelInfo[];
@@ -46,10 +47,6 @@ function modelPriceLabel(model: ModelInfo): string | null {
   return `In ${prompt ?? "-"} / Out ${completion ?? "-"} per 1M tokens`;
 }
 
-function modelSearchText(model: ModelInfo): string {
-  return `${model.name} ${model.id}`;
-}
-
 export function ModelSelect({
   models,
   value,
@@ -70,9 +67,7 @@ export function ModelSelect({
 
   const filtered = useMemo(
     () =>
-      models.filter((m) =>
-        modelSearchText(m).toLowerCase().includes(filter.toLowerCase())
-      ),
+      models.filter((m) => modelMatchesFilter(m, filter)),
     [models, filter]
   );
 
@@ -115,7 +110,7 @@ export function ModelSelect({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === "Enter" || e.key === " ") {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       const m = filtered[activeIndex];
       if (m) select(m.id);

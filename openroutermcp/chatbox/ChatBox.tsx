@@ -279,7 +279,7 @@ export interface ChatBoxProps {
   onModelChange?: (model: string) => void;
   /** Fires whenever a (non-empty) message is sent. */
   onSend?: (text: string) => void;
-  /** Applies explicit file edits returned by the assistant after user confirmation. */
+  /** Applies explicit file edits returned by the assistant. */
   onFileChanges?: (changes: ChatFileChange[]) => void | Promise<void>;
   onToolImages?: (input: {
     images: ExtractedToolImage[];
@@ -405,8 +405,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [streamingText, setStreamingText] = useState(false);
-  const [applyingChanges, setApplyingChanges] = useState(false);
-  const [pendingChanges, setPendingChanges] = useState<ChatFileChange[]>([]);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const goalRef = useRef<GoalState | null>(null);
@@ -1212,9 +1210,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         history.push(assistantMessage);
         displayTranscript = [...displayTranscript, assistantMessage];
         const fileChanges = parseFileChanges(finalContent);
-        if (fileChanges.length > 0) setPendingChanges(fileChanges);
         setMessages([...history]);
         setTranscript(displayTranscript);
+        if (fileChanges.length > 0) {
+          await onFileChanges?.(fileChanges);
+        }
 
         if (goalForTurn) {
           const assessment = parseGoalAssessment(finalContent);
@@ -1289,20 +1289,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     transcript,
     updateGoal,
   ]);
-
-  async function applyPendingChanges() {
-    if (!onFileChanges || pendingChanges.length === 0) return;
-    setApplyingChanges(true);
-    setError(null);
-    try {
-      await onFileChanges(pendingChanges);
-      setPendingChanges([]);
-    } catch (e) {
-      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
-    } finally {
-      setApplyingChanges(false);
-    }
-  }
 
   useImperativeHandle(
     ref,
@@ -1572,30 +1558,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       )}
 
       <ChatHistoryWindow messages={transcript} loading={sending && !streamingText} images={images} />
-
-      {pendingChanges.length > 0 && (
-        <div className="rounded-md border bg-muted/40 p-3">
-          <p className="mb-2 text-xs font-semibold">{t("chat.pendingChanges")}</p>
-          <div className="mb-3 space-y-1">
-            {pendingChanges.map((change) => (
-              <div key={change.path} className="text-xs">
-                <span className="font-mono">{change.path}</span>
-                {change.description ? (
-                  <span className="text-muted-foreground"> · {change.description}</span>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" onClick={() => void applyPendingChanges()} disabled={applyingChanges}>
-              {applyingChanges ? t("chat.applyingChanges") : t("chat.applyChanges")}
-            </Button>
-            <Button size="sm" variant="outline" onClick={() => setPendingChanges([])} disabled={applyingChanges}>
-              {t("chat.discard")}
-            </Button>
-          </div>
-        </div>
-      )}
 
       {error && <p className="whitespace-pre-wrap text-xs text-destructive">{error}</p>}
 

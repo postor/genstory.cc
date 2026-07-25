@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/card";
 import {
   aiPromptChrome,
+  publicBookCaseProject,
   publicPagePromptExamples,
 } from "@/lib/ai-prompt-examples";
+import { PublicCaseProjectPreview } from "@/components/public-case-project-preview";
 import { languageInfo, publicTopicChrome } from "@/lib/platform-i18n";
 import {
   type PublicLang,
@@ -88,11 +90,61 @@ export function PublicTopicPage({
           <h2 className="text-2xl font-semibold tracking-tight">
             {promptChrome.title}
           </h2>
-          <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-            {promptChrome.intro}
-          </p>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2">
+        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
+          {promptChrome.intro}
+        </p>
+      </div>
+      {slug === "book" ? (
+        <Card className="mb-4 border-primary/30 bg-primary/5">
+          <CardHeader className="gap-3">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <CardTitle>{publicBookCaseProject.title[lang]}</CardTitle>
+                <CardDescription className="mt-2 max-w-3xl leading-6">
+                  {publicBookCaseProject.description[lang]}
+                </CardDescription>
+              </div>
+              <PublicCaseProjectPreview
+                sourceUrl={publicBookCaseProject.sourceUrl}
+                title={publicBookCaseProject.title[lang]}
+                template={publicBookCaseProject.template}
+                lang={lang}
+                returnTo={localizedPath(lang, slug)}
+                labels={{
+                  preview: lang === "zh" ? "预览案例" : "Preview case",
+                  previewLoading: lang === "zh" ? "准备预览…" : "Preparing preview…",
+                  fork: lang === "zh" ? "Fork 到本地" : "Fork locally",
+                  forkLoading: lang === "zh" ? "创建本地项目…" : "Creating project…",
+                  unsupported:
+                    lang === "zh"
+                      ? "当前浏览器不支持本地项目预览"
+                      : "This browser cannot preview local projects",
+                  failed:
+                    lang === "zh"
+                      ? "案例项目加载失败，请稍后再试"
+                      : "The case project could not be loaded",
+                }}
+              />
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+              <span>
+                {lang === "zh" ? "模型" : "Model"}：{publicBookCaseProject.model}
+              </span>
+              <span>
+                {lang === "zh"
+                  ? "成本控制：2 张章节插图 + 3 份设计引用"
+                  : "Cost control: 2 chapter illustrations + 3 design references"}
+              </span>
+            </div>
+            <pre className="whitespace-pre-wrap rounded-md border bg-background p-3 text-sm leading-6 text-foreground">
+              {publicBookCaseProject.prompt[lang]}
+            </pre>
+          </CardContent>
+        </Card>
+      ) : null}
+      <div className="grid gap-4 md:grid-cols-2">
           {promptExamples.map((example) => (
             <Card key={example.useCase[lang]}>
               <CardHeader>

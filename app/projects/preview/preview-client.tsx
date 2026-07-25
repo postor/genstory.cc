@@ -87,6 +87,12 @@ export default function PreviewClient() {
   const { lang, t } = useLang();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
+  const rawReturnTo = searchParams.get("returnTo");
+  const returnTo =
+    rawReturnTo && rawReturnTo.startsWith("/") && !rawReturnTo.startsWith("//")
+      ? rawReturnTo
+      : null;
+  const backHref = returnTo ?? (id ? `/projects/editor?id=${id}` : "/projects");
   const [status, setStatus] = useState<Status>("loading");
   const [error, setError] = useState("");
   const [projectRoot, setProjectRoot] = useState<FileSystemDirectoryHandle | null>(null);
@@ -317,7 +323,7 @@ export default function PreviewClient() {
       >
         <div className="flex items-center gap-2">
           <Button
-            render={<Link href={`/projects/editor?id=${id}`} />}
+            render={<Link href={backHref} />}
             variant="ghost"
             size="icon"
             aria-label={t("editor.back")}

@@ -42,6 +42,17 @@ test("chatbox tracks model selections, sends, and tool calls", async () => {
   assert.match(source, /trackModelSelected\(\{ model: id \}\)/);
 });
 
+test("chatbox applies assistant file changes immediately without review state", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /const fileChanges = parseFileChanges\(finalContent\)/);
+  assert.match(source, /if \(fileChanges\.length > 0\) \{[\s\S]*await onFileChanges\?\.\(fileChanges\)/);
+  assert.doesNotMatch(source, /pendingChanges/);
+  assert.doesNotMatch(source, /applyPendingChanges/);
+  assert.doesNotMatch(source, /t\("chat\.pendingChanges"\)/);
+  assert.doesNotMatch(source, /t\("chat\.applyChanges"\)/);
+});
+
 test("chatbox persists large chat state through IndexedDB-backed chat storage", async () => {
   const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
 

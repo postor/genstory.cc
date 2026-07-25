@@ -6,6 +6,33 @@ export type AiPromptExample = {
   prompt: Record<PublicLang, string>;
 };
 
+export type PublicCaseProject = {
+  title: Record<PublicLang, string>;
+  description: Record<PublicLang, string>;
+  model: string;
+  sourceUrl: string;
+  template: "book";
+  prompt: Record<PublicLang, string>;
+};
+
+export const publicBookCaseProject: PublicCaseProject = {
+  title: {
+    zh: "案例项目：时间裂缝的彼端",
+    en: "Case project: Beyond the Time Crack",
+  },
+  description: {
+    zh: "一个已写入全局 meta 的日本高中穿越轻小说案例，包含两章正文、角色与地点设计引用、时间线、资产索引和高质量章节插图。",
+    en: "A Japanese high-school portal-fantasy case project with global meta, two chapters, character and location references, a timeline, an asset index, and finished chapter illustrations.",
+  },
+  model: "OpenRouter · Tencent: Hy3",
+  sourceUrl: "/case-projects/book-jp-transfer-source.zip",
+  template: "book",
+  prompt: {
+    zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，更新到全局meta中，并以轻小说的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成插图，插图中角色和地点需先生成设计引用避免形象漂移",
+    en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the global meta and begin expanding the light-novel details: time, place, character ages and personalities. Control cost, generate one illustration per chapter, and create character and location design references first to prevent visual drift.",
+  },
+};
+
 export const aiPromptChrome = {
   zh: {
     title: "AI prompt 示例",

@@ -128,3 +128,18 @@ test("project move tool supports batch moves while keeping single move compatibi
   assert.match(moveToolSource, /for \(const move of moves\)/);
   assert.match(moveToolSource, /: \{ moved: true, moves \}/);
 });
+
+test("editor exposes a single-image background trim tool", async () => {
+  const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
+  const trimToolSource = source.slice(
+    source.indexOf('name: "genstory_trim_image_background"'),
+    source.indexOf("const createDirectoryTarget")
+  );
+
+  assert.match(source, /name: "genstory_trim_image_background"/);
+  assert.match(trimToolSource, /trimImageBlobToFile/);
+  assert.match(trimToolSource, /sourcePath: \{/);
+  assert.match(trimToolSource, /outputDirectory: \{/);
+  assert.match(trimToolSource, /backgroundColor: \{/);
+  assert.match(trimToolSource, /overwrite/);
+});

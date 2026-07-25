@@ -45,6 +45,7 @@ import {
   createDirectory,
   deleteEntry,
   ensurePermission,
+  fileExists,
   listProjectFiles,
   moveFile,
   openProjectDirectory,
@@ -99,6 +100,10 @@ import { VNEditor } from "./vn-editor";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { cn } from "@/lib/utils";
+import {
+  splitImageBlobIntoIslandFiles,
+  trimImageBlobToFile,
+} from "@/lib/image-islands-browser";
 
 function isTextPath(path: string): boolean {
   return /\.(md|markdown|ya?ml|txt|json|js|ts|tsx|jsx|css|html|svg)$/i.test(path);
@@ -1316,6 +1321,214 @@ export default function EditorClient() {
           return moves.length === 1
             ? { moved: true, ...moves[0], moves }
             : { moved: true, moves };
+        },
+      },
+      {
+        name: "genstory_split_image_islands",
+        description:
+          "Split one image asset into disconnected islands by treating the sampled background color as transparent sea. Writes island files back to the browser project as source-name-1.png/source-name-2.png, or the source transparency-safe extension.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sourcePath: {
+              type: "string",
+              description: "Project-relative path of the source image asset to split.",
+            },
+            outputDirectory: {
+              type: "string",
+              description: "Optional project-relative directory for generated island files. Defaults to the source image directory.",
+            },
+            tolerance: {
+              type: "number",
+              description: "Per-channel background color tolerance from 0 to 255. Defaults to 0.",
+            },
+            minIslandPixels: {
+              type: "number",
+              description: "Ignore islands smaller than this many non-background pixels. Defaults to 1.",
+            },
+            padding: {
+              type: "number",
+              description: "Transparent pixels to keep around each cropped island when available. Defaults to 1.",
+            },
+            overwrite: {
+              type: "boolean",
+              description: "Whether to overwrite existing generated island files. Defaults to false.",
+            },
+            backgroundColor: {
+              type: "object",
+              description: "Optional explicit background RGBA color. If omitted, the top-left pixel is used.",
+              properties: {
+                r: { type: "number" },
+                g: { type: "number" },
+                b: { type: "number" },
+                a: { type: "number" },
+              },
+              required: ["r", "g", "b"],
+            },
+          },
+          required: ["sourcePath"],
+        },
+        call: async (args) => {
+          if (!root) throw new Error("当前项目目录不可用");
+          const sourcePath = normalizeRelativePath(String(args.sourcePath ?? ""));
+          if (!isImagePath(sourcePath)) throw new Error(`不是可拆分的图片文件: ${sourcePath}`);
+
+          const backgroundColor =
+            args.backgroundColor && typeof args.backgroundColor === "object"
+              ? {
+                  r: Number((args.backgroundColor as Record<string, unknown>).r),
+                  g: Number((args.backgroundColor as Record<string, unknown>).g),
+                  b: Number((args.backgroundColor as Record<string, unknown>).b),
+                  a: Number((args.backgroundColor as Record<string, unknown>).a ?? 255),
+                }
+              : undefined;
+          const outputDirectory =
+            typeof args.outputDirectory === "string" && args.outputDirectory.trim()
+              ? normalizeRelativePath(args.outputDirectory)
+              : undefined;
+          const result = await splitImageBlobIntoIslandFiles({
+            sourcePath,
+            blob: await readFile(root, sourcePath),
+            backgroundColor,
+            outputDirectory,
+            tolerance: Number(args.tolerance ?? 0),
+            minIslandPixels: Number(args.minIslandPixels ?? 1),
+            padding: Number(args.padding ?? 1),
+          });
+
+          if (result.islands.length === 0) {
+            return {
+              split: false,
+              sourcePath,
+              backgroundColor: result.backgroundColor,
+              islandCount: 0,
+              islands: [],
+            };
+          }
+
+          await ensurePermission(root, true);
+          if (args.overwrite !== true) {
+            for (const island of result.islands) {
+              if (await fileExists(root, island.path)) {
+                throw new Error(`目标文件已存在: ${island.path}`);
+              }
+            }
+          }
+          for (const island of result.islands) {
+            await writeFile(root, island.path, island.blob);
+          }
+          await reloadFiles(result.islands.at(-1)?.path ?? sourcePath, "file");
+          if (project?.template === "visual-novel") {
+            setVn(await readVNProjectFromDirectory(root));
+          }
+
+          return {
+            split: true,
+            sourcePath,
+            backgroundColor: result.backgroundColor,
+            islandCount: result.islands.length,
+            islands: result.islands.map((island) => ({
+              path: island.path,
+              bounds: island.bounds,
+              landPixelCount: island.landPixelCount,
+              bytes: island.blob.size,
+            })),
+          };
+        },
+      },
+      {
+        name: "genstory_trim_image_background",
+        description:
+          "Process one image asset without splitting islands: make the sampled background color transparent and crop away the outer transparent border. Writes one derived source-name-trim file back to the browser project.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            sourcePath: {
+              type: "string",
+              description: "Project-relative path of the single image asset to process.",
+            },
+            outputDirectory: {
+              type: "string",
+              description: "Optional project-relative directory for the derived image. Defaults to the source image directory.",
+            },
+            tolerance: {
+              type: "number",
+              description: "Per-channel background color tolerance from 0 to 255. Defaults to 0.",
+            },
+            overwrite: {
+              type: "boolean",
+              description: "Whether to overwrite an existing derived image. Defaults to false.",
+            },
+            backgroundColor: {
+              type: "object",
+              description: "Optional explicit background RGBA color. If omitted, the top-left pixel is used.",
+              properties: {
+                r: { type: "number" },
+                g: { type: "number" },
+                b: { type: "number" },
+                a: { type: "number" },
+              },
+              required: ["r", "g", "b"],
+            },
+          },
+          required: ["sourcePath"],
+        },
+        call: async (args) => {
+          if (!root) throw new Error("当前项目目录不可用");
+          const sourcePath = normalizeRelativePath(String(args.sourcePath ?? ""));
+          if (!isImagePath(sourcePath)) throw new Error(`不是可处理的图片文件: ${sourcePath}`);
+
+          const backgroundColor =
+            args.backgroundColor && typeof args.backgroundColor === "object"
+              ? {
+                  r: Number((args.backgroundColor as Record<string, unknown>).r),
+                  g: Number((args.backgroundColor as Record<string, unknown>).g),
+                  b: Number((args.backgroundColor as Record<string, unknown>).b),
+                  a: Number((args.backgroundColor as Record<string, unknown>).a ?? 255),
+                }
+              : undefined;
+          const outputDirectory =
+            typeof args.outputDirectory === "string" && args.outputDirectory.trim()
+              ? normalizeRelativePath(args.outputDirectory)
+              : undefined;
+          const result = await trimImageBlobToFile({
+            sourcePath,
+            blob: await readFile(root, sourcePath),
+            backgroundColor,
+            outputDirectory,
+            tolerance: Number(args.tolerance ?? 0),
+          });
+
+          if (!result.trimmed) {
+            return {
+              processed: false,
+              sourcePath,
+              backgroundColor: result.backgroundColor,
+              outputPath: null,
+              reason: "The image contains no visible pixels after background removal.",
+            };
+          }
+
+          const outputPath = result.trimmed.path;
+          await ensurePermission(root, true);
+          if (args.overwrite !== true && await fileExists(root, outputPath)) {
+            throw new Error(`目标文件已存在: ${outputPath}`);
+          }
+          await writeFile(root, outputPath, result.trimmed.blob);
+          await reloadFiles(outputPath, "file");
+          if (project?.template === "visual-novel") {
+            setVn(await readVNProjectFromDirectory(root));
+          }
+
+          return {
+            processed: true,
+            sourcePath,
+            outputPath,
+            backgroundColor: result.backgroundColor,
+            bounds: result.trimmed.bounds,
+            visiblePixelCount: result.trimmed.visiblePixelCount,
+            bytes: result.trimmed.blob.size,
+          };
         },
       },
     ];

@@ -105,6 +105,24 @@ test("comic preview sections expose each rendered page image", async () => {
   );
 });
 
+test("comic preview includes rendered pages without storyboard files", async () => {
+  const root = fakeRoot({
+    "meta.md": "---\ntitle: \"新的漫画\"\ntype: comic\n---\n",
+    "chapter-001/pages/page-001/meta.md": "---\ntitle: \"第一页\"\n---\n",
+    "chapter-001/pages/page-001/storyboard.md": "# Page One\n\n分镜文本",
+    "chapter-001/pages/page-001/final.png": "fake-png-1",
+    "chapter-002/pages/page-001/final.png": "fake-png-2",
+  });
+
+  const preview = await readProjectPreview(root, "comic");
+
+  assert.equal(preview.sections.length, 2);
+  assert.equal(
+    preview.sections[1].pageImagePath,
+    "chapter-002/pages/page-001/final.png"
+  );
+});
+
 test("legacy comic script files still produce preview sections", async () => {
   const root = fakeRoot({
     "meta.md": "---\ntitle: \"Old Comic\"\ntype: comic\n---\n",

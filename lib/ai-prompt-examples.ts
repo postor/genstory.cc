@@ -11,7 +11,8 @@ export type PublicCaseProject = {
   description: Record<PublicLang, string>;
   model: string;
   sourceUrl: string;
-  template: "book";
+  template: "book" | "comic";
+  costNote: Record<PublicLang, string>;
   prompt: Record<PublicLang, string>;
 };
 
@@ -27,9 +28,35 @@ export const publicBookCaseProject: PublicCaseProject = {
   model: "OpenRouter · Tencent: Hy3",
   sourceUrl: "/case-projects/book-jp-transfer-source.zip",
   template: "book",
+  costNote: {
+    zh: "成本控制：2 张章节插图 + 3 份设计引用",
+    en: "Cost control: 2 chapter illustrations + 3 design references",
+  },
   prompt: {
     zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，更新到全局meta中，并以轻小说的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成插图，插图中角色和地点需先生成设计引用避免形象漂移",
     en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the global meta and begin expanding the light-novel details: time, place, character ages and personalities. Control cost, generate one illustration per chapter, and create character and location design references first to prevent visual drift.",
+  },
+};
+
+export const publicComicCaseProject: PublicCaseProject = {
+  title: {
+    zh: "案例项目：时间裂缝的彼端 · 漫画",
+    en: "Case project: Beyond the Time Crack · Comic",
+  },
+  description: {
+    zh: "完整使用提供的漫画 source ZIP，包含章节、页面、panel、角色与地点设计资产、页面插图和全部可预览内容，不额外删减。",
+    en: "Uses the complete provided comic source ZIP, including chapters, pages, panels, character and location design assets, page illustrations, and all available preview content without extra trimming.",
+  },
+  model: "OpenRouter · Tencent: Hy3",
+  sourceUrl: "/case-projects/comic-jp-transfer-source.zip",
+  template: "comic",
+  costNote: {
+    zh: "页面图像使用 gpt-image-2；完整备份中的章节、页面、panel 和设计资产全部保留",
+    en: "Page images use gpt-image-2; all chapters, pages, panels, and design assets in the backup are preserved",
+  },
+  prompt: {
+    zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，更新到全局meta中，并以漫画的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成多个页面，页面包含多个panel，panel中角色和地点需先生成设计引用避免形象漂移，生成页面时使用 gpt image2 保证质量",
+    en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the global meta and begin expanding the time, place, character ages, personalities, and other details in comic form. Control cost, generate multiple pages per chapter with multiple panels per page, create character and location design references before panels to prevent visual drift, and use gpt-image-2 for page quality.",
   },
 };
 

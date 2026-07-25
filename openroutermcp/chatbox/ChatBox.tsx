@@ -474,7 +474,11 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
   const requestTokens = contextUsage.context + contextUsage.history + contextUsage.input;
   const goalModeActive = goalMode === "auto" && goalEnabled;
   const interruptedGoal =
-    goalModeActive && goal && (goal.status === "blocked" || goal.status === "stalled")
+    goalModeActive &&
+    goal &&
+    (goal.status === "blocked" ||
+      goal.status === "stalled" ||
+      (goal.status === "active" && Boolean(goal.blocker) && !sending))
       ? goal
       : null;
   const projectToolNames = useMemo(
@@ -1258,7 +1262,16 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         break;
       }
     } catch (e) {
-      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+      const message = localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang);
+      setError(message);
+      if (goalForTurn && goalForTurn.status === "active") {
+        goalForTurn = {
+          ...goalForTurn,
+          blocker: message,
+          updatedAt: Date.now(),
+        };
+        updateGoal(goalForTurn);
+      }
     } finally {
       setSending(false);
       setStreamingText(false);
@@ -1398,10 +1411,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                         className="-m-1 size-5 text-amber-600 hover:text-amber-700 dark:text-amber-300 dark:hover:text-amber-200"
                         aria-label={t("chat.goalDetailsLabel")}
                         title={t("chat.goalDetailsLabel")}
-                        onMouseEnter={() => setGoalDetailsOpen(true)}
-                        onMouseLeave={() => setGoalDetailsOpen(false)}
-                        onFocus={() => setGoalDetailsOpen(true)}
-                        onBlur={() => setGoalDetailsOpen(false)}
                       />
                     }
                   >
@@ -1411,15 +1420,17 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                     <PopoverPositioner side="bottom" align="start" sideOffset={6} className="w-80 max-w-[calc(100vw-2rem)]">
                       <PopoverPopup
                         className="max-h-80 overflow-y-auto p-3 text-xs"
-                        onMouseEnter={() => setGoalDetailsOpen(true)}
-                        onMouseLeave={() => setGoalDetailsOpen(false)}
                         onClick={(event) => event.stopPropagation()}
                       >
                         <div className="space-y-3">
                           <div>
                             <p className="text-sm font-semibold">{t("chat.goalDetailsTitle")}</p>
                             <p className="mt-1 text-muted-foreground">
-                              {interruptedGoal.status === "blocked" ? t("chat.goalBlocked") : t("chat.goalStalled")}
+                              {interruptedGoal.status === "blocked"
+                                ? t("chat.goalBlocked")
+                                : interruptedGoal.status === "stalled"
+                                  ? t("chat.goalStalled")
+                                  : t("chat.goalActive")}
                             </p>
                           </div>
                           {interruptedGoal.blocker ? (
@@ -1517,10 +1528,6 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
                   className="mt-1 h-auto w-full justify-start px-0 py-0 text-left text-xs font-normal text-muted-foreground hover:bg-transparent hover:text-muted-foreground aria-expanded:bg-transparent"
                   aria-label={t("chat.goalObjectiveDetailsLabel")}
                   title={t("chat.goalObjectiveDetailsLabel")}
-                  onMouseEnter={() => setGoalObjectiveOpen(true)}
-                  onMouseLeave={() => setGoalObjectiveOpen(false)}
-                  onFocus={() => setGoalObjectiveOpen(true)}
-                  onBlur={() => setGoalObjectiveOpen(false)}
                 />
               }
             >

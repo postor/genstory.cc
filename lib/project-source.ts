@@ -82,28 +82,47 @@ export async function readProjectPreview(
       sections.push({ path, title: heading(body) || path, body });
     }
   } else if (type === "comic") {
-    const filePaths = new Set(
-      entries
-        .filter((entry) => entry.kind === "file")
-        .map((entry) => entry.path)
-    );
-    const scripts = entries
+    const filePaths = entries
       .filter((entry) => entry.kind === "file")
-      .map((entry) => entry.path)
-      .filter((path) => /^chapter-[^/]+\/pages\/[^/]+\/(storyboard|script)\.md$/i.test(path))
-      .sort((a, b) => a.localeCompare(b));
-    for (const path of scripts) {
-      const metaPath = path.replace(/(storyboard|script)\.md$/i, "meta.md");
-      const finalImagePath = path.replace(/(storyboard|script)\.md$/i, "final.png");
+      .map((entry) => entry.path);
+    const pages = new Map<
+      string,
+      { scriptPath?: string; finalImagePath?: string }
+    >();
+    for (const path of filePaths) {
+      const finalMatch = path.match(/^(chapter-[^/]+\/pages\/[^/]+)\/final\.png$/i);
+      if (finalMatch) {
+        const page = pages.get(finalMatch[1]) ?? {};
+        page.finalImagePath = path;
+        pages.set(finalMatch[1], page);
+      }
+
+      const scriptMatch = path.match(
+        /^(chapter-[^/]+\/pages\/[^/]+)\/(storyboard|script)\.md$/i
+      );
+      if (scriptMatch) {
+        const page = pages.get(scriptMatch[1]) ?? {};
+        if (!page.scriptPath || scriptMatch[2].toLowerCase() === "storyboard") {
+          page.scriptPath = path;
+        }
+        pages.set(scriptMatch[1], page);
+      }
+    }
+
+    const sortedPages = [...pages.entries()].sort(([a], [b]) => a.localeCompare(b));
+    for (const [basePath, page] of sortedPages) {
+      const path = page.scriptPath ?? page.finalImagePath;
+      if (!path) continue;
+      const metaPath = `${basePath}/meta.md`;
       const [meta, body] = await Promise.all([
         safeText(root, metaPath),
-        safeText(root, path),
+        page.scriptPath ? safeText(root, page.scriptPath) : "",
       ]);
       sections.push({
         path,
         title: frontmatter(meta).title || heading(body) || path,
         body,
-        pageImagePath: filePaths.has(finalImagePath) ? finalImagePath : undefined,
+        pageImagePath: page.finalImagePath,
       });
     }
   } else {

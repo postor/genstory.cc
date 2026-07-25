@@ -13,6 +13,7 @@ import {
 import {
   aiPromptChrome,
   publicBookCaseProject,
+  publicComicCaseProject,
   publicPagePromptExamples,
 } from "@/lib/ai-prompt-examples";
 import { PublicCaseProjectPreview } from "@/components/public-case-project-preview";
@@ -39,6 +40,12 @@ export function PublicTopicPage({
   const chrome = publicTopicChrome[lang];
   const promptChrome = aiPromptChrome[lang];
   const promptExamples = publicPagePromptExamples[slug];
+  const caseProject =
+    slug === "book"
+      ? publicBookCaseProject
+      : slug === "comic"
+        ? publicComicCaseProject
+        : null;
 
   return (
     <main
@@ -94,20 +101,20 @@ export function PublicTopicPage({
           {promptChrome.intro}
         </p>
       </div>
-      {slug === "book" ? (
+      {caseProject ? (
         <Card className="mb-4 border-primary/30 bg-primary/5">
           <CardHeader className="gap-3">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
-                <CardTitle>{publicBookCaseProject.title[lang]}</CardTitle>
+                <CardTitle>{caseProject.title[lang]}</CardTitle>
                 <CardDescription className="mt-2 max-w-3xl leading-6">
-                  {publicBookCaseProject.description[lang]}
+                  {caseProject.description[lang]}
                 </CardDescription>
               </div>
               <PublicCaseProjectPreview
-                sourceUrl={publicBookCaseProject.sourceUrl}
-                title={publicBookCaseProject.title[lang]}
-                template={publicBookCaseProject.template}
+                sourceUrl={caseProject.sourceUrl}
+                title={caseProject.title[lang]}
+                template={caseProject.template}
                 lang={lang}
                 returnTo={localizedPath(lang, slug)}
                 labels={{
@@ -130,16 +137,14 @@ export function PublicTopicPage({
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
               <span>
-                {lang === "zh" ? "模型" : "Model"}：{publicBookCaseProject.model}
+                {lang === "zh" ? "模型" : "Model"}：{caseProject.model}
               </span>
               <span>
-                {lang === "zh"
-                  ? "成本控制：2 张章节插图 + 3 份设计引用"
-                  : "Cost control: 2 chapter illustrations + 3 design references"}
+                {caseProject.costNote[lang]}
               </span>
             </div>
             <pre className="whitespace-pre-wrap rounded-md border bg-background p-3 text-sm leading-6 text-foreground">
-              {publicBookCaseProject.prompt[lang]}
+              {caseProject.prompt[lang]}
             </pre>
           </CardContent>
         </Card>

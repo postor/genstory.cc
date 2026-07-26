@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { FolderOpen, Loader2 } from "lucide-react";
+import { CheckCircle2, FolderOpen, Loader2 } from "lucide-react";
 
 import {
   Card,
-  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -29,6 +29,7 @@ import { nextDefaultProjectTitle } from "@/lib/project-naming";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { trackProjectCreated } from "@/lib/analytics";
+import { cn } from "@/lib/utils";
 
 export default function NewClient() {
   const { lang, t } = useLang();
@@ -125,7 +126,7 @@ export default function NewClient() {
       <div className="space-y-6">
         <div className="space-y-2">
           <Label>{t("create.template")}</Label>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2 sm:gap-3">
             {contentTypes.map((c) => {
               const selected = template === c.id;
               return (
@@ -134,20 +135,46 @@ export default function NewClient() {
                   type="button"
                   aria-pressed={template === c.id}
                   onClick={() => setTemplate(c.id)}
-                  className="text-left"
+                  className="group text-left"
                 >
                   <Card
-                    className={
+                    className={cn(
+                      "h-full overflow-hidden transition-all duration-300 ease-out",
                       selected
-                        ? "ring-2 ring-primary"
-                        : "hover:border-primary/50"
-                    }
+                        ? "border-primary/50 bg-primary/5 shadow-sm ring-2 ring-primary"
+                        : "shadow-none hover:border-primary/50 sm:shadow-sm"
+                    )}
                   >
-                    <CardHeader className="gap-1 p-4">
-                      <CardTitle className="text-base">{c.label[lang]}</CardTitle>
-                      <CardContent className="p-0 text-sm text-muted-foreground">
+                    <CardHeader
+                      className={cn(
+                        "gap-0 p-3 transition-[padding] duration-300 ease-out sm:gap-1 sm:p-4",
+                        selected && "p-4"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <CardTitle className="text-base leading-5">
+                          {c.label[lang]}
+                        </CardTitle>
+                        <CheckCircle2
+                          aria-hidden="true"
+                          className={cn(
+                            "size-4 shrink-0 transition-all duration-300 ease-out",
+                            selected
+                              ? "scale-100 text-primary opacity-100"
+                              : "scale-75 text-muted-foreground/40 opacity-0 sm:opacity-40"
+                          )}
+                        />
+                      </div>
+                      <CardDescription
+                        className={cn(
+                          "overflow-hidden text-sm leading-5 transition-[max-height,opacity,margin] duration-300 ease-out sm:mt-1 sm:max-h-none sm:opacity-100",
+                          selected
+                            ? "mt-2 max-h-24 opacity-100"
+                            : "mt-0 max-h-0 opacity-0"
+                        )}
+                      >
                         {c.description[lang]}
-                      </CardContent>
+                      </CardDescription>
                     </CardHeader>
                   </Card>
                 </button>

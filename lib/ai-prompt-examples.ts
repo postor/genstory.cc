@@ -1,3 +1,4 @@
+import type { ContentTypeId } from "@/lib/content-types";
 import type { PublicLang, PublicPageSlug } from "@/lib/seo";
 
 export type AiPromptExample = {
@@ -11,7 +12,7 @@ export type PublicCaseProject = {
   description: Record<PublicLang, string>;
   model: string;
   sourceUrl: string;
-  template: "book" | "comic";
+  template: ContentTypeId;
   costNote: Record<PublicLang, string>;
   prompt: Record<PublicLang, string>;
   prompts?: Record<PublicLang, string[]>;

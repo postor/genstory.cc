@@ -185,6 +185,14 @@ function HeaderExternalLinks({
         {showSourceLabel ? labels.sourceCodeShort : null}
       </Button>
 
+      <iframe
+        src="https://github.com/sponsors/postor/button"
+        title="Sponsor postor"
+        height="32"
+        width="114"
+        className="block h-8 w-[114px] border-0"
+      />
+
       <Button
         className={itemClassName}
         render={

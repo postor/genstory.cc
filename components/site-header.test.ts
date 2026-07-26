@@ -24,6 +24,30 @@ test("site header exposes the new issue link after the GitHub link", async () =>
   assert.match(source, />\s*Issue\s*</);
 });
 
+test("site header places the GitHub Sponsors iframe after the repository link", async () => {
+  const source = await readFile(new URL("./site-header.tsx", import.meta.url), "utf8");
+
+  const repositoryIndex = source.indexOf("https://github.com/postor/genstory.cc");
+  const sponsorIndex = source.indexOf("https://github.com/sponsors/postor/button");
+
+  assert.notEqual(repositoryIndex, -1);
+  assert.notEqual(sponsorIndex, -1);
+  assert.ok(repositoryIndex < sponsorIndex);
+  const sponsorIframe = source.match(/<iframe[\s\S]*?\/>/)?.[0] ?? "";
+
+  assert.match(
+    sponsorIframe,
+    /title="Sponsor postor"[^>]*height="32"[^>]*width="114"/,
+  );
+  assert.match(sponsorIframe, /className="[^"]*border-0/);
+  assert.doesNotMatch(sponsorIframe, /className="[^"]*rounded-[^"]*/);
+  assert.doesNotMatch(sponsorIframe, /className="[^"]*(?:hidden|sm:block)/);
+  assert.doesNotMatch(
+    sponsorIframe,
+    /src="https:\/\/github\.com\/sponsors\/postor\/button"[^>]*style=/,
+  );
+});
+
 test("site header collapses mobile navigation into a menu without the home link", async () => {
   const source = await readFile(new URL("./site-header.tsx", import.meta.url), "utf8");
 

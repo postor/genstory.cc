@@ -11,6 +11,6 @@ export function modelMatchesFilter(model: SearchableModel, filter: string): bool
   const filterNeedle = normalizeModelSearchText(filter);
   if (!filterNeedle) return true;
   return [model.name, model.id, `${model.name} ${model.id}`].some((value) =>
-    normalizeModelSearchText(value).startsWith(filterNeedle)
+    normalizeModelSearchText(value).includes(filterNeedle)
   );
 }

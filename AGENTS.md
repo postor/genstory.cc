@@ -223,3 +223,13 @@ Worker 喂引擎）、发布（导出可独立运行的 OpenWebGal 项目 zip）
 - 导出 zip＝引擎 + 编译产物，且**还原原始引擎 SW**（不使用桥接 SW）。
 - 可编辑备份靠“下载源码”导出 source ZIP；项目列表的“导入源码 ZIP”可恢复该 ZIP 到新的 OPFS 项目目录。
 <!-- END:vn-browser-plan -->
+
+<!-- BEGIN:interactive-video-openrouter-rules -->
+# 互动视频 OpenRouter 生成约定
+
+- OpenRouter 视频模型走异步 REST 流程，不走 `chat/completions`：`POST /api/v1/videos` 提交任务，`GET /api/v1/videos/{jobId}` 或 `polling_url` 轮询，状态为 `completed` 后才可取结果。
+- 终态处理：`completed` 表示可下载；`failed`、`cancelled`、`expired` 必须作为失败明示；`pending`、`in_progress` 只能继续轮询，不能写成最终资产。
+- 下载职责：浏览器端项目不需要额外的“fetch tool”概念；实现层用 `fetch` 调 OpenRouter。如果完成状态给出 `unsigned_urls`，可直接取第一个 URL；否则用 `GET /api/v1/videos/{jobId}/content?index=0`，指向 OpenRouter API 的 URL 必须带 Bearer token。
+- 用户触发：视频二进制较大，禁止自动后台下载到本地磁盘。只能在用户/助手明确触发保存时，把完成任务的结果写入 OPFS 项目文件（如 `assets/videos/*.mp4`），或在用户点击导出/下载时打包进 ZIP。
+- 资产登记：`assets/index.yml` 中 Video 资产记录逻辑 ID、`file`、`prompt`、`model`、`duration`、`resolution`、`aspect_ratio`、`generation_status`；故事和时间轴只引用逻辑 ID，不引用 OpenRouter job URL。
+<!-- END:interactive-video-openrouter-rules -->

@@ -1,3 +1,5 @@
+import { buildPhaserAssetBridgeScript, type PhaserAssetUrlMap } from "./assets.ts";
+
 const PHASER_RUNTIME_PATTERN = /(?:https?:\/\/[^"']*phaser(?:\.min)?\.js|\/phaser\/phaser\.min\.js|vendor\/phaser\.min\.js)$/i;
 
 function normalizeSourcePath(value: string): string {
@@ -43,14 +45,20 @@ function inlineLocalScripts(
 
 export function buildPhaserPreviewHtml(
   files: Record<string, string>,
-  title: string
+  title: string,
+  options: { assetUrls?: PhaserAssetUrlMap } = {}
 ): string {
   const entry = files["index.html"];
   if (!entry) throw new Error("Phaser 项目缺少 index.html");
-  return inlineLocalScripts(
+  const html = inlineLocalScripts(
     inlineLocalStyles(replaceTitle(entry, title), files),
     files,
     "/phaser/phaser.min.js"
+  );
+  const bridge = `<script>\n${buildPhaserAssetBridgeScript(options.assetUrls ?? {}, { preview: true })}\n</script>`;
+  return html.replace(
+    '<script src="/phaser/phaser.min.js"></script>',
+    `<script src="/phaser/phaser.min.js"></script>${bridge}`
   );
 }
 

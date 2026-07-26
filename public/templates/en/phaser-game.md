@@ -1,12 +1,14 @@
 # Game Project Rules
 
-This project is a runnable Phaser browser game. Real source files are the source of truth: `index.html` is the entry point, `src/scenes/` owns scenes, and `assets/index.yml` owns the asset plan.
+This project is a runnable Phaser browser game. Real source files are the source of truth: `index.html` is the entry point, `src/scenes/` owns scenes, and `assets/index.yml` owns the asset plan. The template includes `assets/images/animal-cat.png` to demonstrate loading a real image asset.
 
 - Follow Phaser 3 scene lifecycle methods: `preload`, `create`, and `update`.
 - Keep the menu scene responsible for starting the game, scene navigation, and controls help; keep gameplay state in the game scene.
 - Switch scenes with `this.scene.start("SceneKey")`; do not put every behavior in `src/main.js`.
+- Register every image or audio asset with a logical asset ID before loading it from a scene's `preload()`.
+- Resolve Phaser image, audio, and other media paths through `GenStoryAssets.resolve("assets/...")`. Preview injects an equivalent `?preview=1` state and maps OPFS files to blob URLs; downloaded local runs have no preview state and fall back to project-relative paths.
+- `src/genstory-assets.js` is the shared asset-loading library entry point. Reuse it for new assets instead of repeating preview-mode checks in each scene.
 - When images and audio are not generated yet, keep comments, logical asset IDs, and prompts that can be handed to an image/audio model; do not fabricate binary files.
-- Prefer Phaser Graphics and text so the template remains runnable without generated media.
 - After changing scenes, use browser preview and verify menu → test game → menu state flow.
 
 ## Game Asset Extractability
@@ -22,6 +24,7 @@ This project is a runnable Phaser browser game. Real source files are the source
 
 - `index.html`: static entry point and script order.
 - `src/config.js`: Phaser configuration.
+- `src/genstory-assets.js`: shared asset path resolver for preview and local runs.
 - `src/scenes/menu-scene.js`: menu scene.
 - `src/scenes/test-game-scene.js`: playable test game scene.
 - `assets/index.yml`: logical IDs, status, and generation prompts for future images, audio, and other assets.

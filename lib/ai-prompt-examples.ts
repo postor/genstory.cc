@@ -14,6 +14,7 @@ export type PublicCaseProject = {
   template: "book" | "comic";
   costNote: Record<PublicLang, string>;
   prompt: Record<PublicLang, string>;
+  prompts?: Record<PublicLang, string[]>;
 };
 
 export const publicBookCaseProject: PublicCaseProject = {
@@ -57,6 +58,38 @@ export const publicComicCaseProject: PublicCaseProject = {
   prompt: {
     zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，更新到全局meta中，并以漫画的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成多个页面，页面包含多个panel，panel中角色和地点需先生成设计引用避免形象漂移，生成页面时使用 gpt image2 保证质量",
     en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the global meta and begin expanding the time, place, character ages, personalities, and other details in comic form. Control cost, generate multiple pages per chapter with multiple panels per page, create character and location design references before panels to prevent visual drift, and use gpt-image-2 for page quality.",
+  },
+};
+
+export const publicPhaserGameCaseProject: PublicCaseProject = {
+  title: {
+    zh: "案例项目：可爱动物三消",
+    en: "Case project: Cute Animal Match-3",
+  },
+  description: {
+    zh: "一个完整的 Phaser 多关卡三消游戏案例，包含可爱动物图标、独立颜色资产、菜单、关卡选择、游戏场景和结果场景。",
+    en: "A complete Phaser multi-level match-3 case with cute animal icons, independent color assets, a menu, level selection, gameplay, and result scenes.",
+  },
+  model: "OpenRouter · OpenAI: GPT-5 Mini",
+  sourceUrl: "/case-projects/animal-match3-source.zip",
+  template: "phaser-game",
+  costNote: {
+    zh: "成本控制：先用较低分辨率生成横向图，再拆分为独立图标；项目保留完整多关卡游戏源码",
+    en: "Cost control: generate a lower-resolution landscape sheet first, split it into independent icons, and keep the complete multi-level game source",
+  },
+  prompt: {
+    zh: "使用 gpt image2 （横向图） 生成一套独立的的可爱动物主题的图标，每个动物使用一个独立的主颜色，节约成本使用较低的分辨率生成，然后调用工具拆分成独立的图标，做成一个多个关卡的三消小游戏",
+    en: "Use gpt-image-2 to generate a landscape sheet of cute animal-themed icons. Give each animal its own dominant color, use a lower resolution to control cost, then use a tool to split the sheet into independent icons and build a multi-level match-3 game.",
+  },
+  prompts: {
+    zh: [
+      "使用 gpt image2 （横向图） 生成一套独立的的可爱动物主题的图标，每个动物使用一个独立的主颜色，节约成本使用较低的分辨率生成，然后调用工具拆分成独立的图标，做成一个多个关卡的三消小游戏",
+      "检查并修复点击三消图标后放大过大问题，完成游戏",
+    ],
+    en: [
+      "Use gpt-image-2 to generate a landscape sheet of cute animal-themed icons. Give each animal its own dominant color, use a lower resolution to control cost, then use a tool to split the sheet into independent icons and build a multi-level match-3 game.",
+      "Check and fix the issue where match-3 icons become too large after clicking, then complete the game.",
+    ],
   },
 };
 

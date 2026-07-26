@@ -6,7 +6,7 @@
 // Renders user/assistant text with inline markdown and tool results with image
 // support (images referenced by id so base64 stays out of the model context).
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Md, ToolResult } from "./chatRender";
@@ -22,7 +22,12 @@ export interface ChatHistoryWindowProps {
   className?: string;
 }
 
-export function ChatHistoryWindow({ messages, loading, images = {}, className }: ChatHistoryWindowProps) {
+export const ChatHistoryWindow = memo(function ChatHistoryWindow({
+  messages,
+  loading,
+  images = {},
+  className,
+}: ChatHistoryWindowProps) {
   const { t } = useLang();
   const endRef = useRef<HTMLDivElement>(null);
   const [thinkingFrame, setThinkingFrame] = useState(0);
@@ -119,4 +124,4 @@ export function ChatHistoryWindow({ messages, loading, images = {}, className }:
       </div>
     </ScrollArea>
   );
-}
+});

@@ -124,6 +124,30 @@ Common asset types:
 - Transition
 - Prop
 
+Recommended fields for generated video assets:
+
+- `model` — OpenRouter video model slug, for example `google/veo-3.1-lite`
+- `duration` — clip duration in seconds, within the selected model's supported range
+- `resolution` — output resolution, for example `720p`
+- `aspect_ratio` — output shape, for example `16:9`
+- `generation_status` — `planned`, `submitted`, `completed`, or `failed`
+
+---
+
+## OpenRouter Video Generation
+
+Video generation is handled by project tools. Results are not automatically written into story files or downloaded to local disk.
+
+Flow:
+
+- Use `genstory_submit_openrouter_video_generation` to submit a generation task and record the returned job ID and status.
+- Use `genstory_poll_openrouter_video_generation` to check progress; save only after the job is complete.
+- Use `genstory_save_openrouter_video_result` to write the completed result into `assets/videos/*.mp4` after user confirmation.
+- After saving, update `assets/index.yml` with the logical ID, file location, and generation status.
+- If the job fails, is cancelled, or expires, state that clearly and do not register it as a final asset.
+
+The user does not need a separate “fetch tool”; use the project tools above.
+
 ---
 
 ## Workflow

@@ -6,6 +6,8 @@ const TRANSCRIPT_COPY = {
     modelSwitch: (modelName: string) => `模型切换到 ${modelName}`,
     compression: (count: number, tokens: number) =>
       `已压缩 ${count} 条早期消息，摘要约 ${tokens} tokens`,
+    workspaceOperation: (operation: string, paths: string[]) =>
+      `已${operation}：${paths.join("、")}`,
     goalBlocked: (blocker: string, nextAction: string) =>
       `我先停在这里：${blocker}。${nextAction ? `接下来需要${nextAction}。` : ""}这不是失败，完成后回复“继续”，我会接着处理。`,
     goalStalled: (nextAction: string) =>
@@ -15,6 +17,8 @@ const TRANSCRIPT_COPY = {
     modelSwitch: (modelName: string) => `Model switched to ${modelName}`,
     compression: (count: number, tokens: number) =>
       `Compressed ${count} earlier messages, summary about ${tokens} tokens`,
+    workspaceOperation: (operation: string, paths: string[]) =>
+      `${operation}: ${paths.join(", ")}`,
     goalBlocked: (blocker: string, nextAction: string) =>
       `I’ll pause here: ${blocker}. ${nextAction ? `Next: ${nextAction}. ` : ""}This is not a failure; reply “continue” when ready and I’ll pick it up.`,
     goalStalled: (nextAction: string) =>
@@ -25,6 +29,7 @@ const TRANSCRIPT_COPY = {
   {
     modelSwitch: (modelName: string) => string;
     compression: (count: number, tokens: number) => string;
+    workspaceOperation: (operation: string, paths: string[]) => string;
     goalBlocked: (blocker: string, nextAction: string) => string;
     goalStalled: (nextAction: string) => string;
   }
@@ -56,6 +61,17 @@ export function createContextCompressionNotice(input: {
     kind: "notice",
     id: `context-compression-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     content: TRANSCRIPT_COPY[lang].compression(input.coveredMessageCount, input.summaryTokens),
+  };
+}
+
+export function createWorkspaceOperationNotice(input: {
+  operation: string;
+  paths: string[];
+}, lang: Lang = "zh"): ChatNotice {
+  return {
+    kind: "notice",
+    id: `workspace-operation-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    content: TRANSCRIPT_COPY[lang].workspaceOperation(input.operation, input.paths),
   };
 }
 

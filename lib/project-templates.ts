@@ -281,6 +281,9 @@ interface IVVideoAsset {
   prompt: string;
   sourceImage: string;
   model: string;
+  duration: number;
+  resolution: string;
+  aspectRatio: string;
 }
 
 interface IVVoiceAsset {
@@ -345,7 +348,10 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
       prompt:
         "gentle camera push-in, leaves rustle in the breeze, dappled light shifts, Little Red Riding Hood walks slowly along the forest path",
       sourceImage: "scene_forest",
-      model: "bytedance/seedance-2.0-mini/image-to-video",
+      model: "google/veo-3.1-lite",
+      duration: 4,
+      resolution: "720p",
+      aspectRatio: "16:9",
     },
     {
       kind: "video",
@@ -355,7 +361,10 @@ function interactiveVideoTemplate(title: string, lang: Lang, agents: string): Pr
       prompt:
         "the woodcutter bursts through the door, the wolf stumbles backward, dust and light swirl, urgent cinematic motion",
       sourceImage: "scene_rescue",
-      model: "bytedance/seedance-2.0-mini/image-to-video",
+      model: "google/veo-3.1-lite",
+      duration: 4,
+      resolution: "720p",
+      aspectRatio: "16:9",
     },
     {
       kind: "voice",
@@ -568,8 +577,8 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         `# ${title}`,
         "",
         isZh
-          ? "这是一个不依赖生成图片和音频也能运行的 Phaser 3 游戏模板。"
-          : "This Phaser 3 game template runs without generated images or audio.",
+          ? "这是一个带有动物图标示例的 Phaser 3 游戏模板，也可以在没有其他媒体资源时运行。"
+          : "This Phaser 3 game template includes an animal icon example and can run without other media.",
         "",
         isZh
           ? "默认示例主题：小红帽；请把它替换为你自己的游戏设定。"
@@ -604,6 +613,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         '  <main id="game" aria-label="Game"></main>',
         '  <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>',
         '  <script src="src/config.js"></script>',
+        '  <script src="src/genstory-assets.js"></script>',
         '  <script src="src/scenes/menu-scene.js"></script>',
         '  <script src="src/scenes/test-game-scene.js"></script>',
         '  <script src="src/main.js"></script>',
@@ -661,6 +671,30 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
       ].join("\n")
     ),
     text(
+      "src/genstory-assets.js",
+      [
+        "(function (global) {",
+        "  if (global.__GENSTORY_PHASER_ASSET_BRIDGE__) return;",
+        "",
+        "  const assetUrls = global.GENSTORY_ASSET_URLS || {};",
+        '  const preview = new URLSearchParams(global.location.search).get("preview") === "1";',
+        "",
+        "  function normalize(path) {",
+        '    return String(path).split(/[?#]/, 1)[0].replace(/^.?\\//, "").replace(/^\\/+/, "");',
+        "  }",
+        "",
+        "  function resolve(path) {",
+        "    if (!preview || typeof path !== \"string\") return path;",
+        "    return assetUrls[normalize(path)] || path;",
+        "  }",
+        "",
+        "  global.GENSTORY_PREVIEW = preview;",
+        "  global.GenStoryAssets = Object.freeze({ isPreview: preview, resolve });",
+        "})(window);",
+        "",
+      ].join("\n")
+    ),
+    text(
       "src/scenes/menu-scene.js",
       [
         "/**",
@@ -672,7 +706,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         '  constructor() { super("MenuScene"); }',
         "",
         "  preload() {",
-        "    // Future image hook: this.load.image(\"menu_background\", \"assets/images/menu-background.png\");",
+        "    // Future image hook: this.load.image(\"menu_background\", GenStoryAssets.resolve(\"assets/images/menu-background.png\"));",
         "    // Future audio hook: this.load.audio(\"menu_music\", \"assets/audio/menu-music.ogg\");",
         "  }",
         "",
@@ -715,7 +749,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         '  constructor() { super("TestGameScene"); }',
         "",
         "  preload() {",
-        "    // Future image hook: this.load.image(\"player_sprite\", \"assets/images/player.png\");",
+        "    this.load.image(\"animal_cat\", GenStoryAssets.resolve(\"assets/images/animal-cat.png\"));",
         "    // Future audio hook: this.load.audio(\"jump_sfx\", \"assets/audio/jump.ogg\");",
         "  }",
         "",
@@ -724,7 +758,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         `    this.add.text(32, 28, ${testTitleLiteral}, { fontSize: "28px", color: "#f8fafc" });`,
         `    this.add.text(32, 68, ${instructionsLiteral}, { fontSize: "16px", color: "#cbd5e1" });`,
         "",
-        "    this.player = this.add.circle(150, 360, 22, 0xf97316);",
+        "    this.player = this.add.image(150, 360, \"animal_cat\").setDisplaySize(48, 48);",
         "    this.physics.add.existing(this.player);",
         "    this.player.body.setCollideWorldBounds(true);",
         "",
@@ -765,7 +799,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
     text(
       "assets/index.yml",
       [
-        "# Logical asset plan. No image or audio binaries are generated yet.",
+        "# Logical asset plan. The animal_cat example is included; other media remains planned.",
         "assets:",
         "  - id: menu_background",
         "    type: Background",
@@ -777,6 +811,11 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         "    status: planned",
         "    file: assets/images/player.png",
         `    prompt: ${JSON.stringify(isZh ? "友好的小型机器人英雄，红色围巾，侧面视图，轮廓清晰，透明背景。" : "Friendly small robot hero with a red scarf, side view, readable silhouette, transparent background.")}`,
+        "  - id: animal_cat",
+        "    type: Icon",
+        "    status: generated",
+        "    file: assets/images/animal-cat.png",
+        `    prompt: ${JSON.stringify(isZh ? "橙色猫，可爱扁平图标，透明背景，描边清晰，四周保留安全留白。" : "Orange cat, cute flat icon, transparent background, clear outline, with safe padding around the subject.")}`,
         "  - id: menu_music",
         "    type: BGM",
         "    status: planned",
@@ -790,6 +829,11 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         "",
       ].join("\n")
     ),
+    {
+      path: "assets/images/animal-cat.png",
+      kind: "binary",
+      sourceUrl: "/project-templates/phaser-game/assets/images/animal-cat.png",
+    },
   ];
 }
 
@@ -805,7 +849,14 @@ function buildIVAssetIndex(assets: IVAsset[]): string {
       `    prompt: ${JSON.stringify(asset.prompt)}`
     );
     if (asset.kind === "video") {
-      lines.push(`    source_image: ${asset.sourceImage}`, `    model: ${JSON.stringify(asset.model)}`);
+      lines.push(
+        `    source_image: ${asset.sourceImage}`,
+        `    model: ${JSON.stringify(asset.model)}`,
+        `    duration: ${asset.duration}`,
+        `    resolution: ${JSON.stringify(asset.resolution)}`,
+        `    aspect_ratio: ${JSON.stringify(asset.aspectRatio)}`,
+        "    generation_status: planned"
+      );
     }
     if (asset.kind === "voice") {
       lines.push(`    voice: ${JSON.stringify(asset.voice)}`, `    language: ${JSON.stringify(asset.language)}`, `    model: ${JSON.stringify(asset.model)}`);

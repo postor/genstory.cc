@@ -42,15 +42,38 @@ test("chatbox tracks model selections, sends, and tool calls", async () => {
   assert.match(source, /trackModelSelected\(\{ model: id \}\)/);
 });
 
-test("chatbox applies assistant file changes immediately without review state", async () => {
+test("chatbox keeps legacy assistant file changes visible when applied", async () => {
   const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
 
   assert.match(source, /const fileChanges = parseFileChanges\(finalContent\)/);
+  assert.match(source, /const assistantContent =[\s\S]*redactFileChangeContent\(finalContent \?\? "", fileChanges\)/);
   assert.match(source, /if \(fileChanges\.length > 0\) \{[\s\S]*await onFileChanges\?\.\(fileChanges\)/);
+  assert.match(source, /createWorkspaceOperationNotice\(\{[\s\S]*paths: fileChanges\.map/);
   assert.doesNotMatch(source, /pendingChanges/);
   assert.doesNotMatch(source, /applyPendingChanges/);
   assert.doesNotMatch(source, /t\("chat\.pendingChanges"\)/);
   assert.doesNotMatch(source, /t\("chat\.applyChanges"\)/);
+});
+
+test("chatbox redacts workspace write payloads before storing tool calls", async () => {
+  const source = await readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /function redactToolCallForHistory\(toolCall: ChatToolCall\): ChatToolCall/);
+  assert.match(source, /toolCall\.function\.name !== "genstory_write_project_files"/);
+  assert.match(source, /tool_calls: toolCalls\.map\(redactToolCallForHistory\)/);
+  assert.match(source, /file content", record\.content/);
+  assert.match(source, /file patch", record\.patch/);
+});
+
+test("editor exposes text writes as a project tool so file edits render as tool calls", async () => {
+  const source = await readFile(
+    new URL("../../app/projects/editor/editor-client.tsx", import.meta.url),
+    "utf8"
+  );
+
+  assert.match(source, /name: "genstory_write_project_files"/);
+  assert.match(source, /Use this for all text file edits so the workspace operation appears as a tool call/);
+  assert.match(source, /const written = await writeChatTextFiles\(changes\)/);
 });
 
 test("chatbox persists large chat state through IndexedDB-backed chat storage", async () => {
@@ -237,4 +260,19 @@ test("chatbox restores the latest user message with ArrowUp when the input is em
   assert.match(source, /!input\.trim\(\)/);
   assert.match(source, /findLastUserInput\(transcript\)/);
   assert.match(source, /setInput\(previousInput\)/);
+});
+
+test("chatbox avoids rescanning chat history when only the input changes", async () => {
+  const [chatboxSource, historySource] = await Promise.all([
+    readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8"),
+    readFile(new URL("./ChatHistoryWindow.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(chatboxSource, /const contextTokens = useMemo\(/);
+  assert.match(chatboxSource, /const historyTokens = useMemo\(/);
+  assert.match(chatboxSource, /const inputTokens = useMemo\(/);
+  assert.match(chatboxSource, /estimateMessagesTokens\(messages\)/);
+  assert.match(chatboxSource, /estimateContextTokens\(input\?\.trim\(\) \? `user: \$\{input\}` : ""\)/);
+  assert.match(historySource, /import \{ memo, useEffect, useRef, useState \} from "react";/);
+  assert.match(historySource, /export const ChatHistoryWindow = memo\(function ChatHistoryWindow/);
 });

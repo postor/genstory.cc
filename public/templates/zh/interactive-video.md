@@ -124,6 +124,30 @@ assets/index.yml
 - Transition
 - Prop
 
+视频生成资产建议字段：
+
+- `model` — OpenRouter 视频模型 slug，例如 `google/veo-3.1-lite`
+- `duration` — 片段秒数，必须符合模型支持范围
+- `resolution` — 输出分辨率，例如 `720p`
+- `aspect_ratio` — 画幅，例如 `16:9`
+- `generation_status` — `planned`、`submitted`、`completed`、`failed`
+
+---
+
+## OpenRouter 视频生成
+
+视频生成由项目工具完成，结果不会自动写入故事文件或下载到本地磁盘。
+
+流程：
+
+- 用 `genstory_submit_openrouter_video_generation` 提交生成任务，并记录返回的任务 ID 与状态。
+- 用 `genstory_poll_openrouter_video_generation` 查询任务进度；只有状态完成后才能保存视频。
+- 用 `genstory_save_openrouter_video_result` 在用户确认后把完成结果写入 `assets/videos/*.mp4`。
+- 保存后更新 `assets/index.yml` 的逻辑 ID、文件位置和生成状态。
+- 失败、取消或过期时要明确说明，不要把未完成任务登记为最终资产。
+
+不需要让用户手动调用额外的“fetch tool”；使用上面的项目工具即可。
+
 ---
 
 ## 工作流

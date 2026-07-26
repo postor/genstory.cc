@@ -93,7 +93,7 @@ test("visual novel template contains real OpenWebGal source files", async () => 
   assert.ok(files.some((file) => file.path.endsWith(".png") && file.kind === "binary"));
 });
 
-test("game template contains runnable menu and test game scenes without generated media", async () => {
+test("game template contains runnable menu and test game scenes with a shared asset loader", async () => {
   const files = await getProjectTemplate("phaser-game", "zh", "测试游戏");
   const paths = new Set(files.map((file) => file.path));
   const text = files
@@ -103,12 +103,16 @@ test("game template contains runnable menu and test game scenes without generate
 
   assert.ok(paths.has("index.html"));
   assert.ok(paths.has("src/main.js"));
+  assert.ok(paths.has("src/genstory-assets.js"));
   assert.ok(paths.has("src/scenes/menu-scene.js"));
   assert.ok(paths.has("src/scenes/test-game-scene.js"));
   assert.ok(paths.has("assets/index.yml"));
-  assert.equal(files.some((file) => file.kind === "binary"), false);
+  assert.ok(paths.has("assets/images/animal-cat.png"));
+  assert.equal(files.some((file) => file.kind === "binary"), true);
   assert.match(text, /MenuScene/);
   assert.match(text, /TestGameScene/);
+  assert.match(text, /GenStoryAssets\.resolve/);
+  assert.match(text, /animal_cat/);
   assert.match(text, /prompt:/);
   assert.match(text, /audio|音频/i);
 });

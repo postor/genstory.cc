@@ -6,6 +6,7 @@ import {
   createContextCompressionNotice,
   createGoalStatusNotice,
   createModelSwitchNotice,
+  createWorkspaceOperationNotice,
   llmMessagesFromTranscript,
 } from "./transcript.ts";
 
@@ -40,6 +41,18 @@ test("context compression notices render but are not sent to the LLM", () => {
   assert.deepEqual(llmMessagesFromTranscript(transcript), [
     { role: "user", content: "第一条消息" },
   ]);
+});
+
+test("workspace operation notices render but are not sent to the LLM", () => {
+  const notice = createWorkspaceOperationNotice({
+    operation: "应用文件变更",
+    paths: ["chapter-001/pages/page-001.md", "meta.md"],
+  });
+
+  assert.equal(notice.kind, "notice");
+  assert.match(notice.content, /应用文件变更/);
+  assert.match(notice.content, /page-001\.md/);
+  assert.equal(llmMessagesFromTranscript([notice]).length, 0);
 });
 
 test("goal issue notices explain the problem and the next user action", () => {

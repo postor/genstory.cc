@@ -26,6 +26,7 @@ import {
   OPENROUTER_WEB_SEARCH_TOOL,
   type ChatMessage,
   type ChatTool,
+  type ChatToolCall,
   type ModelInfo,
 } from "@/lib/openrouter";
 import { CircleAlert, CircleCheck, Loader2, SlidersHorizontal, Trash2 } from "lucide-react";
@@ -66,8 +67,8 @@ import { ModelSelect } from "./ModelSelect";
 import { ChatHistoryWindow } from "./ChatHistoryWindow";
 import { extractImages, type ExtractedToolImage } from "./chatRender";
 import {
-  estimateContextUsage,
   estimateContextTokens,
+  estimateMessagesTokens,
   formatContextLimitForLang,
   formatContextSize,
 } from "./contextSize";
@@ -94,6 +95,7 @@ import {
   createContextCompressionNotice,
   createGoalStatusNotice,
   createModelSwitchNotice,
+  createWorkspaceOperationNotice,
   llmMessagesFromTranscript,
   type ChatTranscriptItem,
 } from "./transcript";
@@ -159,9 +161,9 @@ const CHAT_SYSTEM_COPY = {
       "当用户的需求需要工具时，请调用最合适的工具；工具返回结果后，再基于结果继续回答。" +
       "只在确实需要的时调用工具，不要编造工具参数。",
     projectTools:
-      "项目正文和素材不会默认附带在请求中；当前项目概况会随请求发送。如果需要了解或操作项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取；移动图片等二进制文件时调用 genstory_move_project_file。",
+      "项目正文和素材不会默认附带在请求中；当前项目概况会随请求发送。如果需要了解或操作项目内容，请先调用 genstory_list_project_files、genstory_read_project_file 或 genstory_search_project_files 精确读取；创建或更新文本文件时调用 genstory_write_project_files；移动、重命名图片等项目文件时调用 genstory_move_project_file。",
     fileChanges:
-      "\n\n如果你要修改项目文件，请在回答末尾追加一个 JSON 代码块，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。",
+      "\n\n只有在没有 genstory_write_project_files 工具可用时，才可以在回答末尾追加一个 JSON 代码块来修改项目文件，格式为：```json\n{\"fileChanges\":[{\"path\":\"chapter-001/pages/page-001.md\",\"content\":\"完整文件内容\",\"description\":\"修改说明\"}]}\n```。path 必须是项目内相对路径，content 必须是完整文件内容。",
     contextHeader: "当前项目概况（非完整文件内容）：",
     goal:
       "\n\n把任务型用户请求当作一个 goal，负责推进到完成，不要因为非关键偏好而停下来提问。" +
@@ -178,9 +180,9 @@ const CHAT_SYSTEM_COPY = {
       "When the user's request needs a tool, call the most appropriate tool; after the tool returns, continue your answer based on the result. " +
       "Only call tools when they are actually needed, and do not invent tool arguments.",
     projectTools:
-      "Project content and assets are not included by default; the current project overview is sent with the request. If you need to inspect or operate on project content, first call genstory_list_project_files, genstory_read_project_file, or genstory_search_project_files; use genstory_move_project_file to move images and other binary files.",
+      "Project content and assets are not included by default; the current project overview is sent with the request. If you need to inspect or operate on project content, first call genstory_list_project_files, genstory_read_project_file, or genstory_search_project_files; call genstory_write_project_files to create or update text files; use genstory_move_project_file to move or rename images and other project files.",
     fileChanges:
-      '\n\nIf you need to modify project files, append a JSON code block at the end of your answer in this format: ```json\n{"fileChanges":[{"path":"chapter-001/pages/page-001.md","content":"complete file content","description":"change description"}]}\n```. path must be project-relative, and content must contain the complete file content.',
+      '\n\nOnly when the genstory_write_project_files tool is unavailable may you append a JSON code block at the end of your answer to modify project files, in this format: ```json\n{"fileChanges":[{"path":"chapter-001/pages/page-001.md","content":"complete file content","description":"change description"}]}\n```. path must be project-relative, and content must contain the complete file content.',
     contextHeader: "Current project overview (not complete file content):",
     goal:
       "\n\nTreat task-like user requests as goals and keep working toward completion; do not stop for optional preferences." +
@@ -341,6 +343,86 @@ function parseFileChanges(content: string | null | undefined): ChatFileChange[] 
   return [];
 }
 
+function omittedString(label: string, value: string): string {
+  return `[${label} omitted from chat history: ${value.length} characters]`;
+}
+
+function redactFileChange(change: ChatFileChange): ChatFileChange {
+  return {
+    ...change,
+    content: omittedString("file content", change.content),
+  };
+}
+
+function redactFileChangeContent(content: string, changes: ChatFileChange[]): string {
+  const redactedBlock = `\`\`\`json\n${JSON.stringify({
+    fileChanges: changes.map(redactFileChange),
+  }, null, 2)}\n\`\`\``;
+  let replaced = false;
+  const withRedactedFences = content.replace(
+    /```(?:json|genstory-file-changes)?\s*([\s\S]*?)```/gi,
+    (block, body) => {
+      try {
+        if (collectFileChanges(JSON.parse(String(body).trim())).length > 0) {
+          replaced = true;
+          return redactedBlock;
+        }
+      } catch {
+        /* Keep non-JSON code fences unchanged. */
+      }
+      return block;
+    }
+  );
+  if (replaced) return withRedactedFences;
+
+  try {
+    if (collectFileChanges(JSON.parse(content.trim())).length > 0) return redactedBlock;
+  } catch {
+    /* Keep regular assistant text unchanged. */
+  }
+  return content;
+}
+
+function redactWorkspaceWriteArgs(argsText: string): string {
+  if (!argsText) return argsText;
+  try {
+    const args = JSON.parse(argsText) as Record<string, unknown>;
+    const redactRecord = (value: unknown): unknown => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+      const record = value as Record<string, unknown>;
+      return {
+        ...record,
+        content:
+          typeof record.content === "string"
+            ? omittedString("file content", record.content)
+            : record.content,
+        patch:
+          typeof record.patch === "string"
+            ? omittedString("file patch", record.patch)
+            : record.patch,
+      };
+    };
+    const redacted = redactRecord(args) as Record<string, unknown>;
+    if (Array.isArray(args.files)) {
+      redacted.files = args.files.map(redactRecord);
+    }
+    return JSON.stringify(redacted);
+  } catch {
+    return omittedString("tool arguments", argsText);
+  }
+}
+
+function redactToolCallForHistory(toolCall: ChatToolCall): ChatToolCall {
+  if (toolCall.function.name !== "genstory_write_project_files") return toolCall;
+  return {
+    ...toolCall,
+    function: {
+      ...toolCall.function,
+      arguments: redactWorkspaceWriteArgs(toolCall.function.arguments),
+    },
+  };
+}
+
 /** Imperative handle so a parent can drive the chat (e.g. auto-send a prompt). */
 export interface ChatBoxHandle {
   /** Send a message programmatically, as if typed and submitted by the user. */
@@ -444,9 +526,17 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
     chatProvider === "openrouter"
       ? isAuthorized && status === "connected"
       : activeCustomApi;
-  const contextUsage = useMemo(
-    () => estimateContextUsage({ context, messages, input }),
-    [context, messages, input]
+  const contextTokens = useMemo(
+    () => estimateContextTokens(context ?? ""),
+    [context]
+  );
+  const historyTokens = useMemo(
+    () => estimateMessagesTokens(messages),
+    [messages]
+  );
+  const inputTokens = useMemo(
+    () => estimateContextTokens(input?.trim() ? `user: ${input}` : ""),
+    [input]
   );
   const selectedModel = useMemo(
     () => {
@@ -471,7 +561,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
       .filter((slug) => !disabled.has(slug));
     return enabled.length ? enabled : [selectedModel.providers[0].slug];
   }, [selectedDisabledProviders, selectedModel]);
-  const requestTokens = contextUsage.context + contextUsage.history + contextUsage.input;
+  const requestTokens = contextTokens + historyTokens + inputTokens;
   const goalModeActive = goalMode === "auto" && goalEnabled;
   const interruptedGoal =
     goalModeActive &&
@@ -1126,7 +1216,7 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
           const assistantMessage: ChatMessage = {
             role: "assistant",
             content: finalContent,
-            tool_calls: toolCalls,
+            tool_calls: toolCalls.map(redactToolCallForHistory),
           };
           history.push(assistantMessage);
           displayTranscript = [...displayTranscript, assistantMessage];
@@ -1210,14 +1300,26 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         }
 
         consecutiveToolRequestFailures = 0;
-        const assistantMessage: ChatMessage = { role: "assistant", content: finalContent ?? "" };
+        const fileChanges = parseFileChanges(finalContent);
+        const assistantContent =
+          fileChanges.length > 0
+            ? redactFileChangeContent(finalContent ?? "", fileChanges)
+            : finalContent ?? "";
+        const assistantMessage: ChatMessage = { role: "assistant", content: assistantContent };
         history.push(assistantMessage);
         displayTranscript = [...displayTranscript, assistantMessage];
-        const fileChanges = parseFileChanges(finalContent);
         setMessages([...history]);
         setTranscript(displayTranscript);
         if (fileChanges.length > 0) {
           await onFileChanges?.(fileChanges);
+          displayTranscript = [
+            ...displayTranscript,
+            createWorkspaceOperationNotice({
+              operation: lang === "zh" ? "应用文件变更" : "Applied file changes",
+              paths: fileChanges.map((change) => change.path),
+            }, lang),
+          ];
+          setTranscript(displayTranscript);
         }
 
         if (goalForTurn) {

@@ -22,6 +22,26 @@ test("builds a runnable Phaser preview with local runtime and both scenes", () =
   assert.equal(html.includes("src=\"src/scenes/menu-scene.js\""), false);
 });
 
+test("injects a preview asset bridge for OPFS-backed media URLs", () => {
+  const html = buildPhaserPreviewHtml(
+    {
+      "index.html": `<!doctype html><html><head></head><body><script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script><script src="src/main.js"></script></body></html>`,
+      "src/main.js": "new Phaser.Game({});",
+    },
+    "Asset Demo",
+    {
+      assetUrls: {
+        "assets/images/animal-cat.png": "blob:https://genstory.test/cat",
+      },
+    }
+  );
+
+  assert.match(html, /GENSTORY_PREVIEW/);
+  assert.match(html, /assets\/images\/animal-cat\.png/);
+  assert.match(html, /blob:https:\/\/genstory\.test\/cat/);
+  assert.match(html, /LoaderPlugin/);
+});
+
 test("rewrites the runtime path for a standalone Phaser export", () => {
   const html = buildPhaserStandaloneHtml(
     '<script src="/phaser/phaser.min.js"></script><script src="src/main.js"></script>'

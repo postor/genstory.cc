@@ -31,6 +31,7 @@ import {
   type ChatFileChange,
   type ChatProjectTool,
 } from "@/openroutermcp/chatbox";
+import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
 import type { ExtractedToolImage } from "@/openroutermcp/chatbox/chatRender";
 import { contentTypeById } from "@/lib/content-types";
 import type { ProjectFileEntry } from "@/lib/file-system/types";
@@ -104,6 +105,12 @@ import {
   splitImageBlobIntoIslandFiles,
   trimImageBlobToFile,
 } from "@/lib/image-islands-browser";
+import {
+  downloadOpenRouterVideo,
+  pollOpenRouterVideo,
+  submitOpenRouterVideo,
+  type OpenRouterVideoRequest,
+} from "@/lib/openrouter-video";
 
 function isTextPath(path: string): boolean {
   return /\.(md|markdown|ya?ml|txt|json|js|ts|tsx|jsx|css|html|svg)$/i.test(path);
@@ -421,6 +428,7 @@ function MobileProjectActions({
 
 export default function EditorClient() {
   const { lang, t } = useLang();
+  const { refreshToken } = useOpenRouterMcp();
   const router = useRouter();
   const searchParams = useSearchParams();
   const id = searchParams.get("id");
@@ -761,6 +769,18 @@ export default function EditorClient() {
     }
   }
 
+  useEffect(() => {
+    function handleSaveShortcut(event: KeyboardEvent) {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        if (dirty && !saving && status === "ready") void handleSave();
+      }
+    }
+
+    window.addEventListener("keydown", handleSaveShortcut);
+    return () => window.removeEventListener("keydown", handleSaveShortcut);
+  });
+
   const reloadFiles = useCallback(async (
     preferredPath = selectedPath,
     preferredKind: "file" | "directory" | null = selectedKind
@@ -936,7 +956,7 @@ export default function EditorClient() {
     router.push(`/projects/preview?id=${project.id}`);
   }
 
-  async function applyChatFileChanges(changes: ChatFileChange[]) {
+  const writeChatTextFiles = useCallback(async (changes: ChatFileChange[]) => {
     if (!project || !root) return;
     const normalized = changes.map((change) => {
       const path = normalizeRelativePath(change.path);
@@ -974,6 +994,11 @@ export default function EditorClient() {
     setSelectedPath(normalized.at(-1)?.path ?? selectedPath);
     setSelectedKind("file");
     setSaved(true);
+    return normalized;
+  }, [project, root, selectedPath, t]);
+
+  async function applyChatFileChanges(changes: ChatFileChange[]) {
+    await writeChatTextFiles(changes);
   }
 
   async function persistToolImages(input: {
@@ -1265,6 +1290,74 @@ export default function EditorClient() {
         },
       },
       {
+        name: "genstory_write_project_files",
+        description:
+          "Create or update one or more text project files. Use this for all text file edits so the workspace operation appears as a tool call. Each content value must be the complete file content.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            path: {
+              type: "string",
+              description: "Project-relative path to create or update.",
+            },
+            content: {
+              type: "string",
+              description: "Complete text content to write to path.",
+            },
+            description: {
+              type: "string",
+              description: "Short description of the edit.",
+            },
+            files: {
+              type: "array",
+              description: "Multiple text files to create or update in one tool call.",
+              items: {
+                type: "object",
+                properties: {
+                  path: {
+                    type: "string",
+                    description: "Project-relative path to create or update.",
+                  },
+                  content: {
+                    type: "string",
+                    description: "Complete text content to write to path.",
+                  },
+                  description: {
+                    type: "string",
+                    description: "Short description of the edit.",
+                  },
+                },
+                required: ["path", "content"],
+              },
+            },
+          },
+        },
+        call: async (args) => {
+          if (!project || !root) throw new Error("当前项目目录不可用");
+          const rawFiles = Array.isArray(args.files) && args.files.length > 0
+            ? args.files
+            : [{ path: args.path, content: args.content, description: args.description }];
+          const changes = rawFiles.map((file) => {
+            const item = file && typeof file === "object" ? file as Record<string, unknown> : {};
+            return {
+              path: String(item.path ?? ""),
+              content: String(item.content ?? ""),
+              description:
+                typeof item.description === "string" ? item.description : undefined,
+            };
+          });
+          const written = await writeChatTextFiles(changes);
+          return {
+            written: true,
+            files: written?.map((change) => ({
+              path: change.path,
+              bytes: new Blob([change.content]).size,
+              description: change.description ?? "",
+            })) ?? [],
+          };
+        },
+      },
+      {
         name: "genstory_move_project_file",
         description: "Move a project file, including binary images, without changing its contents.",
         inputSchema: {
@@ -1321,6 +1414,112 @@ export default function EditorClient() {
           return moves.length === 1
             ? { moved: true, ...moves[0], moves }
             : { moved: true, moves };
+        },
+      },
+      {
+        name: "genstory_submit_openrouter_video_generation",
+        description:
+          "Submit an asynchronous OpenRouter video generation job for an interactive-video asset. Returns a job id; call the poll tool until status is completed before saving or downloading the video.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            model: { type: "string", description: "OpenRouter video model slug, for example google/veo-3.1-lite." },
+            prompt: { type: "string", description: "Video prompt for the shot to generate." },
+            duration: { type: "number", description: "Clip duration in seconds, if supported by the selected model." },
+            resolution: { type: "string", description: "Output resolution, for example 720p or 1080p." },
+            aspect_ratio: { type: "string", description: "Aspect ratio, for example 16:9 or 9:16." },
+            generate_audio: { type: "boolean", description: "Whether the model should generate audio when supported." },
+            image_url: { type: "string", description: "Optional source image URL for image-to-video models." },
+          },
+          required: ["model", "prompt"],
+        },
+        call: async (args) => {
+          if (project?.template !== "interactive-video") {
+            throw new Error("OpenRouter 视频生成工具仅用于互动视频项目");
+          }
+          const token = await refreshToken();
+          if (!token) throw new Error("缺少 OpenRouter 授权；请先在聊天面板完成 OAuth 授权");
+          const request: OpenRouterVideoRequest = {
+            model: String(args.model ?? "").trim(),
+            prompt: String(args.prompt ?? "").trim(),
+          };
+          if (!request.model || !request.prompt) throw new Error("model 和 prompt 不能为空");
+          if (args.duration !== undefined) request.duration = Number(args.duration);
+          if (typeof args.resolution === "string" && args.resolution.trim()) request.resolution = args.resolution.trim();
+          if (typeof args.aspect_ratio === "string" && args.aspect_ratio.trim()) request.aspect_ratio = args.aspect_ratio.trim();
+          if (typeof args.generate_audio === "boolean") request.generate_audio = args.generate_audio;
+          if (typeof args.image_url === "string" && args.image_url.trim()) request.image_url = args.image_url.trim();
+          const job = await submitOpenRouterVideo(token, request);
+          return { job, next: "Poll with genstory_poll_openrouter_video_generation until status is completed." };
+        },
+      },
+      {
+        name: "genstory_poll_openrouter_video_generation",
+        description:
+          "Poll an OpenRouter video generation job. completed means the result can be saved; failed, cancelled, and expired are terminal errors.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            jobId: { type: "string", description: "OpenRouter video job id." },
+            pollingUrl: { type: "string", description: "Optional polling_url returned by the submit call." },
+          },
+        },
+        call: async (args) => {
+          const token = await refreshToken();
+          if (!token) throw new Error("缺少 OpenRouter 授权；请先在聊天面板完成 OAuth 授权");
+          const target = String(args.pollingUrl || args.jobId || "").trim();
+          if (!target) throw new Error("需要 jobId 或 pollingUrl");
+          const job = await pollOpenRouterVideo(token, target);
+          return {
+            job,
+            terminal: ["completed", "failed", "cancelled", "expired"].includes(job.status),
+            downloadable: job.status === "completed",
+          };
+        },
+      },
+      {
+        name: "genstory_save_openrouter_video_result",
+        description:
+          "Fetch a completed OpenRouter video result and write it into this browser project, usually under assets/videos/*.mp4. Use only after polling returns completed.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            jobId: { type: "string", description: "Completed OpenRouter video job id." },
+            outputPath: { type: "string", description: "Project-relative output path, for example assets/videos/vid_forest.mp4." },
+            index: { type: "number", description: "Generated output index. Defaults to 0." },
+            unsignedUrl: { type: "string", description: "Optional unsigned URL from the completed job." },
+            overwrite: { type: "boolean", description: "Whether to overwrite an existing output file. Defaults to false." },
+          },
+          required: ["jobId", "outputPath"],
+        },
+        call: async (args) => {
+          if (!root) throw new Error("当前项目目录不可用");
+          if (project?.template !== "interactive-video") {
+            throw new Error("OpenRouter 视频保存工具仅用于互动视频项目");
+          }
+          const token = await refreshToken();
+          if (!token) throw new Error("缺少 OpenRouter 授权；请先在聊天面板完成 OAuth 授权");
+          const jobId = String(args.jobId ?? "").trim();
+          const outputPath = normalizeRelativePath(String(args.outputPath ?? ""));
+          if (!jobId) throw new Error("jobId 不能为空");
+          if (mediaKindForPath(outputPath) !== "video") {
+            throw new Error(`输出路径必须是视频文件: ${outputPath}`);
+          }
+          await ensurePermission(root, true);
+          if (args.overwrite !== true && (await fileExists(root, outputPath))) {
+            throw new Error(`目标文件已存在: ${outputPath}`);
+          }
+          const unsignedUrl = typeof args.unsignedUrl === "string" && args.unsignedUrl.trim()
+            ? args.unsignedUrl.trim()
+            : undefined;
+          const blob = await downloadOpenRouterVideo(
+            token,
+            { id: jobId, unsigned_urls: unsignedUrl ? [unsignedUrl] : undefined },
+            Number(args.index ?? 0)
+          );
+          await writeFile(root, outputPath, blob);
+          await reloadFiles(outputPath, "file");
+          return { saved: true, outputPath, bytes: blob.size, contentType: blob.type || "video/mp4" };
         },
       },
       {
@@ -1532,7 +1731,7 @@ export default function EditorClient() {
         },
       },
     ];
-  }, [contents, project, reloadFiles, root, selectedPath, t]);
+  }, [contents, project, refreshToken, reloadFiles, root, selectedPath, t, writeChatTextFiles]);
 
   const createDirectoryTarget = createDirectoryState
     ? uploadTargetDirectory(createDirectoryState.path, createDirectoryState.kind) ||

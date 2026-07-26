@@ -21,7 +21,11 @@ import { savePreviewGame } from "@/lib/vn/preview-store";
 import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
 import { readProjectPreview, type ProjectPreviewModel } from "@/lib/project-source";
 import { buildPhaserPreviewHtml } from "@/lib/phaser/preview";
-import { readPhaserProjectFromDirectory } from "@/lib/phaser/source-reader";
+import {
+  readPhaserProjectAssetUrlsFromDirectory,
+  readPhaserProjectFromDirectory,
+  revokePhaserProjectAssetUrls,
+} from "@/lib/phaser/source-reader";
 import {
   readInteractiveVideoPreviewFromDirectory,
   type InteractiveVideoPreviewModel,
@@ -104,6 +108,7 @@ export default function PreviewClient() {
   const [interactiveAssetUrls, setInteractiveAssetUrls] = useState<Record<string, string>>({});
   const sectionMediaUrlsRef = useRef<Record<string, Record<string, string>>>({});
   const interactiveAssetUrlsRef = useRef<Record<string, string>>({});
+  const phaserAssetUrlsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     document.title = t("meta.previewTitle");
@@ -125,10 +130,16 @@ export default function PreviewClient() {
     queueMicrotask(() => setInteractiveAssetUrls(nextUrls));
   }
 
+  function replacePhaserAssetUrls(nextUrls: Record<string, string>) {
+    revokePhaserProjectAssetUrls(phaserAssetUrlsRef.current);
+    phaserAssetUrlsRef.current = nextUrls;
+  }
+
   useEffect(() => {
     let cancelled = false;
     (async () => {
       if (!id) {
+        replacePhaserAssetUrls({});
         setProjectRoot(null);
         setGenericPreview(null);
         setInteractiveVideoPreview(null);
@@ -140,6 +151,7 @@ export default function PreviewClient() {
         const p = await getProject(id);
         if (!p) {
           if (!cancelled) {
+            replacePhaserAssetUrls({});
             setProjectRoot(null);
             setGenericPreview(null);
             setInteractiveVideoPreview(null);
@@ -156,6 +168,7 @@ export default function PreviewClient() {
           p.id
         );
         if (p.template === "visual-novel") {
+          replacePhaserAssetUrls({});
           const vn = await readVNProjectFromDirectory(root);
           const files = await compile(vn);
           await savePreviewGame(files);
@@ -167,14 +180,19 @@ export default function PreviewClient() {
           }
         } else if (p.template === "phaser-game") {
           const files = await readPhaserProjectFromDirectory(root);
-          const html = buildPhaserPreviewHtml(files, p.title);
+          const assetUrls = await readPhaserProjectAssetUrlsFromDirectory(root);
+          const html = buildPhaserPreviewHtml(files, p.title, { assetUrls });
           if (!cancelled) {
+            replacePhaserAssetUrls(assetUrls);
             setProjectRoot(null);
             setGenericPreview(null);
             setInteractiveVideoPreview(null);
             setRuntimePreviewHtml(html);
+          } else {
+            revokePhaserProjectAssetUrls(assetUrls);
           }
         } else if (p.template === "interactive-video") {
+          replacePhaserAssetUrls({});
           const model = await readInteractiveVideoPreviewFromDirectory(root);
           if (!cancelled) {
             setProjectRoot(root);
@@ -183,6 +201,7 @@ export default function PreviewClient() {
             setRuntimePreviewHtml(null);
           }
         } else {
+          replacePhaserAssetUrls({});
           const model = await readProjectPreview(root, p.template);
           if (!cancelled) {
             setProjectRoot(root);
@@ -194,6 +213,7 @@ export default function PreviewClient() {
         if (!cancelled) setStatus("ready");
       } catch (e) {
         if (!cancelled) {
+          replacePhaserAssetUrls({});
           setProjectRoot(null);
           setGenericPreview(null);
           setInteractiveVideoPreview(null);
@@ -299,6 +319,7 @@ export default function PreviewClient() {
       for (const url of Object.values(interactiveAssetUrlsRef.current)) {
         URL.revokeObjectURL(url);
       }
+      revokePhaserProjectAssetUrls(phaserAssetUrlsRef.current);
     };
   }, []);
 

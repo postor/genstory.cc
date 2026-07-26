@@ -14,6 +14,7 @@ import {
   aiPromptChrome,
   publicBookCaseProject,
   publicComicCaseProject,
+  publicPhaserGameCaseProject,
   publicPagePromptExamples,
 } from "@/lib/ai-prompt-examples";
 import { PublicCaseProjectPreview } from "@/components/public-case-project-preview";
@@ -45,7 +46,12 @@ export function PublicTopicPage({
       ? publicBookCaseProject
       : slug === "comic"
         ? publicComicCaseProject
+        : slug === "phaser-game"
+          ? publicPhaserGameCaseProject
         : null;
+  const casePrompts = caseProject?.prompts?.[lang] ?? (
+    caseProject ? [caseProject.prompt[lang]] : []
+  );
 
   return (
     <main
@@ -143,9 +149,20 @@ export function PublicTopicPage({
                 {caseProject.costNote[lang]}
               </span>
             </div>
-            <pre className="whitespace-pre-wrap rounded-md border bg-background p-3 text-sm leading-6 text-foreground">
-              {caseProject.prompt[lang]}
-            </pre>
+            <div className="space-y-3">
+              {casePrompts.map((prompt, index) => (
+                <div key={`${caseProject.title[lang]}-${index}`}>
+                  {casePrompts.length > 1 ? (
+                    <p className="mb-1 text-xs font-medium text-muted-foreground">
+                      {lang === "zh" ? `第 ${index + 1} 步提示词` : `Prompt ${index + 1}`}
+                    </p>
+                  ) : null}
+                  <pre className="whitespace-pre-wrap rounded-md border bg-background p-3 text-sm leading-6 text-foreground">
+                    {prompt}
+                  </pre>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       ) : null}

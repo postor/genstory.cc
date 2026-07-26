@@ -11,6 +11,17 @@ test("editor title can enter inline edit mode on click and saves on blur", async
   assert.match(source, /<Input/);
 });
 
+test("editor saves on Ctrl or Command+S without opening the browser save dialog", async () => {
+  const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /addEventListener\("keydown", handleSaveShortcut\)/);
+  assert.match(source, /event\.key\.toLowerCase\(\) === "s"/);
+  assert.match(source, /event\.ctrlKey \|\| event\.metaKey/);
+  assert.match(source, /event\.preventDefault\(\)/);
+  assert.match(source, /void handleSave\(\)/);
+  assert.match(source, /removeEventListener\("keydown", handleSaveShortcut\)/);
+});
+
 test("editor file operations are rendered as actions on each tree node", async () => {
   const source = await readFile(new URL("./editor-client.tsx", import.meta.url), "utf8");
   const toolbarSource = source.slice(

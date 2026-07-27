@@ -156,6 +156,11 @@ const zh: Dict = {
   "editor.saved": "已保存到浏览器",
   "editor.downloadSource": "备份",
   "editor.export": "导出",
+  "editor.exportPdf": "导出 PDF",
+  "editor.sharePdf": "分享 PDF",
+  "editor.shareUnsupportedTitle": "当前浏览器不支持分享 PDF",
+  "editor.shareUnsupportedDescription":
+    "请换用支持文件分享的现代浏览器，或先导出 PDF 后通过其他方式发送。",
   "phaser.export": "导出 Phaser 游戏",
   "editor.back": "返回列表",
   "editor.notFound": "未找到该项目，可能已被删除。",
@@ -489,6 +494,11 @@ const en: Dict = {
   "editor.saved": "Saved in browser",
   "editor.downloadSource": "Backup",
   "editor.export": "Export",
+  "editor.exportPdf": "Export PDF",
+  "editor.sharePdf": "Share PDF",
+  "editor.shareUnsupportedTitle": "This browser cannot share PDF files",
+  "editor.shareUnsupportedDescription":
+    "Use a modern browser that supports file sharing, or export the PDF and send it another way.",
   "phaser.export": "Export Phaser game",
   "editor.back": "Back to list",
   "editor.notFound": "Project not found — it may have been deleted.",

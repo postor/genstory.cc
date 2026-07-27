@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, CloudUpload, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Menu, Pencil, Play, RefreshCw, Save, Trash2, Upload } from "lucide-react";
+import { ArrowLeft, CloudUpload, Ellipsis, FileDown, FilePlus, FolderPlus, Loader2, Menu, Pencil, Play, RefreshCw, Save, Share2, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,8 +68,12 @@ import { exportPhaserProjectZip } from "@/lib/phaser/export";
 import { exportInteractiveVideoProjectZip } from "@/lib/interactive-video/export";
 import {
   exportProjectDirectoryZip,
-  exportReadableProjectZip,
 } from "@/lib/project-export";
+import {
+  buildReadableProjectPdf,
+  exportReadableProjectPdf,
+  pdfShareText,
+} from "@/lib/project-pdf";
 import { readProjectPreview } from "@/lib/project-source";
 import { buildVNProjectFiles } from "@/lib/vn/project-files";
 import { readVNProjectFromDirectory } from "@/lib/vn/source-reader";
@@ -175,6 +179,12 @@ type EditorMobileTab = "chat" | "files" | "editor";
 interface EntryDialogState {
   path: string;
   kind: EntryKind;
+}
+
+function isPdfProject(
+  project: Project | null
+): project is Project & { template: "book" | "comic" } {
+  return project?.template === "book" || project?.template === "comic";
 }
 
 interface CloudUploadPlan {
@@ -292,6 +302,7 @@ function MobileProjectActions({
   t,
   onPreview,
   onExport,
+  onShare,
   onDownloadSource,
   onCloudUpload,
   onToggleScene,
@@ -309,6 +320,7 @@ function MobileProjectActions({
   t: (key: string, values?: Record<string, string | number>) => string;
   onPreview: () => void;
   onExport: () => void;
+  onShare: () => void;
   onDownloadSource: () => void;
   onCloudUpload: () => void;
   onToggleScene: () => void;
@@ -323,7 +335,9 @@ function MobileProjectActions({
 
   const projectReady = Boolean(project && hasRoot);
   const exportLabel =
-    project?.template === "visual-novel"
+    isPdfProject(project)
+      ? t("editor.exportPdf")
+      : project?.template === "visual-novel"
       ? t("vn.exportOpenwebgal")
       : project?.template === "phaser-game"
         ? t("phaser.export")
@@ -346,6 +360,16 @@ function MobileProjectActions({
       disabled: !projectReady || exporting,
       onSelect: onExport,
     },
+    ...(isPdfProject(project)
+      ? [
+          {
+            label: t("editor.sharePdf"),
+            icon: <Share2 />,
+            disabled: !projectReady || exporting,
+            onSelect: onShare,
+          },
+        ]
+      : []),
     {
       label: t("editor.downloadSource"),
       icon: exporting ? <Loader2 className="animate-spin" /> : <FileDown />,
@@ -464,6 +488,10 @@ export default function EditorClient() {
   const [reconnectingCloud, setReconnectingCloud] = useState(false);
   const [cloudConfirm, setCloudConfirm] = useState(false);
   const [uploadPlan, setUploadPlan] = useState<CloudUploadPlan | null>(null);
+  const [shareNotice, setShareNotice] = useState<{
+    title: string;
+    description: string;
+  } | null>(null);
   const chatRef = useRef<ChatBoxHandle>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const uploadTargetRef = useRef<EntryDialogState | null>(null);
@@ -1034,6 +1062,53 @@ export default function EditorClient() {
     }
   }
 
+  function showShareUnsupported() {
+    setShareNotice({
+      title: t("editor.shareUnsupportedTitle"),
+      description: t("editor.shareUnsupportedDescription"),
+    });
+  }
+
+  async function handleShare() {
+    if (!project || !root || !isPdfProject(project)) return;
+    if (
+      typeof navigator === "undefined" ||
+      typeof navigator.share !== "function" ||
+      typeof navigator.canShare !== "function"
+    ) {
+      showShareUnsupported();
+      return;
+    }
+
+    setExporting(true);
+    setError("");
+    try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) return;
+      }
+      const preview = await readProjectPreview(root, project.template);
+      const blob = await buildReadableProjectPdf(root, preview, project.lang);
+      const filename = `${project.title || "project"}.pdf`;
+      const file = new File([blob], filename, { type: "application/pdf" });
+      if (!navigator.canShare({ files: [file] })) {
+        showShareUnsupported();
+        return;
+      }
+      await navigator.share({
+        files: [file],
+        title: project.title,
+        text: pdfShareText(project.title, project.lang),
+        url: "https://www.genstory.cc",
+      });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+    } finally {
+      setExporting(false);
+    }
+  }
+
   function requireCloudStore(): CloudRemoteStore {
     const settings = loadCloudSyncSettings();
     if (!CLOUD_OAUTH_CONFIG[settings.provider].clientId) {
@@ -1199,7 +1274,7 @@ export default function EditorClient() {
         await exportInteractiveVideoProjectZip(root, project.title);
       } else {
         const preview = await readProjectPreview(root, project.template);
-        await exportReadableProjectZip(preview, project.title);
+        await exportReadableProjectPdf(root, preview, project.title, project.lang);
       }
     } catch (e) {
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
@@ -1821,12 +1896,29 @@ export default function EditorClient() {
               </Button>
               <Button variant="outline" size="sm" onClick={() => void handleExport()} disabled={exporting}>
                 {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
-                {project.template === "visual-novel"
+                {isPdfProject(project)
+                  ? t("editor.exportPdf")
+                  : project.template === "visual-novel"
                   ? t("vn.exportOpenwebgal")
                   : project.template === "phaser-game"
                     ? t("phaser.export")
                     : t("editor.export")}
               </Button>
+              {isPdfProject(project) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleShare()}
+                  disabled={exporting}
+                >
+                  {exporting ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Share2 className="size-4" />
+                  )}
+                  {t("editor.sharePdf")}
+                </Button>
+              )}
               <Button variant="outline" size="sm" onClick={() => void handleDownloadSource()} disabled={exporting}>
                 {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
                 {t("editor.downloadSource")}
@@ -1875,6 +1967,7 @@ export default function EditorClient() {
           t={t}
           onPreview={() => void handlePreview()}
           onExport={() => void handleExport()}
+          onShare={() => void handleShare()}
           onDownloadSource={() => void handleDownloadSource()}
           onCloudUpload={() => void prepareCloudUpload()}
           onToggleScene={() =>
@@ -2147,6 +2240,16 @@ export default function EditorClient() {
       >
         {uploadPlan ? conflictPreview(uploadPlan.conflicts) : null}
       </InteractionModal>
+      <InteractionModal
+        open={shareNotice !== null}
+        onOpenChange={(open) => {
+          if (!open) setShareNotice(null);
+        }}
+        title={shareNotice?.title ?? ""}
+        description={shareNotice?.description}
+        confirmLabel={t("common.ok")}
+        onConfirm={() => setShareNotice(null)}
+      />
       <Dialog open={cloudOperation !== null}>
         <DialogContent className="max-w-sm">
           <DialogHeader>

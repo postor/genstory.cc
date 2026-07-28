@@ -2,7 +2,7 @@ import {
   collectMarkdownMediaSources,
   mediaKindForSource,
   resolveMarkdownMediaPath,
-} from "./image-paths";
+} from "./image-paths.ts";
 
 export interface PreviewMarkdownSection {
   path: string;

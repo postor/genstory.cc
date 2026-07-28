@@ -5,10 +5,13 @@ import Link from "next/link";
 import {
   CloudDownload,
   CloudUpload,
+  Ellipsis,
   FileDown,
+  FolderOpen,
   Pencil,
   Plus,
   RefreshCw,
+  Share2,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -29,6 +32,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { InteractionModal } from "@/components/ui/interaction-modal";
+import {
+  Popover,
+  PopoverPopup,
+  PopoverPortal,
+  PopoverPositioner,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   createCloudRemoteStore,
   type CloudRemoteStore,
@@ -107,6 +117,8 @@ export default function ProjectsPage() {
   const [cloudFeedback, setCloudFeedback] = useState<string | null>(null);
   const [cloudAuthorizationExpired, setCloudAuthorizationExpired] = useState(false);
   const [reconnectingCloud, setReconnectingCloud] = useState(false);
+  const [openProjectMenuId, setOpenProjectMenuId] = useState<string | null>(null);
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
   const [cloudConfirm, setCloudConfirm] = useState<CloudAction | null>(null);
   const [downloadPlan, setDownloadPlan] = useState<CloudDownloadPlan | null>(
     null
@@ -168,6 +180,35 @@ export default function ProjectsPage() {
       const root = await openProjectDirectory(project.template, project.id);
       await exportProjectDirectoryZip(root, `${project.title || "project"}-source`);
     } catch (e) {
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+    }
+  }
+
+  async function handleShareProject(project: Project) {
+    const url = new URL(
+      `/projects/editor?id=${encodeURIComponent(project.id)}`,
+      window.location.origin
+    ).toString();
+
+    try {
+      if (typeof navigator.share === "function") {
+        await navigator.share({
+          title: project.title,
+          text: t("projects.shareText", { title: project.title }),
+          url,
+        });
+        return;
+      }
+
+      if (typeof navigator.clipboard?.writeText === "function") {
+        await navigator.clipboard.writeText(url);
+        setShareFeedback(t("projects.shareCopied"));
+        return;
+      }
+
+      setError(t("projects.shareUnsupported"));
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     }
   }
@@ -563,6 +604,11 @@ export default function ProjectsPage() {
           {cloudFeedback}
         </p>
       )}
+      {shareFeedback && (
+        <p className="mb-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
+          {shareFeedback}
+        </p>
+      )}
 
       {loading ? (
         <p className="text-sm text-muted-foreground">…</p>
@@ -631,47 +677,110 @@ export default function ProjectsPage() {
                   )}
                 </p>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
+              <CardContent className="flex items-center justify-end gap-1">
                 <Button
                   render={<Link href={`/projects/editor?id=${project.id}`} />}
-                  size="sm"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label={t("projects.open")}
+                  title={t("projects.open")}
                 >
-                  {t("projects.open")}
+                  <FolderOpen className="size-4" />
                 </Button>
                 <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void handleDownloadSource(project)}
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => void handleShareProject(project)}
+                  aria-label={t("projects.share")}
+                  title={t("projects.share")}
                 >
-                  <FileDown className="size-4" />
-                  {t("editor.downloadSource")}
+                  <Share2 className="size-4" />
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void prepareCloudDownload(project)}
-                  disabled={cloudOperation !== null || importing}
+                <Popover
+                  open={openProjectMenuId === project.id}
+                  onOpenChange={(open) =>
+                    setOpenProjectMenuId(open ? project.id : null)
+                  }
                 >
-                  <CloudDownload className="size-4" />
-                  {t("projects.cloudDownloadProject")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => void prepareCloudUpload(project)}
-                  disabled={cloudOperation !== null || importing}
-                >
-                  <CloudUpload className="size-4" />
-                  {t("projects.cloudUploadProject")}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={() => setProjectPendingDelete(project)}
-                >
-                  <Trash2 className="size-4" />
-                  {t("projects.delete")}
-                </Button>
+                  <PopoverTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        aria-label={t("projects.more")}
+                        aria-haspopup="menu"
+                        aria-expanded={openProjectMenuId === project.id}
+                        title={t("projects.more")}
+                      />
+                    }
+                  >
+                    <Ellipsis className="size-4" />
+                  </PopoverTrigger>
+                  <PopoverPortal>
+                    <PopoverPositioner side="bottom" align="end">
+                      <PopoverPopup className="min-w-48">
+                        <div aria-label={t("projects.more")} className="grid gap-1" role="menu">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="justify-start"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenProjectMenuId(null);
+                              void handleDownloadSource(project);
+                            }}
+                          >
+                            <FileDown className="size-4" />
+                            {t("editor.downloadSource")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="justify-start"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenProjectMenuId(null);
+                              void prepareCloudDownload(project);
+                            }}
+                            disabled={cloudOperation !== null || importing}
+                          >
+                            <CloudDownload className="size-4" />
+                            {t("projects.cloudDownloadProject")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="justify-start"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenProjectMenuId(null);
+                              void prepareCloudUpload(project);
+                            }}
+                            disabled={cloudOperation !== null || importing}
+                          >
+                            <CloudUpload className="size-4" />
+                            {t("projects.cloudUploadProject")}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="justify-start text-destructive hover:text-destructive"
+                            role="menuitem"
+                            onClick={() => {
+                              setOpenProjectMenuId(null);
+                              setProjectPendingDelete(project);
+                            }}
+                          >
+                            <Trash2 className="size-4" />
+                            {t("projects.delete")}
+                          </Button>
+                        </div>
+                      </PopoverPopup>
+                    </PopoverPositioner>
+                  </PopoverPortal>
+                </Popover>
               </CardContent>
             </Card>
           ))}

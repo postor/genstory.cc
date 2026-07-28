@@ -32,3 +32,20 @@ test("expired cloud authorization offers an actionable reconnect button", async 
   assert.match(source, /onClick=\{\(\) => void handleCloudReconnect\(\)\}/);
   assert.match(source, /t\("settings\.cloud\.reconnect"\)/);
 });
+
+test("project cards expose open, share, and more icon actions", async () => {
+  const source = await readFile(new URL("./projects-client.tsx", import.meta.url), "utf8");
+
+  assert.match(source, /<FolderOpen className="size-4" \/>/);
+  assert.match(source, /<Share2 className="size-4" \/>/);
+  assert.match(source, /<Ellipsis className="size-4" \/>/);
+  assert.match(source, /title=\{t\("projects\.open"\)\}/);
+  assert.match(source, /title=\{t\("projects\.share"\)\}/);
+  assert.match(source, /title=\{t\("projects\.more"\)\}/);
+  assert.match(source, /aria-haspopup="menu"/);
+  assert.match(source, /aria-label=\{t\("projects\.more"\)\} className="grid gap-1" role="menu"/);
+  assert.match(source, /role="menuitem"/);
+  assert.match(source, /handleShareProject\(project\)/);
+  assert.match(source, /prepareCloudDownload\(project\)/);
+  assert.match(source, /setProjectPendingDelete\(project\)/);
+});

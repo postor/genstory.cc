@@ -7,6 +7,9 @@
     "build": "npm run sync-phaser && npm run sync-webgal && next build",
     "start": "next start",
     "lint": "eslint",
+    "benchmark:book-docx-mammoth": "node --experimental-strip-types scripts/benchmark-book-docx-mammoth.mjs",
+    "benchmark:book-pdf": "node --experimental-strip-types scripts/benchmark-book-pdf.mjs",
+    "benchmark:comic-pdf": "node --experimental-strip-types scripts/benchmark-comic-pdf.mjs",
     "deploy:docker": "node scripts/deploy-docker.mjs",
     "deploy:docker:tar": "node scripts/deploy-docker.mjs --transport=tar",
     "sync-phaser": "node scripts/sync-phaser.mjs",
@@ -41,6 +44,8 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^5"
   }

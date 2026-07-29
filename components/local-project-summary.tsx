@@ -8,6 +8,7 @@ import { Grid2X2, ListFilter, MoreHorizontal, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { contentTypes, type ContentTypeId } from "@/lib/content-types";
+import { openProjectDirectory, readFile } from "@/lib/file-system/browser";
 import { useLang } from "@/lib/i18n";
 import { listProjects, type Project } from "@/lib/local-projects";
 
@@ -55,14 +56,13 @@ const sampleWorks: Array<{
   },
 ];
 
-const sampleImages = [
-  "/home/work-star.png",
-  "/home/work-manga.png",
-  "/home/work-castle.png",
-  "/home/work-video.png",
-  "/home/work-dragon.png",
-  "/home/work-city.png",
-];
+const typeImages: Record<ContentTypeId, string> = {
+  book: "/home/type-book.png",
+  comic: "/home/type-comic.png",
+  "visual-novel": "/home/type-vn.png",
+  "interactive-video": "/home/type-video.png",
+  "phaser-game": "/home/type-game.png",
+};
 
 type DisplayWork = {
   id?: string;
@@ -76,6 +76,7 @@ type DisplayWork = {
 export function LocalProjectSummary() {
   const { lang, t } = useLang();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectCoverImages, setProjectCoverImages] = useState<Record<string, string>>({});
   const [activeFilter, setActiveFilter] = useState<ContentTypeId | "all">("all");
 
   useEffect(() => {
@@ -83,6 +84,40 @@ export function LocalProjectSummary() {
   }, []);
 
   const isShowingSamples = projects.length === 0;
+
+  useEffect(() => {
+    let cancelled = false;
+    const coverUrls: string[] = [];
+
+    async function loadCoverImages(): Promise<ReadonlyArray<readonly [string, string | undefined]>> {
+      if (isShowingSamples) return [];
+
+      return Promise.all(
+        projects.map(async (project) => {
+          const coverUrl = await readProjectCoverUrl(project);
+          if (coverUrl) coverUrls.push(coverUrl);
+          return [project.id, coverUrl] as const;
+        }),
+      );
+    }
+
+    void loadCoverImages().then((entries) => {
+      if (cancelled) {
+        coverUrls.forEach((url) => URL.revokeObjectURL(url));
+        return;
+      }
+
+      setProjectCoverImages(Object.fromEntries(entries.filter(hasProjectCoverUrl)));
+    }).catch(() => {
+      if (!cancelled) setProjectCoverImages({});
+    });
+
+    return () => {
+      cancelled = true;
+      coverUrls.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, [isShowingSamples, projects]);
+
   const works = useMemo<DisplayWork[]>(
     () =>
       isShowingSamples
@@ -93,17 +128,17 @@ export function LocalProjectSummary() {
             updated: work.updated[lang],
             href: `/projects/new?template=${work.template}`,
           }))
-        : projects.map((project, index) => ({
+        : projects.map((project) => ({
             id: project.id,
             title: project.title,
             template: project.template,
-            image: sampleImages[index % sampleImages.length],
+            image: projectCoverImages[project.id] ?? typeImages[project.template],
             updated: new Date(project.updatedAt).toLocaleDateString(
               lang === "zh" ? "zh-CN" : "en-US",
             ),
             href: `/projects/editor?id=${project.id}`,
           })),
-    [isShowingSamples, lang, projects],
+    [isShowingSamples, lang, projectCoverImages, projects],
   );
   const filteredWorks = useMemo(
     () =>
@@ -166,13 +201,25 @@ export function LocalProjectSummary() {
             <Card key={work.id ?? work.title} className="group overflow-hidden border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-shadow hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
               <Link href={work.href}>
                 <div className="relative aspect-[2.2/1] overflow-hidden bg-[#eeeaff]">
-                  <Image
-                    src={work.image}
-                    alt=""
-                    fill
-                    sizes="(max-width: 640px) 100vw, 50vw"
-                    className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
+                  {work.image.startsWith("blob:") ? (
+                    <>
+                      {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={work.image}
+                        alt=""
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    </>
+                  ) : (
+                    <Image
+                      src={work.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, 50vw"
+                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                  )}
                 </div>
                 <div className="flex items-start justify-between gap-3 px-4 pb-4 pt-3">
                   <div className="min-w-0">
@@ -232,4 +279,28 @@ function FilterButton({
       {label}
     </button>
   );
+}
+
+function hasProjectCoverUrl(entry: readonly [string, string | undefined]): entry is [string, string] {
+  return Boolean(entry[1]);
+}
+
+async function readProjectCoverUrl(project: Project): Promise<string | undefined> {
+  try {
+    const root = await openProjectDirectory(project.template, project.id);
+
+    for (const filename of ["cover.jpg", "cover.png"]) {
+      try {
+        const file = await readFile(root, filename);
+        return URL.createObjectURL(file);
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "NotFoundError") continue;
+        throw error;
+      }
+    }
+  } catch {
+    return undefined;
+  }
+
+  return undefined;
 }

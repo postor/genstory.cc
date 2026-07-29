@@ -131,11 +131,27 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
   return (
     <main lang={languageInfo[lang].htmlLang} className="overflow-hidden bg-[#fbfaff] text-[#121331]">
       <section className="relative overflow-hidden bg-[#07091f] text-white">
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-[url('/home/hero-background.png')] bg-cover bg-bottom opacity-80" />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_68%_30%,rgba(132,84,255,0.3),transparent_31%),linear-gradient(115deg,rgba(7,9,31,0.96)_8%,rgba(31,20,79,0.78)_56%,rgba(48,29,113,0.62))]" />
+        <Image
+          src="/home/pc-banner-bg.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="pointer-events-none object-cover object-center"
+        />
+        <Image
+          src="/home/fg.png"
+          alt="CC 角色在故事世界中展开创作"
+          width={1254}
+          height={1254}
+          priority
+          sizes="(max-width: 545px) 100vw, 545px"
+          className="pointer-events-none absolute bottom-0 right-0 z-[1] aspect-square h-auto w-[min(545px,100vw)] max-w-full lg:right-[15%]"
+        />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-[72%] bg-gradient-to-r from-[#07091f]/95 via-[#07091f]/80 to-transparent lg:hidden" />
 
-        <div className="relative mx-auto grid min-h-[610px] max-w-7xl grid-cols-1 gap-0 px-4 sm:px-6 lg:min-h-0 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:gap-8 lg:px-8">
-          <div className="z-10 flex flex-col justify-end pb-5 pt-[315px] sm:pt-[345px] lg:row-start-1 lg:pb-16 lg:pt-24">
+        <div className="relative z-10 mx-auto h-[545px] max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="max-w-xl pb-7 pt-16 sm:pt-20 lg:pb-14 lg:pt-24">
             <h1 className="max-w-xl text-4xl font-bold leading-[1.12] tracking-[0.01em] sm:text-6xl lg:whitespace-nowrap lg:text-5xl xl:text-6xl">
               {t.heroTitle.includes("，") ? (
                 <>
@@ -151,23 +167,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
             <p className="mt-5 max-w-lg text-base leading-7 text-white/75 sm:text-lg">
               {t.heroSubtitle}
             </p>
-          </div>
-
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[330px] lg:relative lg:inset-auto lg:order-none lg:row-span-2 lg:h-auto lg:min-h-[530px]">
-            <div className="absolute inset-x-0 bottom-0 top-8 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(131,77,255,0.38),transparent_65%)] blur-2xl" />
-            <Image
-              src="/home/hero-scene.png"
-              alt="CC 角色在星空中展开故事世界"
-              width={698}
-              height={393}
-              priority
-              className="absolute inset-0 h-full w-full object-contain object-center mix-blend-screen sm:right-[-6%] sm:w-[108%] lg:inset-auto lg:bottom-0 lg:right-[-14%] lg:h-auto lg:w-[116%] lg:max-w-none lg:object-contain"
-            />
-            <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#07091f] via-[#07091f]/35 to-transparent lg:hidden" />
-          </div>
-
-          <div className="z-10 pb-12 lg:row-start-2 lg:pb-20">
-            <div className="flex flex-wrap gap-3">
+            <div className="mt-7 flex flex-wrap gap-3">
               <Button
                 render={<Link href="/projects/new" />}
                 size="lg"
@@ -186,10 +186,8 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
                 {t.ctaBrowseTypes}
               </Button>
             </div>
-            <div className="mt-8">
-              <p className="text-sm text-white/45">
-                {ui.supportedTypes}
-              </p>
+            <div className="mt-7">
+              <p className="text-sm text-white/45">{ui.supportedTypes}</p>
               <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
                 {contentTypes.map((type) => {
                   const Icon = typeIcons[type.id];
@@ -428,14 +426,13 @@ function CreationTypeCard({
     <Card className="group h-full border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-transform hover:-translate-y-1 hover:border-[#cfc0ff] hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
       <Link href={`/projects/new?template=${type.id}`} className="flex h-full flex-col">
         <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-1">
-          <div className="flex h-20 items-center justify-center overflow-hidden sm:h-24">
+          <div className="relative flex h-20 w-full items-center justify-center overflow-hidden sm:h-24">
             <Image
               src={typeImages[type.id]}
               alt=""
-              width={240}
-              height={140}
+              fill
               sizes="(max-width: 640px) 40vw, 18vw"
-              className="max-h-full max-w-full object-contain transition-transform group-hover:scale-105"
+              className="max-w-full object-contain transition-transform group-hover:scale-105"
             />
           </div>
           <CardTitle className="text-sm sm:text-base">{type.label[lang]}</CardTitle>

@@ -72,10 +72,10 @@ export const publicTopicChrome = {
 
 export const publicHomeCopy = {
   zh: {
-    heroTitle: "GenStory.cc",
-    heroSubtitle: "本地优先的故事与游戏创作工具",
+    heroTitle: "让想象，成为世界",
+    heroSubtitle: "CC 你 AI 创作伙伴，陪你创造故事、角色与世界。",
     heroBody:
-      "GenStory.cc 是 100% 开源、本地优先的浏览器创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目文件和素材默认留在这台设备中，不会自动上传；需要换设备时可下载备份，或授权后手动同步到 Google Drive。",
+      "GenStory.cc 是 100% 开源、本地优先的浏览器创作工作台，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目文件和素材默认留在这台设备中，不会自动上传。",
     ctaCreate: "开始创作",
     ctaBrowseTypes: "探索创作类型",
     pillarsTitle: "为长期创作设计",
@@ -109,10 +109,10 @@ export const publicHomeCopy = {
     ],
   },
   en: {
-    heroTitle: "GenStory.cc",
-    heroSubtitle: "A local-first story and game creation tool",
+    heroTitle: "Let imagination become a world",
+    heroSubtitle: "CC is your AI creative partner for stories, characters, and worlds.",
     heroBody:
-      "GenStory.cc is a 100% open-source, local-first browser workspace for books, comics, visual novels, interactive videos, and Phaser games. Project files and assets stay on this device by default and are not automatically uploaded; download backups or manually sync to Google Drive after authorization when you need to move devices.",
+      "GenStory.cc is a 100% open-source, local-first browser workspace for books, comics, visual novels, interactive videos, and Phaser games. Project files and assets stay on this device by default and are not automatically uploaded.",
     ctaCreate: "Start creating",
     ctaBrowseTypes: "Explore creation types",
     pillarsTitle: "Designed for long-running creative work",

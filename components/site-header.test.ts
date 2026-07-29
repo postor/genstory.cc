@@ -53,7 +53,7 @@ test("site header collapses mobile navigation into a menu without the home link"
 
   assert.match(source, /MenuIcon/);
   assert.match(source, /className="hidden items-center gap-1 sm:flex"/);
-  assert.match(source, /className="sm:hidden"/);
+  assert.match(source, /sm:hidden/);
   assert.match(source, /navItems\.filter\(\(item\) => item\.href !== localizedPath\(publicLang\)\)/);
   assert.match(source, /aria-label=\{labels\.menu\}/);
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { MenuIcon } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
@@ -24,6 +25,8 @@ export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const publicLang = getPublicLang(pathname) ?? lang;
   const labels = headerLabels[publicLang];
+  const homeHeader =
+    pathname === "/" || pathname === "/zh" || pathname === "/en";
 
   if (isImmersiveRoute(pathname)) {
     return null;
@@ -38,13 +41,30 @@ export function SiteHeader() {
   const enHref = getLocalizedHref(pathname, "en");
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link href={localizedPath(publicLang)} className="flex items-center gap-2 font-semibold">
-          <span className="grid size-7 place-items-center rounded-md bg-primary text-primary-foreground text-sm">
-            G
-          </span>
-          GenStory.cc
+    <header
+      className={cn(
+        "sticky top-0 z-40 border-b backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        homeHeader
+          ? "border-white/10 bg-[#07091f]/90 text-white supports-[backdrop-filter]:bg-[#07091f]/75"
+          : "bg-background/80",
+      )}
+    >
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <Link
+          href={localizedPath(publicLang)}
+          className={cn(
+            "flex items-center gap-2.5 font-semibold",
+            homeHeader ? "text-white" : "text-foreground",
+          )}
+        >
+          <Image
+            src="/home/logo-mark.png"
+            alt=""
+            width={40}
+            height={40}
+            className="size-8 rounded-lg"
+          />
+          <span>GenStory.cc</span>
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
@@ -52,14 +72,16 @@ export function SiteHeader() {
             navItems={navItems}
             pathname={pathname}
             publicLang={publicLang}
+            homeHeader={homeHeader}
           />
-          <HeaderExternalLinks labels={labels} />
+          <HeaderExternalLinks labels={labels} homeHeader={homeHeader} />
           <LanguageSwitcher
             publicLang={publicLang}
             zhHref={zhHref}
             enHref={enHref}
             labels={labels}
             setLang={setLang}
+            homeHeader={homeHeader}
           />
         </nav>
 
@@ -67,7 +89,10 @@ export function SiteHeader() {
           <PopoverTrigger
             render={
               <Button
-                className="sm:hidden"
+                className={cn(
+                  "sm:hidden",
+                  homeHeader && "text-white hover:bg-white/10 hover:text-white",
+                )}
                 variant="ghost"
                 size="icon"
                 aria-label={labels.menu}
@@ -79,17 +104,24 @@ export function SiteHeader() {
           </PopoverTrigger>
           <PopoverPortal>
             <PopoverPositioner side="bottom" align="end" sideOffset={8}>
-              <PopoverPopup className="w-56">
+              <PopoverPopup
+                className={cn(
+                  "w-56",
+                  homeHeader && "border-white/10 bg-[#111336] text-white",
+                )}
+              >
                 <nav className="flex flex-col gap-1" aria-label={labels.menu}>
                   <HeaderNavLinks
                     navItems={navItems.filter((item) => item.href !== localizedPath(publicLang))}
                     pathname={pathname}
                     publicLang={publicLang}
+                    homeHeader={homeHeader}
                     onNavigate={() => setMobileMenuOpen(false)}
                     itemClassName="justify-start"
                   />
                   <HeaderExternalLinks
                     labels={labels}
+                    homeHeader={homeHeader}
                     onNavigate={() => setMobileMenuOpen(false)}
                     itemClassName="justify-start"
                     showSourceLabel
@@ -100,6 +132,7 @@ export function SiteHeader() {
                     enHref={enHref}
                     labels={labels}
                     setLang={setLang}
+                    homeHeader={homeHeader}
                     onNavigate={() => setMobileMenuOpen(false)}
                     className="mt-1"
                   />
@@ -124,12 +157,14 @@ function HeaderNavLinks({
   navItems,
   pathname,
   publicLang,
+  homeHeader,
   onNavigate,
   itemClassName,
 }: {
   navItems: NavItem[];
   pathname: string;
   publicLang: PublicLang;
+  homeHeader?: boolean;
   onNavigate?: () => void;
   itemClassName?: string;
 }) {
@@ -141,9 +176,15 @@ function HeaderNavLinks({
     return (
       <Button
         key={item.href}
-        className={itemClassName}
+        className={cn(
+          itemClassName,
+          homeHeader &&
+            (active
+              ? "bg-white/15 text-white hover:bg-white/20 hover:text-white"
+              : "text-white/75 hover:bg-white/10 hover:text-white"),
+        )}
         render={<Link href={item.href} />}
-        variant={active ? "secondary" : "ghost"}
+        variant={homeHeader ? "ghost" : active ? "secondary" : "ghost"}
         size="sm"
         onClick={onNavigate}
       >
@@ -155,11 +196,13 @@ function HeaderNavLinks({
 
 function HeaderExternalLinks({
   labels,
+  homeHeader,
   onNavigate,
   itemClassName,
   showSourceLabel = false,
 }: {
   labels: HeaderLabels;
+  homeHeader?: boolean;
   onNavigate?: () => void;
   itemClassName?: string;
   showSourceLabel?: boolean;
@@ -167,7 +210,10 @@ function HeaderExternalLinks({
   return (
     <>
       <Button
-        className={itemClassName}
+        className={cn(
+          itemClassName,
+          homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
+        )}
         render={
           <a
             href="https://github.com/postor/genstory.cc"
@@ -190,11 +236,15 @@ function HeaderExternalLinks({
         title="Sponsor postor"
         height="32"
         width="114"
+        suppressHydrationWarning
         className="block h-8 w-[114px] border-0"
       />
 
       <Button
-        className={itemClassName}
+        className={cn(
+          itemClassName,
+          homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
+        )}
         render={
           <a
             href="https://github.com/postor/genstory.cc/issues/new"
@@ -220,6 +270,7 @@ function LanguageSwitcher({
   enHref,
   labels,
   setLang,
+  homeHeader,
   onNavigate,
   className,
 }: {
@@ -228,18 +279,30 @@ function LanguageSwitcher({
   enHref: string;
   labels: HeaderLabels;
   setLang: (lang: PublicLang) => void;
+  homeHeader?: boolean;
   onNavigate?: () => void;
   className?: string;
 }) {
   return (
     <div
-      className={cn("flex items-center rounded-lg border p-0.5", className)}
+      className={cn(
+        "flex items-center rounded-lg border p-0.5",
+        homeHeader ? "border-white/15" : "border-border",
+        className,
+      )}
       role="group"
       aria-label={labels.language}
     >
       <Button
         render={<Link href={zhHref} />}
-        variant={publicLang === "zh" ? "default" : "ghost"}
+        variant={homeHeader ? "ghost" : publicLang === "zh" ? "default" : "ghost"}
+        className={
+          homeHeader
+            ? publicLang === "zh"
+              ? "bg-white/15 text-white hover:bg-white/20 hover:text-white"
+              : "text-white/65 hover:bg-white/10 hover:text-white"
+            : undefined
+        }
         size="xs"
         aria-pressed={publicLang === "zh"}
         onClick={() => {
@@ -251,7 +314,14 @@ function LanguageSwitcher({
       </Button>
       <Button
         render={<Link href={enHref} />}
-        variant={publicLang === "en" ? "default" : "ghost"}
+        variant={homeHeader ? "ghost" : publicLang === "en" ? "default" : "ghost"}
+        className={
+          homeHeader
+            ? publicLang === "en"
+              ? "bg-white/15 text-white hover:bg-white/20 hover:text-white"
+              : "text-white/65 hover:bg-white/10 hover:text-white"
+            : undefined
+        }
         size="xs"
         aria-pressed={publicLang === "en"}
         onClick={() => {

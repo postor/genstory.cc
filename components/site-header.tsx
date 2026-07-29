@@ -1,6 +1,6 @@
 "use client";
 
-import { MenuIcon } from "lucide-react";
+import { Bell, ChevronDown, MenuIcon, Search } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -74,6 +74,7 @@ export function SiteHeader() {
             publicLang={publicLang}
             homeHeader={homeHeader}
           />
+          {homeHeader ? <HomeHeaderTools labels={labels} /> : null}
           <HeaderExternalLinks labels={labels} homeHeader={homeHeader} />
           <LanguageSwitcher
             publicLang={publicLang}
@@ -231,36 +232,88 @@ function HeaderExternalLinks({
         {showSourceLabel ? labels.sourceCodeShort : null}
       </Button>
 
-      <iframe
-        src="https://github.com/sponsors/postor/button"
-        title="Sponsor postor"
-        height="32"
-        width="114"
-        suppressHydrationWarning
-        className="block h-8 w-[114px] border-0"
-      />
+      {!homeHeader ? (
+        <iframe
+          src="https://github.com/sponsors/postor/button"
+          title="Sponsor postor"
+          height="32"
+          width="114"
+          suppressHydrationWarning
+          className="block h-8 w-[114px] border-0"
+        />
+      ) : null}
 
+      {!homeHeader ? (
+        <Button
+          className={cn(
+            itemClassName,
+            homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
+          )}
+          render={
+            <a
+              href="https://github.com/postor/genstory.cc/issues/new"
+              target="_blank"
+              rel="noreferrer"
+            />
+          }
+          variant="ghost"
+          size="sm"
+          aria-label={labels.newIssue}
+          title={labels.newIssue}
+          onClick={onNavigate}
+        >
+          Issue
+        </Button>
+      ) : null}
+    </>
+  );
+}
+
+function HomeHeaderTools({ labels }: { labels: HeaderLabels }) {
+  return (
+    <div className="hidden items-center gap-1.5 xl:flex">
       <Button
-        className={cn(
-          itemClassName,
-          homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
-        )}
-        render={
-          <a
-            href="https://github.com/postor/genstory.cc/issues/new"
-            target="_blank"
-            rel="noreferrer"
-          />
-        }
+        render={<Link href="#work-types" />}
         variant="ghost"
         size="sm"
-        aria-label={labels.newIssue}
-        title={labels.newIssue}
-        onClick={onNavigate}
+        className="h-9 min-w-48 justify-between gap-3 border border-white/10 bg-white/5 px-3 text-white/55 hover:bg-white/10 hover:text-white"
+        aria-label={labels.search}
       >
-        Issue
+        <span className="inline-flex items-center gap-2">
+          <Search className="size-4" />
+          <span>{labels.search}</span>
+        </span>
+        <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/45">
+          Ctrl K
+        </kbd>
       </Button>
-    </>
+      <Button
+        render={<Link href="#assistant-help" />}
+        variant="ghost"
+        size="icon-sm"
+        className="relative text-white/75 hover:bg-white/10 hover:text-white"
+        aria-label={labels.notifications}
+        title={labels.notifications}
+      >
+        <Bell className="size-4" />
+        <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-[#c58bff]" />
+      </Button>
+      <Link
+        href="#assistant-help"
+        className="grid size-9 place-items-center overflow-hidden rounded-full border border-white/20 bg-[#e9ddff] hover:border-white/50"
+        aria-label={labels.account}
+        title={labels.account}
+      >
+        <Image
+          src="/home/assistant-bust.png"
+          alt=""
+          width={48}
+          height={48}
+          className="size-10 object-contain"
+        />
+      </Link>
+      <ChevronDown className="size-4 text-white/60" aria-hidden="true" />
+    </div>
   );
 }
 
@@ -349,6 +402,9 @@ const headerLabels: Record<
     language: string;
     languageName: string;
     menu: string;
+    search: string;
+    notifications: string;
+    account: string;
     sourceCode: string;
     sourceCodeShort: string;
     newIssue: string;
@@ -361,6 +417,9 @@ const headerLabels: Record<
     language: "语言",
     languageName: "中文",
     menu: "打开导航菜单",
+    search: "搜索项目或内容",
+    notifications: "查看帮助",
+    account: "打开 CC 助手",
     sourceCode: "在 GitHub 上关注和点赞",
     sourceCodeShort: "GitHub",
     newIssue: "提交 Issue",
@@ -372,6 +431,9 @@ const headerLabels: Record<
     language: "Language",
     languageName: "English",
     menu: "Open navigation menu",
+    search: "Search projects or content",
+    notifications: "Open help",
+    account: "Open CC assistant",
     sourceCode: "Follow and star on GitHub",
     sourceCodeShort: "GitHub",
     newIssue: "Open a new Issue",

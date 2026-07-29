@@ -134,8 +134,8 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-[url('/home/hero-background.png')] bg-cover bg-bottom opacity-80" />
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_68%_30%,rgba(132,84,255,0.3),transparent_31%),linear-gradient(115deg,rgba(7,9,31,0.96)_8%,rgba(31,20,79,0.78)_56%,rgba(48,29,113,0.62))]" />
 
-        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-0 px-4 sm:px-6 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:gap-8 lg:px-8">
-          <div className="z-10 flex flex-col justify-end pb-7 pt-12 sm:pt-16 lg:row-start-1 lg:pb-16 lg:pt-24">
+        <div className="relative mx-auto grid min-h-[610px] max-w-7xl grid-cols-1 gap-0 px-4 sm:px-6 lg:min-h-0 lg:grid-cols-[minmax(0,0.82fr)_minmax(0,1.18fr)] lg:gap-8 lg:px-8">
+          <div className="z-10 flex flex-col justify-end pb-5 pt-[315px] sm:pt-[345px] lg:row-start-1 lg:pb-16 lg:pt-24">
             <h1 className="max-w-xl text-4xl font-bold leading-[1.12] tracking-[0.01em] sm:text-6xl lg:whitespace-nowrap lg:text-5xl xl:text-6xl">
               {t.heroTitle.includes("，") ? (
                 <>
@@ -153,7 +153,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
             </p>
           </div>
 
-          <div className="relative order-first min-h-[286px] sm:min-h-[380px] lg:order-none lg:row-span-2 lg:min-h-[530px]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[330px] lg:relative lg:inset-auto lg:order-none lg:row-span-2 lg:h-auto lg:min-h-[530px]">
             <div className="absolute inset-x-0 bottom-0 top-8 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(131,77,255,0.38),transparent_65%)] blur-2xl" />
             <Image
               src="/home/hero-scene.png"
@@ -161,8 +161,9 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
               width={698}
               height={393}
               priority
-              className="absolute bottom-0 right-[-12%] w-[118%] max-w-none object-contain mix-blend-screen sm:right-[-6%] sm:w-[108%] lg:right-[-14%] lg:w-[116%]"
+              className="absolute inset-0 h-full w-full object-contain object-center mix-blend-screen sm:right-[-6%] sm:w-[108%] lg:inset-auto lg:bottom-0 lg:right-[-14%] lg:h-auto lg:w-[116%] lg:max-w-none lg:object-contain"
             />
+            <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#07091f] via-[#07091f]/35 to-transparent lg:hidden" />
           </div>
 
           <div className="z-10 pb-12 lg:row-start-2 lg:pb-20">
@@ -328,7 +329,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
             </aside>
           </div>
 
-          <div className="mt-10 flex items-center gap-4 rounded-2xl border border-[#e6e0ff] bg-[#f1edff] px-5 py-3 shadow-[0_12px_30px_rgba(93,65,198,0.08)] sm:mt-14 sm:px-7">
+          <div id="assistant-help" className="mt-10 flex items-center gap-4 rounded-2xl border border-[#e6e0ff] bg-[#f1edff] px-5 py-3 shadow-[0_12px_30px_rgba(93,65,198,0.08)] sm:mt-14 sm:px-7">
             <Image
               src="/home/assistant-bust.png"
               alt=""

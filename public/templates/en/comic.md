@@ -114,6 +114,14 @@ Higher-priority context always wins.
 
 ---
 
+## Project Cover
+
+- A root-level `cover.jpg` or `cover.png` is the cover shown on project cards and continue-work cards; the app checks `cover.jpg` first, then `cover.png`.
+- The cover is only workspace preview metadata, not comic page or canon asset. If the same image is also used in page content, register it separately in `assets/index.yml` or the relevant page files.
+- Use a landscape composition close to 2.2:1, with a clear centered subject and safe edges for important text and characters.
+
+---
+
 ## Workflow
 
 Every task follows the same pipeline.

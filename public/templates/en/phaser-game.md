@@ -11,6 +11,12 @@ This project is a runnable Phaser browser game. Real source files are the source
 - When images and audio are not generated yet, keep comments, logical asset IDs, and prompts that can be handed to an image/audio model; do not fabricate binary files.
 - After changing scenes, use browser preview and verify menu → test game → menu state flow.
 
+## Project Cover
+
+- A root-level `cover.jpg` or `cover.png` is the cover shown on project cards and continue-work cards; the app checks `cover.jpg` first, then `cover.png`.
+- The cover is only workspace preview metadata, not a Phaser runtime asset. If the same image is also used in the game, register it separately in `assets/index.yml` and load it through `GenStoryAssets.resolve("assets/...")`.
+- Use a landscape composition close to 2.2:1, with a clear centered subject and safe edges for important text and characters.
+
 ## Game Asset Extractability
 
 - When generating characters, enemies, NPCs, props, icons, effects, or other independently reusable image assets, add a clear, continuous, high-contrast outline around the subject whenever possible. Keep the outline consistent with the art style and prevent glow, shadows, or the background from swallowing it.

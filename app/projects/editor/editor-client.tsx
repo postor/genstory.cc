@@ -67,6 +67,7 @@ import { exportVNZipFromDirectory } from "@/lib/vn/export";
 import { exportPhaserProjectZip } from "@/lib/phaser/export";
 import { exportInteractiveVideoProjectZip } from "@/lib/interactive-video/export";
 import {
+  exportPictureBookZip,
   exportProjectDirectoryZip,
 } from "@/lib/project-export";
 import {
@@ -1272,6 +1273,9 @@ export default function EditorClient() {
         await exportPhaserProjectZip(root, project.title);
       } else if (project.template === "interactive-video") {
         await exportInteractiveVideoProjectZip(root, project.title);
+      } else if (project.template === "picture-book") {
+        const preview = await readProjectPreview(root, project.template);
+        await exportPictureBookZip(root, preview, project.title, project.lang);
       } else {
         const preview = await readProjectPreview(root, project.template);
         await exportReadableProjectPdf(root, preview, project.title, project.lang);

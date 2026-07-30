@@ -323,7 +323,9 @@ function pictureBookTemplate(title: string, lang: Lang, agents: string): Project
     ].join("\n")),
     text("references/timeline.md", `# Timeline\n\n- chapter-001: ${lang === "zh" ? "小红帽从家出发，穿过森林，抵达外婆的小屋。" : "Little Red sets out, crosses the forest, and reaches grandmother's cottage."}\n`),
   ];
-  imageAssets.forEach(([id, file, sourceUrl], index) => {
+  imageAssets.forEach((asset, index) => {
+    const id = asset[0];
+    const sourceUrl = asset[2];
     const page = String(index + 1).padStart(3, "0");
     files.push(text(`chapter-001/pages/page-${page}/meta.md`, `---\ntitle: ${JSON.stringify(labels[index])}\norder: ${index + 1}\n---\n`));
     files.push(text(`chapter-001/pages/page-${page}/story.md`, `---\ntitle: ${JSON.stringify(labels[index])}\nimage_asset: ${id}\nvoice_asset: ${voiceAssets[index][0]}\nlayout: landscape\n---\n\n# ${labels[index]}\n\n${stories[index]}\n`));

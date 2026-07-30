@@ -132,6 +132,12 @@ Recommended fields for generated video assets:
 - `aspect_ratio` — output shape, for example `16:9`
 - `generation_status` — `planned`, `submitted`, `completed`, or `failed`
 
+## Project Cover
+
+- A root-level `cover.jpg` or `cover.png` is the cover shown on project cards and continue-work cards; the app checks `cover.jpg` first, then `cover.png`.
+- The cover is only workspace preview metadata, not video, scene-image, or timeline asset. If the same image is also used in interactive content, register it separately in `assets/index.yml`.
+- Use a landscape composition close to 2.2:1, with a clear centered subject and safe edges for important text and characters.
+
 ---
 
 ## OpenRouter Video Generation

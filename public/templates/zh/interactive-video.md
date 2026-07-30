@@ -132,6 +132,12 @@ assets/index.yml
 - `aspect_ratio` — 画幅，例如 `16:9`
 - `generation_status` — `planned`、`submitted`、`completed`、`failed`
 
+## 项目封面
+
+- 根目录的 `cover.jpg` 或 `cover.png` 是作品卡片和继续创作卡片显示的封面图；系统会优先读取 `cover.jpg`，找不到时读取 `cover.png`。
+- 封面图只用于项目列表展示，不是视频、场景图或时间轴资产；若同一图片也参与互动内容，需另行登记到 `assets/index.yml`。
+- 推荐使用接近 2.2:1 的横版构图，主体清晰居中，避免重要文字和角色贴近边缘。
+
 ---
 
 ## OpenRouter 视频生成

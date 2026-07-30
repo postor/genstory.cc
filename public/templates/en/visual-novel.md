@@ -148,6 +148,14 @@ Available asset types are open-ended, for example:
 
 ---
 
+## Project Cover
+
+- A root-level `cover.jpg` or `cover.png` is the cover shown on project cards and continue-work cards; the app checks `cover.jpg` first, then `cover.png`.
+- The cover is only workspace preview metadata, not stage state and not an OpenWebGal compiled asset. If the same image is also used in story or UI, register a separate logical asset ID.
+- Use a landscape composition close to 2.2:1, with a clear centered subject and safe edges for important text and characters.
+
+---
+
 ## Workflow
 
 ```

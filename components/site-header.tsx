@@ -28,6 +28,7 @@ export function SiteHeader() {
   const labels = headerLabels[publicLang];
   const homeHeader =
     pathname === "/" || pathname === "/zh" || pathname === "/en";
+  const darkHeader = true;
 
   if (isImmersiveRoute(pathname)) {
     return null;
@@ -42,118 +43,110 @@ export function SiteHeader() {
   const enHref = getLocalizedHref(pathname, "en");
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-40 border-b backdrop-blur transition-colors duration-300",
-        homeHeader
-          ? "home-header-scroll-surface border-white/10 bg-[#07091f]/90 text-white supports-[backdrop-filter]:bg-[#07091f]/75 lg:fixed lg:inset-x-0 lg:border-b lg:border-transparent lg:bg-transparent lg:backdrop-blur-none lg:supports-[backdrop-filter]:bg-transparent"
-          : "bg-background",
-      )}
-    >
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-        <Link
-          href={localizedPath(publicLang)}
-          className={cn(
-            "flex items-center gap-2.5 font-semibold",
-            homeHeader ? "text-white" : "text-foreground",
-          )}
-        >
-          <Image
-            src="/icon-192.png"
-            alt=""
-            width={40}
-            height={40}
-            className="size-8 rounded-lg"
-          />
-          <span>GenStory.cc</span>
-        </Link>
-
-        <nav className="hidden items-center gap-1 sm:flex">
-          <HeaderNavLinks
-            navItems={navItems}
-            pathname={pathname}
-            publicLang={publicLang}
-            homeHeader={homeHeader}
-          />
-          <div className="hidden items-center gap-1.5 lg:flex">
-            <SiteSearch lang={publicLang} homeHeader={homeHeader} />
-          </div>
-          <HeaderExternalLinks labels={labels} homeHeader={homeHeader} />
-          <LanguageSwitcher
-            publicLang={publicLang}
-            zhHref={zhHref}
-            enHref={enHref}
-            labels={labels}
-            setLang={setLang}
-            homeHeader={homeHeader}
-          />
-        </nav>
-
-        <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <PopoverTrigger
-            render={
-              <Button
-                className={cn(
-                  "sm:hidden",
-                  homeHeader && "text-white hover:bg-white/10 hover:text-white",
-                )}
-                variant="ghost"
-                size="icon"
-                aria-label={labels.menu}
-                title={labels.menu}
-              />
-            }
+    <>
+      <header
+        className={cn(
+          "sticky top-0 z-40 border-b backdrop-blur transition-colors duration-300 lg:fixed lg:inset-x-0",
+          homeHeader
+            ? "home-header-scroll-surface border-white/10 bg-[#07091f]/90 text-white supports-[backdrop-filter]:bg-[#07091f]/75 lg:border-b lg:border-transparent lg:bg-transparent lg:backdrop-blur-none lg:supports-[backdrop-filter]:bg-transparent"
+            : "border-white/10 bg-[#07091f] text-white",
+        )}
+      >
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <Link
+            href={localizedPath(publicLang)}
+            className="flex items-center gap-2.5 font-semibold text-white"
           >
-            <MenuIcon />
-          </PopoverTrigger>
-          <PopoverPortal>
-            <PopoverPositioner side="bottom" align="end" sideOffset={8}>
-              <PopoverPopup
-                className={cn(
-                  "w-56",
-                  homeHeader && "border-white/10 bg-[#111336] text-white",
-                )}
-              >
-                <div className="mb-2 border-b border-border/60 pb-2">
-                  <SiteSearch
-                    lang={publicLang}
-                    homeHeader={homeHeader}
-                    className="w-full"
-                  />
-                </div>
-                <nav className="flex flex-col gap-1" aria-label={labels.menu}>
-                  <HeaderNavLinks
-                    navItems={navItems.filter((item) => item.href !== localizedPath(publicLang))}
-                    pathname={pathname}
-                    publicLang={publicLang}
-                    homeHeader={homeHeader}
-                    onNavigate={() => setMobileMenuOpen(false)}
-                    itemClassName="justify-start"
-                  />
-                  <HeaderExternalLinks
-                    labels={labels}
-                    homeHeader={homeHeader}
-                    onNavigate={() => setMobileMenuOpen(false)}
-                    itemClassName="justify-start"
-                    showSourceLabel
-                  />
-                  <LanguageSwitcher
-                    publicLang={publicLang}
-                    zhHref={zhHref}
-                    enHref={enHref}
-                    labels={labels}
-                    setLang={setLang}
-                    homeHeader={homeHeader}
-                    onNavigate={() => setMobileMenuOpen(false)}
-                    className="mt-1"
-                  />
-                </nav>
-              </PopoverPopup>
-            </PopoverPositioner>
-          </PopoverPortal>
-        </Popover>
-      </div>
-    </header>
+            <Image
+              src="/icon-192.png"
+              alt=""
+              width={40}
+              height={40}
+              className="size-8 rounded-lg"
+            />
+            <span>GenStory.cc</span>
+          </Link>
+
+          <nav className="hidden items-center gap-1 sm:flex">
+            <HeaderNavLinks
+              navItems={navItems}
+              pathname={pathname}
+              publicLang={publicLang}
+              homeHeader={darkHeader}
+            />
+            <div className="hidden items-center gap-1.5 lg:flex">
+              <SiteSearch lang={publicLang} homeHeader={darkHeader} />
+            </div>
+            <HeaderExternalLinks labels={labels} homeHeader={darkHeader} />
+            <LanguageSwitcher
+              publicLang={publicLang}
+              zhHref={zhHref}
+              enHref={enHref}
+              labels={labels}
+              setLang={setLang}
+              homeHeader={darkHeader}
+            />
+          </nav>
+
+          <Popover open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <PopoverTrigger
+              render={
+                <Button
+                  className="sm:hidden text-white hover:bg-white/10 hover:text-white"
+                  variant="ghost"
+                  size="icon"
+                  aria-label={labels.menu}
+                  title={labels.menu}
+                />
+              }
+            >
+              <MenuIcon />
+            </PopoverTrigger>
+            <PopoverPortal>
+              <PopoverPositioner side="bottom" align="end" sideOffset={8}>
+                <PopoverPopup className="w-56 border-white/10 bg-[#111336] text-white">
+                  <div className="mb-2 border-b border-white/10 pb-2">
+                    <SiteSearch
+                      lang={publicLang}
+                      homeHeader={darkHeader}
+                      className="w-full"
+                    />
+                  </div>
+                  <nav className="flex flex-col gap-1" aria-label={labels.menu}>
+                    <HeaderNavLinks
+                      navItems={navItems.filter((item) => item.href !== localizedPath(publicLang))}
+                      pathname={pathname}
+                      publicLang={publicLang}
+                      homeHeader={darkHeader}
+                      onNavigate={() => setMobileMenuOpen(false)}
+                      itemClassName="justify-start"
+                    />
+                    <HeaderExternalLinks
+                      labels={labels}
+                      homeHeader={darkHeader}
+                      onNavigate={() => setMobileMenuOpen(false)}
+                      itemClassName="justify-start"
+                      showSourceLabel
+                    />
+                    <LanguageSwitcher
+                      publicLang={publicLang}
+                      zhHref={zhHref}
+                      enHref={enHref}
+                      labels={labels}
+                      setLang={setLang}
+                      homeHeader={darkHeader}
+                      onNavigate={() => setMobileMenuOpen(false)}
+                      className="mt-1"
+                    />
+                  </nav>
+                </PopoverPopup>
+              </PopoverPositioner>
+            </PopoverPortal>
+          </Popover>
+        </div>
+      </header>
+      {!homeHeader ? <div aria-hidden="true" className="hidden h-16 lg:block" /> : null}
+    </>
   );
 }
 

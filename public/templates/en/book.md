@@ -86,6 +86,14 @@ Higher-priority files always override lower-priority context.
 
 ---
 
+## Project Cover
+
+- A root-level `cover.jpg` or `cover.png` is the cover shown on project cards and continue-work cards; the app checks `cover.jpg` first, then `cover.png`.
+- The cover is only workspace preview metadata, not prose illustration or canon asset. If the same image is also used in the story, register it separately in `assets/index.yml` or the relevant chapter files.
+- Use a landscape composition close to 2.2:1, with a clear centered subject and safe edges for important text and characters.
+
+---
+
 ## Workflow
 
 Every writing task follows:

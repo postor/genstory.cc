@@ -239,8 +239,15 @@ export default function PreviewClient() {
       audio.pause();
       audio.currentTime = 0;
     }
-    setPictureBookPlaying(false);
   }, [pictureBookPage, genericPreview?.type]);
+
+  function changePictureBookPage(index: number) {
+    const audio = pictureBookAudioRef.current;
+    audio?.pause();
+    if (audio) audio.currentTime = 0;
+    setPictureBookPlaying(false);
+    setPictureBookPage(index);
+  }
 
   useEffect(() => {
     if (!projectRoot || !genericPreview) {
@@ -441,7 +448,7 @@ export default function PreviewClient() {
           <PictureBookReader
             model={genericPreview}
             pageIndex={pictureBookPage}
-            onPageChange={setPictureBookPage}
+            onPageChange={changePictureBookPage}
             mediaUrls={sectionMediaUrls}
             audioRef={pictureBookAudioRef}
             playing={pictureBookPlaying}

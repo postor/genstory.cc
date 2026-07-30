@@ -1,7 +1,63 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { publicPages } from "./seo.ts";
+import {
+  privatePageMetadata,
+  publicPageMetadata,
+  publicPages,
+} from "./seo.ts";
+
+test("builds localized public metadata in the homepage SEO shape", () => {
+  const metadata = publicPageMetadata({
+    lang: "en",
+    path: "types",
+    title: "Browser Story and Game Creation Tools - GenStory.cc",
+    description: "Explore browser story and game creation workflows.",
+    keywords: ["story creation tool"],
+  });
+
+  assert.deepEqual(metadata.title, {
+    absolute: "Browser Story and Game Creation Tools - GenStory.cc",
+  });
+  assert.equal(metadata.description, "Explore browser story and game creation workflows.");
+  assert.deepEqual(metadata.alternates, {
+    canonical: "https://www.genstory.cc/en/types",
+    languages: {
+      "zh-CN": "https://www.genstory.cc/zh/types",
+      en: "https://www.genstory.cc/en/types",
+      "x-default": "https://www.genstory.cc/zh/types",
+    },
+  });
+  assert.equal(metadata.openGraph?.siteName, "GenStory.cc");
+  assert.equal(metadata.openGraph?.url, "https://www.genstory.cc/en/types");
+  assert.deepEqual(metadata.twitter, {
+    card: "summary_large_image",
+    title: "Browser Story and Game Creation Tools - GenStory.cc",
+    description: "Explore browser story and game creation workflows.",
+    images: ["/og/genstory-og.png"],
+  });
+  assert.deepEqual(metadata.keywords, ["story creation tool"]);
+});
+
+test("builds noindex metadata for private workspace pages", () => {
+  const metadata = privatePageMetadata({
+    path: "projects",
+    title: "我的作品 - GenStory.cc",
+    description: "管理浏览器中的本地创作项目。",
+  });
+
+  assert.deepEqual(metadata.title, { absolute: "我的作品 - GenStory.cc" });
+  assert.equal(metadata.description, "管理浏览器中的本地创作项目。");
+  assert.deepEqual(metadata.robots, { index: false, follow: false });
+  assert.equal(metadata.alternates?.canonical, "https://www.genstory.cc/projects");
+  assert.equal(metadata.openGraph?.url, "https://www.genstory.cc/projects");
+  assert.deepEqual(metadata.twitter, {
+    card: "summary_large_image",
+    title: "我的作品 - GenStory.cc",
+    description: "管理浏览器中的本地创作项目。",
+    images: ["/og/genstory-og.png"],
+  });
+});
 
 test("comic FAQ presents AI image generation as the drawing path", () => {
   const answer = publicPages.comic.faqs.find(

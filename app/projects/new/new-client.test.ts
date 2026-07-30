@@ -19,6 +19,6 @@ test("new project page keeps the visual create layout grounded in shared assets"
   assert.match(source, /\/home\/type-icons\/visual-novel\.png/);
   assert.match(source, /xl:grid-cols-\[minmax\(0,1fr\)_320px\]/);
   assert.match(source, /aria-pressed=\{selected\}/);
-  assert.match(source, /\/home\/assistant-bust\.png/);
+  assert.match(source, /\/home\/fg\.png/);
   assert.doesNotMatch(source, /components\/site-header/);
 });

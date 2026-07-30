@@ -87,13 +87,16 @@ test("picture-book template contains landscape pages, logical image and voice as
   const files = await getProjectTemplate("picture-book", "zh", "小红帽");
   const paths = new Set(files.map((file) => file.path));
   const source = files.find((file) => file.path.endsWith("/page-001/story.md"))?.content ?? "";
-  assert.ok(paths.has("assets/index.yml"));
   assert.ok(paths.has("chapter-001/pages/page-001/story.md"));
-  assert.ok(paths.has("assets/pages/page-001.png"));
-  assert.ok(paths.has("assets/voice/page-001.mp3"));
-  assert.match(source, /image_asset: pb_forest/);
-  assert.match(source, /voice_asset: pb_voice_001/);
-  assert.doesNotMatch(source, /\.png|\.mp3|[A-Za-z]:\\/);
+  assert.ok(paths.has("chapter-001/pages/page-001/page.png"));
+  assert.ok(paths.has("chapter-001/pages/page-001/voice.mp3"));
+  assert.match(source, /text_position: bottom-left/);
+  assert.match(source, /text_stroke: 2px/);
+  assert.equal(files.filter((file) => file.path.includes("chapter-001/pages/page-001/")).length, 4);
+  assert.equal(files.some((file) => file.path.startsWith("assets/")), false);
+  for (const file of files.filter((item) => item.kind === "binary")) {
+    assert.match(file.sourceUrl ?? "", /\/project-templates\/picture-book\//);
+  }
 });
 test("visual novel template contains real OpenWebGal source files", async () => {
   const files = await getProjectTemplate("visual-novel", "zh", "小红帽");

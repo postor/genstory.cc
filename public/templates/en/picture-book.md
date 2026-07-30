@@ -9,24 +9,22 @@ Maintain a continuous read-aloud experience built from landscape art, page text,
 ```text
 /
 ├── meta.md
-├── assets/
-│   ├── index.yml
-│   ├── pages/
-│   └── voice/
 └── chapter-001/
     └── pages/
         └── page-001/
             ├── meta.md
-            └── story.md
+            ├── story.md
+            ├── page.png
+            └── voice.mp3
 ```
 
 ## Page rules
 
-- `story.md` stores story text and logical asset IDs such as `image_asset` and `voice_asset`.
-- `assets/index.yml` is the single source of truth for image and voice files; never hard-code paths in story text.
+- Each page keeps `story.md`, `page.png`, and `voice.mp3` together in one page directory.
+- `story.md` stores story text and overlay settings: `text_position`, `text_size`, `text_color`, `text_stroke`, and `text_width`.
 - Keep page order stable with `order` or page names, and use landscape composition by default.
 - Narration is optional page state; missing narration must never make the written story unreadable.
-- Describe state in source files, not playback functions or rendering commands.
+- Text is page state rendered over the illustration; do not write playback or rendering functions into story files.
 
 ## Project Cover
 

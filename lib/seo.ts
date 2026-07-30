@@ -1,7 +1,10 @@
+import type { Metadata } from "next";
+
 export type PublicLang = "zh" | "en";
 
 export type PublicPageSlug =
   | "book"
+  | "picture-book"
   | "comic"
   | "visual-novel"
   | "interactive-video"
@@ -34,9 +37,9 @@ export const siteMetadata = {
   zhTitle: "GenStory.cc - 本地优先的故事与游戏创作工具",
   enTitle: "GenStory.cc - Local-First Story and Game Creation Tool",
   zhDescription:
-    "GenStory.cc 是一个 100% 开源、本地优先的浏览器创作工具，支持图书、漫画、视觉小说、互动视频和 Phaser 游戏。项目文件和素材默认保存在当前浏览器中，可下载源码 ZIP、恢复备份、选择性同步到自己的云盘，并在支持的类型中预览或导出运行包。",
+    "GenStory.cc 是一个 100% 开源、本地优先的浏览器创作工具，支持图书、绘本、漫画、视觉小说、互动视频和 Phaser 游戏。项目文件和素材默认保存在当前浏览器中，可下载源码 ZIP、恢复备份、选择性同步到自己的云盘，并在支持的类型中预览或导出运行包。",
   enDescription:
-    "GenStory.cc is a 100% open-source, local-first browser workspace for books, comics, visual novels, interactive videos, and Phaser games. Keep project files on this device by default, download source ZIP backups, restore work later, optionally sync to your own cloud drive, and preview or export supported projects.",
+    "GenStory.cc is a 100% open-source, local-first browser workspace for books, picture books, comics, visual novels, interactive videos, and Phaser games. Keep project files on this device by default, download source ZIP backups, restore work later, optionally sync to your own cloud drive, and preview or export supported projects.",
   keywords: [
     "GenStory.cc",
     "100% 开源",
@@ -136,6 +139,7 @@ export const siteTrustSummary: Record<PublicLang, string> = {
 
 export const publicPageSlugs: PublicPageSlug[] = [
   "book",
+  "picture-book",
   "comic",
   "visual-novel",
   "interactive-video",
@@ -145,7 +149,7 @@ export const publicPageSlugs: PublicPageSlug[] = [
 export const siteFeatureList: Record<PublicLang, string[]> = {
   zh: [
     "作品保存在浏览器中",
-    "图书、漫画、视觉小说、互动视频和 Phaser 游戏模板",
+    "图书、绘本、漫画、视觉小说、互动视频和 Phaser 游戏模板",
     "项目备份下载和导入",
     "可选的 Google Drive 同步",
     "视觉小说浏览器预览",
@@ -153,7 +157,7 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
   ],
   en: [
     "Local-first project files",
-    "Book, comic, visual novel, interactive video, and Phaser game templates",
+    "Book, picture book, comic, visual novel, interactive video, and Phaser game templates",
     "Source ZIP backup and import",
     "Optional Google Drive sync",
     "Visual novel preview in the browser",
@@ -168,6 +172,10 @@ export const publicPageKeywords: Record<
   book: {
     zh: ["浏览器写作工具", "小说创作软件", "AI小说生成器", "AI写作工具", "AI插图生成器", "文章插图生成", "开源写作工具", "本地优先写作"],
     en: ["book creation tool", "browser writing app", "AI novel generator", "AI writing tool", "AI illustration generator", "article illustration prompt", "local-first writing", "novel writing software"],
+  },
+  "picture-book": {
+    zh: ["绘本创作工具", "AI绘本生成器", "儿童绘本制作", "绘本故事创作", "浏览器绘本编辑器", "绘本插画生成", "本地优先创作"],
+    en: ["picture book maker", "AI picture book generator", "children's book creator", "picture book creation tool", "browser picture book editor", "storybook illustration prompts", "local-first creative workspace"],
   },
   comic: {
     zh: ["漫画分镜软件", "AI分镜生成器", "AI漫画生成器", "AI角色设计", "角色设定图生成", "漫画创作工具", "浏览器漫画编辑器", "漫画项目管理"],
@@ -374,6 +382,71 @@ export const publicPages: Record<
       },
     ],
   },
+  "picture-book": {
+    title: {
+      zh: "绘本创作工具与 AI 绘本生成器 - GenStory.cc",
+      en: "Picture Book Maker and AI Storybook Workspace - GenStory.cc",
+    },
+    description: {
+      zh: "在浏览器中创作绘本故事，组织分页文字、横版插画、角色和配音，可选 AI 助手辅助故事大纲与绘本插画提示词，并下载项目备份继续编辑。",
+      en: "Create picture book stories in the browser with page text, landscape illustrations, characters, and narration. Optionally use AI for story outlines and illustration prompts, then download a project backup for continued editing.",
+    },
+    kicker: { zh: "绘本创作", en: "Picture book creation" },
+    heading: {
+      zh: "在浏览器中制作有画面和声音的绘本",
+      en: "Create picture books with art, text, and narration in the browser",
+    },
+    intro: {
+      zh: "GenStory.cc 适合把绘本的故事文字、分页节奏、角色设定、横版画面和配音计划放在同一个项目中管理。可选 AI 助手可以辅助大纲、页面文案和插画 prompt；作品文件仍保存在本地浏览器中，可以备份、恢复并继续编辑。",
+      en: "GenStory.cc keeps picture book story text, page pacing, character references, landscape art, and narration plans in one browser project. The optional AI assistant can help with outlines, page copy, and illustration prompts while your files remain local, portable, and editable.",
+    },
+    sections: [
+      {
+        title: { zh: "分页故事结构", en: "Page-based story structure" },
+        body: {
+          zh: "绘本项目按页面组织文字、画面和配音，让故事节奏、阅读顺序和后续修改保持清晰。",
+          en: "Organize text, art, and narration by page so story pacing, reading order, and later edits stay clear.",
+        },
+      },
+      {
+        title: { zh: "插画与角色设定", en: "Illustrations and character references" },
+        body: {
+          zh: "角色、地点和页面画面可以通过资产索引登记逻辑 ID 与生成提示词，方便长期保持视觉一致。",
+          en: "Register characters, locations, and page art with logical asset IDs and prompts to keep visual continuity over time.",
+        },
+      },
+      {
+        title: { zh: "配音与项目备份", en: "Narration and project backups" },
+        body: {
+          zh: "页面可以关联配音和其他媒体附件；项目文件保存在浏览器中，也可以下载 ZIP 备份并在之后重新导入。",
+          en: "Pages can reference narration and other media attachments. Project files stay in the browser and can be downloaded as ZIP backups for later import.",
+        },
+      },
+    ],
+    faqs: [
+      {
+        question: { zh: "可以制作适合儿童阅读的绘本吗？", en: "Can I make picture books for children?" },
+        answer: {
+          zh: "可以。绘本模板适合组织适合亲子阅读的故事、分页文字、横版画面和可选配音；具体画风和内容由你的项目设定与资产决定。",
+          en: "Yes. The picture book template is suited to read-aloud stories, page text, landscape artwork, and optional narration. Your project settings and assets determine the final style and content.",
+        },
+      },
+      {
+        question: { zh: "绘本插画会自动生成吗？", en: "Are picture book illustrations generated automatically?" },
+        answer: {
+          zh: "AI 生图是可选的辅助流程，不会替你默默生成并覆盖作品。你可以先整理页面和插画 prompt，再按需要生成、保存并登记资产。",
+          en: "AI image generation is an optional assisted workflow and does not silently generate or overwrite your work. Plan pages and prompts first, then generate, save, and register assets as needed.",
+        },
+      },
+      {
+        question: { zh: "绘本项目可以导出和恢复吗？", en: "Can picture book projects be exported and restored?" },
+        answer: {
+          zh: "可以。你可以下载项目源码 ZIP 作为备份，之后从项目列表导入并继续编辑；页面和资产会按项目结构恢复。",
+          en: "Yes. Download a source ZIP as a backup, then import it from the project list to continue editing with the project structure and assets restored.",
+        },
+      },
+    ],
+  },
   "interactive-video": {
     title: {
       zh: "互动视频与分支叙事规划工具 - GenStory.cc",
@@ -512,6 +585,115 @@ export const publicPages: Record<
     ],
   },
 };
+
+export function publicPageMetadata({
+  lang,
+  path = "",
+  title,
+  description,
+  keywords = siteKeywords[lang],
+}: {
+  lang: PublicLang;
+  path?: string;
+  title: string;
+  description: string;
+  keywords?: string[];
+}): Metadata {
+  const locale = lang === "zh"
+    ? {
+        contentLanguage: "zh-CN",
+        ogLocale: "zh_CN",
+        alternateOgLocale: "en_US",
+      }
+    : {
+        contentLanguage: "en",
+        ogLocale: "en_US",
+        alternateOgLocale: "zh_CN",
+      };
+  const url = pageUrl(lang, path);
+
+  return {
+    title: { absolute: title },
+    description,
+    keywords,
+    other: {
+      "content-language": locale.contentLanguage,
+    },
+    alternates: {
+      canonical: url,
+      languages: pageLanguageAlternates(path),
+    },
+    openGraph: {
+      type: "website",
+      siteName: siteMetadata.name,
+      title,
+      description,
+      url,
+      locale: locale.ogLocale,
+      alternateLocale: [locale.alternateOgLocale],
+      images: [
+        {
+          url: ogImagePath,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImagePath],
+    },
+  };
+}
+
+export function privatePageMetadata({
+  path,
+  title,
+  description,
+}: {
+  path: string;
+  title: string;
+  description: string;
+}): Metadata {
+  const url = `${siteUrl}/${path.replace(/^\/+/, "")}`;
+
+  return {
+    title: { absolute: title },
+    description,
+    alternates: {
+      canonical: url,
+      languages: {},
+    },
+    openGraph: {
+      type: "website",
+      siteName: siteMetadata.name,
+      title,
+      description,
+      url,
+      images: [
+        {
+          url: ogImagePath,
+          width: 1200,
+          height: 630,
+          alt: title,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImagePath],
+    },
+    robots: {
+      index: false,
+      follow: false,
+    },
+  };
+}
 
 export function localizedPath(lang: PublicLang, path = "") {
   const suffix = path.startsWith("/") ? path : `/${path}`;

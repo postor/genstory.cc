@@ -9,24 +9,22 @@
 ```text
 /
 ├── meta.md
-├── assets/
-│   ├── index.yml
-│   ├── pages/
-│   └── voice/
 └── chapter-001/
     └── pages/
         └── page-001/
             ├── meta.md
-            └── story.md
+            ├── story.md
+            ├── page.png
+            └── voice.mp3
 ```
 
 ## 页面规则
 
-- `story.md` 只保存故事文字和 `image_asset`、`voice_asset` 等逻辑资产 ID。
-- `assets/index.yml` 是图片与配音文件的唯一索引，不要在正文中写硬编码路径。
+- 每页的 `story.md`、`page.png` 和 `voice.mp3` 必须放在同一页目录中。
+- `story.md` 保存故事文字和覆盖层参数：`text_position`、`text_size`、`text_color`、`text_stroke`、`text_width`。
 - 页面用 `order` 或文件名保持稳定顺序，图片默认使用横版构图。
 - 配音是页面状态的一部分；缺少配音时仍应保留可阅读的文字。
-- 只描述背景、文字、角色和声音状态，不把播放函数写入故事文件。
+- 文字是铺在插画上的状态，不把播放函数或渲染函数写入故事文件。
 
 ## 项目封面
 

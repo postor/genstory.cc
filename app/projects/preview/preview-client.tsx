@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Pause, Play, RotateCcw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -453,6 +453,7 @@ export default function PreviewClient() {
             audioRef={pictureBookAudioRef}
             playing={pictureBookPlaying}
             onPlayingChange={setPictureBookPlaying}
+            lang={lang}
           />
         )}
         {status === "ready" && interactiveVideoPreview && (
@@ -524,6 +525,7 @@ function PictureBookReader({
   audioRef,
   playing,
   onPlayingChange,
+  lang,
 }: {
   model: ProjectPreviewModel;
   pageIndex: number;
@@ -532,12 +534,16 @@ function PictureBookReader({
   audioRef: MutableRefObject<HTMLAudioElement | null>;
   playing: boolean;
   onPlayingChange: (playing: boolean) => void;
+  lang: "zh" | "en";
 }) {
   const section = model.sections[pageIndex];
   if (!section) return <div className="flex h-full items-center justify-center text-white/60">No pages yet.</div>;
   const urls = mediaUrls[section.path] ?? {};
   const imageUrl = section.pageImagePath ? urls[section.pageImagePath] : undefined;
   const voiceUrl = section.pageVoicePath ? urls[section.pageVoicePath] : undefined;
+  const overlayPosition = section.textPosition === "top-right" ? "right-6 top-6 text-right" : "bottom-6 left-6 text-left";
+  const overlaySize = section.textSize === "24px" ? "text-2xl" : section.textSize === "36px" ? "text-3xl" : "text-[30px]";
+  const storyText = section.body.replace(/^---[\s\S]*?---\s*/m, "").replace(/^#\s+.+\n?/, "").trim();
   const playVoice = async () => {
     const audio = audioRef.current;
     if (!audio || !voiceUrl) return;
@@ -553,6 +559,9 @@ function PictureBookReader({
       onPlayingChange(false);
     }
   };
+  const voiceLabel = playing
+    ? lang === "zh" ? "停止配音" : "Stop narration"
+    : lang === "zh" ? "播放配音" : "Play narration";
   return (
     <div className="flex min-h-full flex-col items-center justify-center gap-5 bg-[#151311] px-4 py-6 text-white sm:px-8">
       <div className="flex w-full max-w-6xl items-center justify-between text-sm text-white/65">
@@ -560,31 +569,33 @@ function PictureBookReader({
         <span>{pageIndex + 1} / {model.sections.length}</span>
       </div>
       <article className="w-full max-w-6xl overflow-hidden border border-white/10 bg-[#fbf6e9] text-[#2d241d] shadow-2xl md:grid md:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
-        <div className="flex aspect-[16/9] items-center justify-center bg-white">
+        <div className="relative flex aspect-[16/9] items-center justify-center bg-white">
           {imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={imageUrl} alt={section.title} className="h-full w-full object-cover" />
-          ) : <div className="text-sm text-muted-foreground">Illustration unavailable</div>}
+          ) : <div className="px-6 text-center text-sm text-muted-foreground">{lang === "zh" ? "插画暂不可用，请在本页目录中检查 page.png" : "Illustration unavailable. Check page.png in this page folder."}</div>}
+          {imageUrl && <div className={`absolute max-w-[42%] font-serif font-semibold leading-relaxed text-[#fffaf0] [text-shadow:0_2px_0_#3b2418,2px_0_0_#3b2418,-2px_0_0_#3b2418,0_-2px_0_#3b2418] ${overlayPosition} ${overlaySize}`}>{storyText}{voiceUrl && <button type="button" onClick={playVoice} aria-label={voiceLabel} className="ml-2 inline-flex size-7 translate-y-1 items-center justify-center rounded-full border border-white/35 bg-white/20 text-white/80 transition hover:bg-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70">{playing ? <InlineStopIcon /> : <InlinePlayIcon />}</button>}</div>}
         </div>
         <div className="flex min-h-56 flex-col justify-between gap-5 p-6 sm:p-8">
           <div>
             <p className="mb-2 text-xs uppercase tracking-[0.22em] text-[#876b52]">{section.title}</p>
-            <div className="prose prose-sm max-w-none text-[#2d241d]">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.body.replace(/^---[\s\S]*?---\s*/m, "")}</ReactMarkdown>
-            </div>
+            <p className="text-sm leading-7 text-[#2d241d]">
+              {storyText}
+              {voiceUrl && (
+                <>
+                  <audio ref={audioRef} src={voiceUrl} onEnded={() => onPlayingChange(false)} />
+                  <button
+                    type="button"
+                    onClick={playVoice}
+                    aria-label={voiceLabel}
+                    className="ml-2 inline-flex size-7 translate-y-1 items-center justify-center rounded-full border border-[#3b2418]/25 bg-[#3b2418]/10 text-[#3b2418]/65 transition hover:bg-[#3b2418]/15 hover:text-[#3b2418] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#3b2418]/40"
+                  >
+                    {playing ? <InlineStopIcon /> : <InlinePlayIcon />}
+                  </button>
+                </>
+              )}
+            </p>
           </div>
-          {voiceUrl && (
-            <div className="flex items-center gap-2">
-              <audio ref={audioRef} src={voiceUrl} onEnded={() => onPlayingChange(false)} />
-              <Button size="sm" onClick={playVoice} variant="outline" className="border-[#cbb99b] text-[#2d241d]">
-                {playing ? <Pause className="mr-2 size-4" /> : <Play className="mr-2 size-4" />}
-                {playing ? "Pause narration" : "Play narration"}
-              </Button>
-              <Button size="icon" variant="ghost" onClick={() => { if (audioRef.current) { audioRef.current.currentTime = 0; void audioRef.current.play(); onPlayingChange(true); } }} aria-label="Replay narration">
-                <RotateCcw className="size-4" />
-              </Button>
-            </div>
-          )}
         </div>
       </article>
       <div className="flex items-center gap-3">
@@ -595,5 +606,21 @@ function PictureBookReader({
         <Button size="icon" variant="outline" disabled={pageIndex === model.sections.length - 1} onClick={() => onPageChange(pageIndex + 1)} aria-label="Next page"><ChevronRight className="size-5" /></Button>
       </div>
     </div>
+  );
+}
+
+function InlinePlayIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-current opacity-75">
+      <path d="M9 7.4v9.2c0 .7.8 1.1 1.4.7l6.9-4.6c.5-.3.5-1.1 0-1.4l-6.9-4.6c-.6-.4-1.4 0-1.4.7Z" />
+    </svg>
+  );
+}
+
+function InlineStopIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4 fill-current opacity-75">
+      <rect x="7" y="7" width="10" height="10" rx="2" />
+    </svg>
   );
 }

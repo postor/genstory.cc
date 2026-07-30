@@ -1,18 +1,14 @@
 import type { Metadata } from "next";
 
 import SettingsClient from "./settings-client";
+import { privatePageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: {
-    absolute: "Settings - GenStory.cc",
-  },
+export const metadata: Metadata = privatePageMetadata({
+  path: "settings",
+  title: "设置 - GenStory.cc",
   description:
-    "Configure browser-only cloud sync and OpenAI-compatible API settings for GenStory.cc.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
+    "配置浏览器本地存储、云盘同步和 OpenAI 兼容 API 设置。",
+});
 
 export default function SettingsPage() {
   return <SettingsClient />;

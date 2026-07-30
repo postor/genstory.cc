@@ -11,6 +11,7 @@ import { contentTypes, type ContentTypeId } from "@/lib/content-types";
 import { openProjectDirectory, readFile } from "@/lib/file-system/browser";
 import { useLang } from "@/lib/i18n";
 import { listProjects, type Project } from "@/lib/local-projects";
+import { localizedPath } from "@/lib/seo";
 
 const sampleWorks: Array<{
   title: Record<"zh" | "en", string>;
@@ -138,7 +139,7 @@ export function LocalProjectSummary() {
             image: work.image,
             isTypeImage: false,
             updated: work.updated[lang],
-            href: `/projects/new?template=${work.template}`,
+            href: localizedPath(lang, work.template),
           }))
         : projects.map((project) => {
             const coverImage = projectCoverImages[project.id];

@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "npm run sync-phaser && npm run sync-webgal && next dev",
     "build": "npm run sync-phaser && npm run sync-webgal && next build",
+    "test": "node --experimental-strip-types --test",
     "start": "next start",
     "lint": "eslint",
     "benchmark:book-docx-mammoth": "node --experimental-strip-types scripts/benchmark-book-docx-mammoth.mjs",

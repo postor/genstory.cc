@@ -172,7 +172,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
               <Button
                 render={<Link href="/projects/new" />}
                 size="lg"
-                className="min-h-11 border-0 bg-[#8754ff] px-5 text-white shadow-[0_12px_30px_rgba(95,44,255,0.35)] hover:bg-[#7642ef]"
+                className="min-h-11 border-0 bg-[#8754ff] px-5 text-white shadow-[0_12px_30px_rgba(95,44,255,0.35)] hover:bg-[#7642ef] lg:!pl-4"
               >
                 <Sparkles data-icon="inline-start" />
                 {t.ctaCreate}
@@ -195,7 +195,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
                   return (
                     <Link
                       key={type.id}
-                      href={`/projects/new?template=${type.id}`}
+                      href={localizedPath(lang, type.id)}
                       className="inline-flex items-center gap-1.5 transition-colors hover:text-white"
                     >
                       <Icon className="size-4 text-[#bd9aff]" />
@@ -235,7 +235,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
                   {contentTypes.map((type) => (
                     <CreationTypeCard key={type.id} lang={lang} type={type} />
                   ))}
@@ -379,7 +379,7 @@ function CreationTypeCard({
 }) {
   return (
     <Card className="group h-full border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-transform hover:-translate-y-1 hover:border-[#cfc0ff] hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
-      <Link href={`/projects/new?template=${type.id}`} className="flex h-full flex-col">
+      <Link href={localizedPath(lang, type.id)} className="flex h-full flex-col">
         <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-1">
           <div className="relative flex h-20 w-full items-center justify-center overflow-hidden sm:h-24">
             <Image

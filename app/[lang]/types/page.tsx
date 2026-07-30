@@ -4,9 +4,8 @@ import { PublicTypesPage } from "@/components/public-types-page";
 import { languageInfo } from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
-  ogImagePath,
-  pageLanguageAlternates,
   pageUrl,
+  publicPageMetadata,
   publicLanguages,
   publicPageSlugs,
   publicPages,
@@ -41,46 +40,15 @@ function typesMetadata(lang: PublicLang) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lang = normalizePublicLang((await params).lang);
-  const locale = languageInfo[lang];
   const metadata = typesMetadata(lang);
 
-  return {
-    title: {
-      absolute: metadata.title,
-    },
+  return publicPageMetadata({
+    lang,
+    path: "types",
+    title: metadata.title,
     description: metadata.description,
     keywords: siteKeywords[lang],
-    other: {
-      "content-language": locale.contentLanguage,
-    },
-    alternates: {
-      canonical: pageUrl(lang, "types"),
-      languages: pageLanguageAlternates("types"),
-    },
-    openGraph: {
-      type: "website",
-      siteName: siteMetadata.name,
-      title: metadata.title,
-      description: metadata.description,
-      url: pageUrl(lang, "types"),
-      locale: locale.ogLocale,
-      alternateLocale: [locale.alternateOgLocale],
-      images: [
-        {
-          url: ogImagePath,
-          width: 1200,
-          height: 630,
-          alt: metadata.title,
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: metadata.title,
-      description: metadata.description,
-      images: [ogImagePath],
-    },
-  };
+  });
 }
 
 export default async function PublicTypes({ params }: Props) {

@@ -5,9 +5,8 @@ import { PublicTopicPage } from "@/components/public-topic-page";
 import { languageInfo, publicTopicChrome } from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
-  ogImagePath,
-  pageLanguageAlternates,
   pageUrl,
+  publicPageMetadata,
   publicPageKeywords,
   publicLanguages,
   publicPageSlugs,
@@ -38,7 +37,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { lang: rawLang, slug: rawSlug } = await params;
   const lang = normalizePublicLang(rawLang);
   if (!isPublicPageSlug(rawSlug)) notFound();
-  const locale = languageInfo[lang];
   const page = publicPages[rawSlug];
   const path = rawSlug;
   const description = `${page.description[lang]} ${siteTrustSummary[lang]}`;
@@ -46,42 +44,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     ...new Set([...publicPageKeywords[rawSlug][lang], ...sharedPageKeywords[lang]]),
   ];
 
-  return {
-    title: {
-      absolute: page.title[lang],
-    },
+  return publicPageMetadata({
+    lang,
+    path,
+    title: page.title[lang],
     description,
     keywords,
-    other: {
-      "content-language": locale.contentLanguage,
-    },
-    alternates: {
-      canonical: pageUrl(lang, path),
-      languages: pageLanguageAlternates(path),
-    },
-    openGraph: {
-      type: "website",
-      title: page.title[lang],
-      description,
-      url: pageUrl(lang, path),
-      locale: locale.ogLocale,
-      alternateLocale: [locale.alternateOgLocale],
-      images: [
-        {
-          url: ogImagePath,
-          width: 1200,
-          height: 630,
-          alt: page.title[lang],
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: page.title[lang],
-      description,
-      images: [ogImagePath],
-    },
-  };
+  });
 }
 
 export default async function PublicTopic({ params }: Props) {

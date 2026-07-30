@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import { PublicHomePage } from "@/components/public-home-page";
 import { publicHomeCopy } from "@/lib/platform-i18n";
 import {
-  pageLanguageAlternates,
   pageUrl,
+  publicPageMetadata,
   siteKeywords,
   siteFeatureList,
   siteMetadata,
@@ -12,17 +12,12 @@ import {
   siteUrl,
 } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: {
-    absolute: siteMetadata.zhTitle,
-  },
+export const metadata: Metadata = publicPageMetadata({
+  lang: "zh",
+  title: siteMetadata.zhTitle,
   description: siteMetadata.zhDescription,
   keywords: siteKeywords.zh,
-  alternates: {
-    canonical: pageUrl("zh"),
-    languages: pageLanguageAlternates(),
-  },
-};
+});
 
 export default function Home() {
   const homeCopy = publicHomeCopy.zh;

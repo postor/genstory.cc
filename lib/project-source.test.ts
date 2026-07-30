@@ -140,17 +140,17 @@ test("legacy comic script files still produce preview sections", async () => {
 test("picture-book preview resolves logical image and voice assets", async () => {
   const root = fakeRoot({
     "meta.md": "---\ntitle: \"小红帽绘本\"\ntype: picture-book\n---\n",
-    "assets/index.yml": "assets:\n  - id: page_image\n    type: Image\n    file: assets/pages/page-001.png\n  - id: page_voice\n    type: Voice\n    file: assets/voice/page-001.mp3\n",
     "chapter-001/pages/page-001/meta.md": "---\ntitle: \"森林小径\"\n---\n",
-    "chapter-001/pages/page-001/story.md": "---\ntitle: \"森林小径\"\nimage_asset: page_image\nvoice_asset: page_voice\nlayout: landscape\n---\n\n# 森林小径\n\n小红帽出发了。",
-    "assets/pages/page-001.png": "fake-png",
-    "assets/voice/page-001.mp3": "fake-mp3",
+    "chapter-001/pages/page-001/story.md": "---\ntitle: \"森林小径\"\ntext_position: bottom-left\ntext_size: 30px\nlayout: landscape\n---\n\n小红帽出发了。",
+    "chapter-001/pages/page-001/page.png": "fake-png",
+    "chapter-001/pages/page-001/voice.mp3": "fake-mp3",
   });
 
   const preview = await readProjectPreview(root, "picture-book");
 
   assert.equal(preview.sections.length, 1);
-  assert.equal(preview.sections[0].pageImagePath, "assets/pages/page-001.png");
-  assert.equal(preview.sections[0].pageVoicePath, "assets/voice/page-001.mp3");
+  assert.equal(preview.sections[0].pageImagePath, "chapter-001/pages/page-001/page.png");
+  assert.equal(preview.sections[0].pageVoicePath, "chapter-001/pages/page-001/voice.mp3");
   assert.equal(preview.sections[0].layout, "landscape");
+  assert.equal(preview.sections[0].textPosition, "bottom-left");
 });

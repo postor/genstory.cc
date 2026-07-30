@@ -176,6 +176,36 @@ export const publicPagePromptExamples: Record<
       },
     },
   ],
+  "picture-book": [
+    {
+      useCase: {
+        zh: "把一个童话想法拆成绘本页面",
+        en: "Turn a story idea into picture book pages",
+      },
+      outcome: {
+        zh: "页面节奏、旁白文字、画面目标和适合亲子阅读的结尾",
+        en: "Page pacing, narration, visual goals, and a read-aloud friendly ending",
+      },
+      prompt: {
+        zh: "请把“怕黑的小狐狸在月光下学会辨认森林里的声音”扩展成 12 页绘本大纲。每页给出适合朗读的短文、画面主体、情绪、场景连续性和需要登记的角色/地点资产逻辑 ID。不要生成过长段落，也不要改变小狐狸勇敢但谨慎的性格。",
+        en: "Expand the premise 'a fox who is afraid of the dark learns to recognize the forest's sounds under moonlight' into a 12-page picture book outline. For each page, provide short read-aloud text, the visual subject, mood, scene continuity, and logical IDs for character or location assets. Keep the prose concise and preserve the fox's brave but cautious personality.",
+      },
+    },
+    {
+      useCase: {
+        zh: "为每一页生成一致的插画 prompt",
+        en: "Create consistent illustration prompts for each page",
+      },
+      outcome: {
+        zh: "角色外观、镜头构图、光线变化和可复用的页面插画提示词",
+        en: "Character continuity, composition, lighting changes, and reusable page illustration prompts",
+      },
+      prompt: {
+        zh: "请读取当前绘本项目的 meta.md、角色设定和页面文字，为每一页生成一条插画 prompt。固定主角的年龄、毛色、服装和体型，固定森林地点的视觉特征；每条 prompt 都要包含主体、构图、镜头距离、光线、情绪、画风和不要出现的文字，不要改写页面正文。",
+        en: "Read the current picture book project's meta.md, character references, and page text, then write one illustration prompt per page. Keep the protagonist's age, fur color, clothing, and proportions consistent, and keep the forest's visual identity stable. Each prompt must include subject, composition, camera distance, lighting, mood, art style, and text exclusions without rewriting the page text.",
+      },
+    },
+  ],
   comic: [
     {
       useCase: {

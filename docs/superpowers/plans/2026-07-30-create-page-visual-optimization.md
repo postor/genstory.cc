@@ -55,7 +55,7 @@ Expected: 现有页面仍可通过类型检查；新增映射中的 key 必须�
 
 - [ ] **Step 3: 加入 CC 助手说明区**
 
-在桌面右栏加入一个 `Card`，使用已有 `/home/assistant-bust.png` 和静态说明行；卡片只是辅助视觉，不改变创建流程，也不添加不可实现的按钮。
+在桌面右栏加入一个 `Card`，使用已有 `/home/fg.png` 和静态说明行；卡片只是辅助视觉，不改变创建流程，也不添加不可实现的按钮。
 
 ### Task 3: 实现移动端选中大卡与紧凑行
 
@@ -91,7 +91,7 @@ Expected: 现有页面仍可通过类型检查；新增映射中的 key 必须�
 assert.match(source, /home\/type-icons/);
 assert.match(source, /xl:grid-cols-\[minmax\(0,1fr\)_320px\]/);
 assert.match(source, /aria-pressed/);
-assert.match(source, /assistant-bust/);
+  assert.match(source, /home\/fg\.png/);
 ```
 
 - [ ] **Step 2: 运行创建页测试**

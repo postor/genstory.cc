@@ -164,7 +164,7 @@ export default function NewClient() {
   const assistantNote = template ? assistantNotes[template] : undefined;
 
   return (
-    <main className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[linear-gradient(180deg,#f7f3ff_0%,#ffffff_38%,#fbfaff_100%)] font-[var(--font-geist-sans)] text-[#121331]">
+    <main className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[linear-gradient(180deg,rgba(247,243,255,0.84)_0%,rgba(255,255,255,0.82)_38%,rgba(251,250,255,0.84)_100%)] font-[var(--font-geist-sans)] text-[#121331]">
       <Image
         src="/home/pc-banner-bg.png"
         alt=""
@@ -388,27 +388,25 @@ function AssistantCard({
 }) {
   return (
     <Card className="overflow-hidden border-[#e8e3ff] bg-white/85 shadow-[0_18px_45px_rgba(88,67,166,0.1)]">
-      <div className="relative overflow-hidden bg-[linear-gradient(145deg,#efe8ff_0%,#ffffff_82%)] px-5 pb-3 pt-5 sm:px-6">
+      <div className="relative h-36 overflow-hidden bg-[linear-gradient(145deg,#efe8ff_0%,#ffffff_82%)] sm:h-44">
         <div className="absolute -right-8 -top-10 size-32 rounded-full bg-[#d7c7ff]/45 blur-2xl" />
-        <div className="relative flex items-center gap-3">
-          <Image
-            src="/home/assistant-bust.png"
-            alt=""
-            width={110}
-            height={116}
-            className="size-20 shrink-0 object-contain sm:size-24"
-          />
-          <div>
-            <p className="text-sm font-semibold text-[#7653db]">
-              {lang === "zh" ? "CC 创作助手" : "CC creative assistant"}
-            </p>
-            <h2 className="mt-1 text-lg font-bold leading-6 text-[#252047]">
-              {note?.title ?? (lang === "zh" ? "从一个想法开始" : "Start with an idea")}
-            </h2>
-          </div>
-        </div>
+        <Image
+          src="/home/fg.png"
+          alt=""
+          fill
+          sizes="320px"
+          className="relative object-contain object-bottom"
+        />
       </div>
       <CardContent className="space-y-5 p-5 sm:p-6">
+        <div>
+          <p className="text-sm font-semibold text-[#7653db]">
+            {lang === "zh" ? "CC 创作助手" : "CC creative assistant"}
+          </p>
+          <h2 className="mt-1 text-lg font-bold leading-6 text-[#252047]">
+            {note?.title ?? (lang === "zh" ? "从一个想法开始" : "Start with an idea")}
+          </h2>
+        </div>
         <div className="rounded-xl border border-[#e8e0ff] bg-[#f8f5ff] px-4 py-3">
           <p className="text-sm leading-6 text-[#6d5d9b]">
             {note?.body ??

@@ -302,35 +302,28 @@ function pictureBookTemplate(title: string, lang: Lang, agents: string): Project
         "Before dusk, Little Red reaches the cottage. A warm light shines inside, and grandmother is waiting for her.",
       ];
   const imageAssets = [
-    ["pb_forest", "assets/pages/page-001.png", "/project-templates/comic/assets/pages/page-001.png"],
-    ["pb_flowers", "assets/pages/page-002.png", "/project-templates/comic/assets/pages/page-002.png"],
-    ["pb_cottage", "assets/pages/page-003.png", "/project-templates/comic/assets/pages/page-003.png"],
+    ["page-001", "/project-templates/picture-book/assets/pages/page-001.png"],
+    ["page-002", "/project-templates/picture-book/assets/pages/page-002.png"],
+    ["page-003", "/project-templates/picture-book/assets/pages/page-003.png"],
   ] as const;
   const voiceAssets = [
-    ["pb_voice_001", "assets/voice/page-001.mp3", "/project-templates/interactive-video/assets/audio/voice_red.mp3"],
-    ["pb_voice_002", "assets/voice/page-002.mp3", "/project-templates/interactive-video/assets/audio/voice_wolf.mp3"],
-    ["pb_voice_003", "assets/voice/page-003.mp3", "/project-templates/interactive-video/assets/audio/voice_grandma.mp3"],
+    "/project-templates/picture-book/assets/voice/page-001.mp3",
+    "/project-templates/picture-book/assets/voice/page-002.mp3",
+    "/project-templates/picture-book/assets/voice/page-003.mp3",
   ] as const;
   const files: ProjectTemplateFile[] = [
     text("AGENTS.md", agents),
     text("meta.md", meta("picture-book", title)),
     text("chapter-001/meta.md", `---\ntitle: ${JSON.stringify(lang === "zh" ? "小红帽 · 森林里的故事" : "Little Red Riding Hood · A Forest Story")}\n---\n\n# ${lang === "zh" ? "绘本章节" : "Picture-book chapter"}\n`),
-    text("assets/index.yml", [
-      "# 绘本资产索引（Picture-book Asset Index）", "assets:",
-      ...imageAssets.flatMap(([id, file]) => [`  - id: ${id}`, "    type: Image", `    file: ${JSON.stringify(file)}`, "    layout: landscape"]),
-      ...voiceAssets.flatMap(([id, file]) => [`  - id: ${id}`, "    type: Voice", `    file: ${JSON.stringify(file)}`, `    language: ${lang}`]),
-      "",
-    ].join("\n")),
     text("references/timeline.md", `# Timeline\n\n- chapter-001: ${lang === "zh" ? "小红帽从家出发，穿过森林，抵达外婆的小屋。" : "Little Red sets out, crosses the forest, and reaches grandmother's cottage."}\n`),
   ];
   imageAssets.forEach((asset, index) => {
-    const id = asset[0];
-    const sourceUrl = asset[2];
+    const sourceUrl = asset[1];
     const page = String(index + 1).padStart(3, "0");
     files.push(text(`chapter-001/pages/page-${page}/meta.md`, `---\ntitle: ${JSON.stringify(labels[index])}\norder: ${index + 1}\n---\n`));
-    files.push(text(`chapter-001/pages/page-${page}/story.md`, `---\ntitle: ${JSON.stringify(labels[index])}\nimage_asset: ${id}\nvoice_asset: ${voiceAssets[index][0]}\nlayout: landscape\n---\n\n# ${labels[index]}\n\n${stories[index]}\n`));
-    files.push({ path: `assets/pages/page-${page}.png`, kind: "binary", sourceUrl });
-    files.push({ path: `assets/voice/page-${page}.mp3`, kind: "binary", sourceUrl: voiceAssets[index][2] });
+    files.push(text(`chapter-001/pages/page-${page}/story.md`, `---\ntitle: ${JSON.stringify(labels[index])}\nlayout: landscape\ntext_position: ${index === 1 ? "top-right" : "bottom-left"}\ntext_size: 30px\ntext_color: #fffaf0\ntext_stroke: 2px #3b2418\ntext_width: 42%\n---\n\n${stories[index]}\n`));
+    files.push({ path: `chapter-001/pages/page-${page}/page.png`, kind: "binary", sourceUrl });
+    files.push({ path: `chapter-001/pages/page-${page}/voice.mp3`, kind: "binary", sourceUrl: voiceAssets[index] });
   });
   return files;
 }

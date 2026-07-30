@@ -17,7 +17,10 @@ import {
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { localizedPath, type PublicLang } from "@/lib/seo";
-import { isImmersiveRoute } from "@/components/site-layout-routes";
+import {
+  isHomeRoute,
+  isImmersiveRoute,
+} from "@/components/site-layout-routes";
 import { SiteSearch } from "@/components/site-search";
 
 export function SiteHeader() {
@@ -26,8 +29,7 @@ export function SiteHeader() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const publicLang = getPublicLang(pathname) ?? lang;
   const labels = headerLabels[publicLang];
-  const homeHeader =
-    pathname === "/" || pathname === "/zh" || pathname === "/en";
+  const homeHeader = isHomeRoute(pathname);
   const darkHeader = true;
 
   if (isImmersiveRoute(pathname)) {

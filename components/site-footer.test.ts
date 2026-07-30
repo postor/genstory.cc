@@ -2,13 +2,26 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-import { isImmersiveRoute } from "./site-layout-routes.ts";
+import {
+  isImmersiveRoute,
+  shouldShowSiteContentBackground,
+} from "./site-layout-routes.ts";
 
 test("site chrome is hidden on immersive routes only", () => {
   assert.equal(isImmersiveRoute("/projects/editor"), true);
   assert.equal(isImmersiveRoute("/projects/preview/example"), true);
   assert.equal(isImmersiveRoute("/projects"), false);
   assert.equal(isImmersiveRoute("/settings"), false);
+});
+
+test("site content background is limited to non-home, non-immersive routes", () => {
+  assert.equal(shouldShowSiteContentBackground("/"), false);
+  assert.equal(shouldShowSiteContentBackground("/zh"), false);
+  assert.equal(shouldShowSiteContentBackground("/projects/editor"), false);
+  assert.equal(shouldShowSiteContentBackground("/projects/preview/example"), false);
+  assert.equal(shouldShowSiteContentBackground("/projects"), true);
+  assert.equal(shouldShowSiteContentBackground("/settings"), true);
+  assert.equal(shouldShowSiteContentBackground("/zh/types"), true);
 });
 
 test("site footer renders the requested copyright notice", async () => {
@@ -23,7 +36,7 @@ test("site footer renders the requested copyright notice", async () => {
 test("root layout mounts the footer after the page content", async () => {
   const source = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
 
-  const contentIndex = source.indexOf('<div className="flex-1">{children}</div>');
+  const contentIndex = source.indexOf("<SiteContent>{children}</SiteContent>");
   const footerIndex = source.indexOf("<SiteFooter />");
 
   assert.notEqual(contentIndex, -1);

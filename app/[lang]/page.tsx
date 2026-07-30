@@ -8,9 +8,8 @@ import {
 } from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
-  ogImagePath,
-  pageLanguageAlternates,
   pageUrl,
+  publicPageMetadata,
   publicLanguages,
   siteKeywords,
   siteFeatureList,
@@ -31,46 +30,14 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lang = normalizePublicLang((await params).lang);
-  const locale = languageInfo[lang];
   const metadata = localizedSiteMetadata[lang];
 
-  return {
-    title: {
-      absolute: metadata.title,
-    },
+  return publicPageMetadata({
+    lang,
+    title: metadata.title,
     description: metadata.description,
     keywords: siteKeywords[lang],
-    other: {
-      "content-language": locale.contentLanguage,
-    },
-    alternates: {
-      canonical: pageUrl(lang),
-      languages: pageLanguageAlternates(),
-    },
-    openGraph: {
-      type: "website",
-      siteName: siteMetadata.name,
-      title: metadata.title,
-      description: metadata.description,
-      url: pageUrl(lang),
-      locale: locale.ogLocale,
-      alternateLocale: [locale.alternateOgLocale],
-      images: [
-        {
-          url: ogImagePath,
-          width: 1200,
-          height: 630,
-          alt: "GenStory.cc local-first story creation workspace",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: metadata.title,
-      description: metadata.description,
-      images: [ogImagePath],
-    },
-  };
+  });
 }
 
 export default async function LocalizedHome({ params }: Props) {

@@ -2,15 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
-  CheckCircle2,
   Feather,
-  FolderOpen,
   Loader2,
-  Plus,
   Sparkles,
 } from "lucide-react";
 
@@ -22,6 +19,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InteractionModal } from "@/components/ui/interaction-modal";
@@ -39,7 +44,6 @@ import { nextDefaultProjectTitle } from "@/lib/project-naming";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { trackProjectCreated } from "@/lib/analytics";
-import { cn } from "@/lib/utils";
 
 const typeImages: Record<ContentTypeId, string> = {
   book: "/home/type-icons/book.png",
@@ -80,14 +84,8 @@ const assistantNotes: Record<ContentTypeId, { title: string; body: string }> = {
 export default function NewClient() {
   const { lang, t } = useLang();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const prefill = searchParams.get("template");
-  const [template, setTemplate] = useState<ContentTypeId | "">(
-    prefill && contentTypes.some((c) => c.id === prefill)
-      ? (prefill as ContentTypeId)
-      : (contentTypes[0]?.id ?? "")
-  );
+  const [createTemplate, setCreateTemplate] = useState<ContentTypeId | null>(null);
   const [title, setTitle] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -101,13 +99,40 @@ export default function NewClient() {
   }, [t]);
 
   useEffect(() => {
-    void listProjects().then(setProjects).catch(() => setProjects([]));
+    let cancelled = false;
+
+    void listProjects()
+      .then((items) => {
+        if (cancelled) return;
+        setProjects(items);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setProjects([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const defaultTitle = template ? nextDefaultProjectTitle(template, lang, projects) : "";
+  const createType = createTemplate
+    ? contentTypes.find((c) => c.id === createTemplate)
+    : undefined;
+  const createNote = createTemplate ? assistantNotes[createTemplate] : undefined;
+
+  function openCreateDialog(nextTemplate: ContentTypeId) {
+    setCreateTemplate(nextTemplate);
+    setTitle(nextDefaultProjectTitle(nextTemplate, lang, projects));
+  }
+
+  function closeCreateDialog() {
+    setCreateTemplate(null);
+    setTitle("");
+  }
 
   async function handleSubmit() {
-    if (!template) {
+    if (!createTemplate) {
       setNotice({
         title: t("create.noTemplateTitle"),
         description: t("create.noTemplateDescription"),
@@ -122,17 +147,17 @@ export default function NewClient() {
       const now = Date.now();
       const id = crypto.randomUUID();
       const latestProjects = await listProjects().catch(() => projects);
-      const projectTitle =
-        title.trim() || nextDefaultProjectTitle(template, lang, latestProjects);
+      const defaultTitle = nextDefaultProjectTitle(createTemplate, lang, latestProjects);
+      const projectTitle = title.trim() || defaultTitle;
       await initializeProjectDirectory(
-        template,
+        createTemplate,
         id,
         lang,
         projectTitle
       );
       const project: Project = {
         id,
-        template,
+        template: createTemplate,
         title: projectTitle,
         lang,
         createdAt: now,
@@ -140,14 +165,15 @@ export default function NewClient() {
       };
       await saveProject(project);
       trackProjectCreated({
-        template,
+        template: createTemplate,
         lang,
-        customTitle: title.trim().length > 0,
+        customTitle: projectTitle !== defaultTitle,
       });
       router.push(`/projects/editor?id=${id}`);
     } catch (e) {
       setSubmitting(false);
       if (e instanceof DOMException && e.name === "AbortError") return;
+      closeCreateDialog();
       setNotice({
         title: t("create.createFailedTitle"),
         description: t("create.createFailedDescription", {
@@ -159,9 +185,6 @@ export default function NewClient() {
       });
     }
   }
-
-  const selectedType = template ? contentTypes.find((c) => c.id === template) : undefined;
-  const assistantNote = template ? assistantNotes[template] : undefined;
 
   return (
     <main className="relative min-h-[calc(100vh-4rem)] overflow-hidden bg-[linear-gradient(180deg,rgba(247,243,255,0.84)_0%,rgba(255,255,255,0.82)_38%,rgba(251,250,255,0.84)_100%)] font-[var(--font-geist-sans)] text-[#121331]">
@@ -212,156 +235,43 @@ export default function NewClient() {
                 </Label>
                 <p className="mt-1 text-sm text-[#8b88a4]">
                   {lang === "zh"
-                    ? "选择一个适合你当前创作方式的类型"
-                    : "Choose the format that fits your idea."}
+                    ? "选择一种类型后，为作品命名并开始编辑"
+                    : "Choose a format, name it, and start editing."}
                 </p>
               </div>
               <Sparkles aria-hidden="true" className="size-5 text-[#9a75f5]" />
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {contentTypes.map((c) => {
-                const selected = template === c.id;
-                return (
-                  <button
-                    key={c.id}
-                    type="button"
-                    aria-pressed={selected}
-                    onClick={() => setTemplate(c.id)}
-                    className="group min-w-0 text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#9f7aff]/35"
-                  >
-                    <Card
-                      className={cn(
-                        "h-full overflow-hidden border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-all duration-300 ease-out group-hover:-translate-y-0.5 group-hover:border-[#cfc0ff] group-hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]",
-                        selected &&
-                          "border-[#9f7aff] bg-[#f8f5ff] shadow-[0_12px_28px_rgba(122,81,220,0.18)] ring-2 ring-[#9f7aff]/25"
-                      )}
-                    >
-                      <div className="hidden sm:block">
-                        <CardHeader className="gap-0 p-3 pb-1 sm:p-4 sm:pb-1">
-                          <div className="relative flex h-24 w-full items-center justify-center overflow-hidden rounded-lg bg-[#f3efff]">
-                            <Image
-                              src={typeImages[c.id]}
-                              alt=""
-                              fill
-                              sizes="(max-width: 1024px) 30vw, 220px"
-                              className="object-contain object-center transition-transform duration-300 group-hover:scale-[1.03]"
-                            />
-                            <span
-                              className={cn(
-                                "absolute right-2 top-2 grid size-7 place-items-center rounded-full bg-white/80 text-[#ab9fc9] shadow-sm transition-colors",
-                                selected && "bg-[#8754ff] text-white"
-                              )}
-                            >
-                              <CheckCircle2 className="size-4" aria-hidden="true" />
-                            </span>
-                          </div>
-                          <CardTitle className="mt-3 text-base text-[#242044]">
-                            {c.label[lang]}
-                          </CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-1">
-                          <CardDescription className="text-xs leading-5 text-[#7a7897]">
-                            {c.description[lang]}
-                          </CardDescription>
-                        </CardContent>
-                      </div>
-
-                      <div className="flex min-h-20 items-center gap-3 px-3 py-2.5 sm:hidden">
-                        <div
-                          className={cn(
-                            "relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[#f3efff]",
-                            selected && "h-24 w-28"
-                          )}
-                        >
-                          <Image
-                            src={typeImages[c.id]}
-                            alt=""
-                            fill
-                            sizes="112px"
-                            className="object-contain object-center"
-                          />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <CardTitle className="text-base text-[#242044]">
-                            {c.label[lang]}
-                          </CardTitle>
-                          <CardDescription
-                            className={cn(
-                              "mt-1 text-xs leading-5 text-[#7a7897]",
-                              !selected && "hidden"
-                            )}
-                          >
-                            {c.description[lang]}
-                          </CardDescription>
-                        </div>
-                        <span
-                          className={cn(
-                            "grid size-8 shrink-0 place-items-center rounded-full text-[#8754ff]",
-                            selected ? "bg-[#8754ff] text-white" : "bg-[#f0eaff]"
-                          )}
-                        >
-                          {selected ? (
-                            <CheckCircle2 className="size-4" aria-hidden="true" />
-                          ) : (
-                            <Plus className="size-5" aria-hidden="true" />
-                          )}
-                        </span>
-                      </div>
-                    </Card>
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="mt-7 border-t border-[#eeeafd] pt-6 sm:mt-8 sm:pt-7">
-              <Label htmlFor="project-name" className="text-base font-semibold text-[#252047] sm:text-lg">
-                {t("create.name")}
-              </Label>
-              <div className="mt-2 flex items-center gap-3 rounded-xl border border-[#b79cff] bg-white/85 px-3 shadow-[0_8px_22px_rgba(122,81,220,0.08)] transition-colors focus-within:border-[#8754ff] focus-within:ring-3 focus-within:ring-[#9f7aff]/20 sm:px-4">
-                <Feather aria-hidden="true" className="size-5 shrink-0 text-[#a78af0]" />
-                <Input
-                  id="project-name"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={defaultTitle || t("create.namePlaceholder")}
-                  className="h-12 border-0 bg-transparent px-0 text-base shadow-none focus-visible:border-0 focus-visible:ring-0 sm:text-lg"
+              {contentTypes.map((type) => (
+                <CreateTypeCard
+                  key={type.id}
+                  lang={lang}
+                  type={type}
+                  onOpen={() => openCreateDialog(type.id)}
                 />
-              </div>
-            </div>
-
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-5">
-              <Button
-                onClick={() => void handleSubmit()}
-                disabled={submitting}
-                size="lg"
-                className="min-h-12 w-full border-0 bg-[#8754ff] px-6 text-base text-white shadow-[0_12px_30px_rgba(95,44,255,0.28)] hover:bg-[#7642ef] sm:w-auto"
-              >
-                {submitting ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Sparkles data-icon="inline-start" />
-                )}
-                {t("create.submit")}
-              </Button>
-              <Link
-                href="/projects"
-                className="inline-flex items-center justify-center gap-2 text-sm font-medium text-[#7b6ca2] transition-colors hover:text-[#5c34ce]"
-              >
-                <FolderOpen className="size-4" />
-                {lang === "zh" ? "创建后稍后编辑" : "Create and edit later"}
-                <ArrowRight className="size-3.5" />
-              </Link>
+              ))}
             </div>
           </section>
 
-          <AssistantCard
-            lang={lang}
-            selectedType={selectedType}
-            note={assistantNote}
-          />
+          <AssistantCard lang={lang} />
         </div>
       </div>
+
+      <CreateProjectDialog
+        lang={lang}
+        titleValue={title}
+        createType={createType}
+        createNote={createNote}
+        submitting={submitting}
+        submitLabel={t("create.submit")}
+        cancelLabel={t("create.cancel")}
+        inputLabel={t("create.name")}
+        inputPlaceholder={t("create.namePlaceholder")}
+        onTitleChange={setTitle}
+        onSubmit={() => void handleSubmit()}
+        onClose={closeCreateDialog}
+      />
 
       <InteractionModal
         open={notice !== null}
@@ -377,15 +287,190 @@ export default function NewClient() {
   );
 }
 
-function AssistantCard({
+function CreateTypeCard({
   lang,
-  selectedType,
-  note,
+  type,
+  onOpen,
 }: {
   lang: "zh" | "en";
-  selectedType?: (typeof contentTypes)[number];
-  note?: { title: string; body: string };
+  type: (typeof contentTypes)[number];
+  onOpen: () => void;
 }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="group min-w-0 rounded-xl text-left focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#9f7aff]/35"
+    >
+      <Card className="h-full overflow-hidden border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-all duration-300 ease-out group-hover:-translate-y-0.5 group-hover:border-[#cfc0ff] group-hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
+        <CardHeader className="gap-0 p-3 pb-1 sm:p-4 sm:pb-1">
+          <div className="relative flex h-24 w-full items-center justify-center overflow-hidden rounded-lg bg-[#f3efff] sm:h-28">
+            <Image
+              src={typeImages[type.id]}
+              alt=""
+              fill
+              sizes="(max-width: 640px) 82vw, (max-width: 1024px) 30vw, 220px"
+              className="object-contain object-center transition-transform duration-300 group-hover:scale-[1.03]"
+            />
+          </div>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-3 p-3 pt-2 sm:p-4 sm:pt-2">
+          <div className="flex items-center justify-between gap-3">
+            <CardTitle className="min-w-0 text-base text-[#242044]">
+              {type.label[lang]}
+            </CardTitle>
+            <span className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg bg-[#f2edff] px-2.5 text-xs font-semibold text-[#7148db] transition-colors group-hover:bg-[#8754ff] group-hover:text-white">
+              Go
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </span>
+          </div>
+          <CardDescription className="text-xs leading-5 text-[#7a7897]">
+            {type.description[lang]}
+          </CardDescription>
+        </CardContent>
+      </Card>
+    </button>
+  );
+}
+
+function CreateProjectDialog({
+  lang,
+  titleValue,
+  createType,
+  createNote,
+  submitting,
+  submitLabel,
+  cancelLabel,
+  inputLabel,
+  inputPlaceholder,
+  onTitleChange,
+  onSubmit,
+  onClose,
+}: {
+  lang: "zh" | "en";
+  titleValue: string;
+  createType?: (typeof contentTypes)[number];
+  createNote?: { title: string; body: string };
+  submitting: boolean;
+  submitLabel: string;
+  cancelLabel: string;
+  inputLabel: string;
+  inputPlaceholder: string;
+  onTitleChange: (value: string) => void;
+  onSubmit: () => void;
+  onClose: () => void;
+}) {
+  return (
+    <Dialog
+      open={createType !== undefined}
+      onOpenChange={(open) => {
+        if (!open && !submitting) onClose();
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        className="border-[#e8e0ff] bg-white/95 p-0 text-[#121331] shadow-[0_24px_70px_rgba(61,45,120,0.2)] sm:max-w-md"
+      >
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmit();
+          }}
+        >
+          <div className="space-y-5 p-5 sm:p-6">
+            <DialogHeader>
+              <div className="flex items-start gap-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#eee7ff] text-[#7951dd]">
+                  <Sparkles className="size-5" aria-hidden="true" />
+                </span>
+                <div className="min-w-0">
+                  <DialogTitle className="text-lg font-bold text-[#252047]">
+                    {createType
+                      ? lang === "zh"
+                        ? `创建${createType.label[lang]}`
+                        : `Create ${createType.label[lang]}`
+                      : submitLabel}
+                  </DialogTitle>
+                  <DialogDescription className="mt-2 leading-6 text-[#7a7897]">
+                    {createNote?.body ??
+                      (lang === "zh"
+                        ? "给作品一个名字，然后进入编辑器。"
+                        : "Name the work, then open the editor.")}
+                  </DialogDescription>
+                </div>
+              </div>
+            </DialogHeader>
+
+            {createType ? (
+              <div className="flex items-center gap-3 rounded-xl border border-[#eeeafd] bg-[#f8f5ff] px-3 py-2">
+                <div className="relative h-14 w-20 shrink-0 overflow-hidden rounded-lg bg-[#f3efff]">
+                  <Image
+                    src={typeImages[createType.id]}
+                    alt=""
+                    fill
+                    sizes="80px"
+                    className="object-contain object-center"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-[#372272]">
+                    {createNote?.title ?? createType.label[lang]}
+                  </p>
+                  <p className="mt-1 text-xs text-[#8b88a4]">
+                    {createType.label[lang]}
+                  </p>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="create-project-name" className="font-semibold text-[#252047]">
+                {inputLabel}
+              </Label>
+              <div className="flex items-center gap-3 rounded-xl border border-[#b79cff] bg-white px-3 shadow-[0_8px_22px_rgba(122,81,220,0.08)] transition-colors focus-within:border-[#8754ff] focus-within:ring-3 focus-within:ring-[#9f7aff]/20">
+                <Feather aria-hidden="true" className="size-5 shrink-0 text-[#a78af0]" />
+                <Input
+                  id="create-project-name"
+                  autoFocus
+                  value={titleValue}
+                  onChange={(event) => onTitleChange(event.target.value)}
+                  placeholder={inputPlaceholder}
+                  className="h-12 border-0 bg-transparent px-0 text-base shadow-none focus-visible:border-0 focus-visible:ring-0"
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter className="border-[#eeeafd] bg-[#fbfaff] sm:justify-between">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={submitting}
+              onClick={onClose}
+              className="border-[#d8cdf9] bg-white text-[#6844c7] hover:border-[#bba7f4] hover:bg-white hover:text-[#4c27ba]"
+            >
+              {cancelLabel}
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitting}
+              className="border-0 bg-[#8754ff] text-white shadow-[0_12px_30px_rgba(95,44,255,0.24)] hover:bg-[#7642ef]"
+            >
+              {submitting ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Sparkles data-icon="inline-start" />
+              )}
+              {submitLabel}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function AssistantCard({ lang }: { lang: "zh" | "en" }) {
   return (
     <Card className="overflow-hidden border-[#e8e3ff] bg-white/85 shadow-[0_18px_45px_rgba(88,67,166,0.1)]">
       <div className="relative h-36 overflow-hidden bg-[linear-gradient(145deg,#efe8ff_0%,#ffffff_82%)] sm:h-44">
@@ -404,15 +489,14 @@ function AssistantCard({
             {lang === "zh" ? "CC 创作助手" : "CC creative assistant"}
           </p>
           <h2 className="mt-1 text-lg font-bold leading-6 text-[#252047]">
-            {note?.title ?? (lang === "zh" ? "从一个想法开始" : "Start with an idea")}
+            {lang === "zh" ? "选定类型后再命名" : "Pick a format, then name it"}
           </h2>
         </div>
         <div className="rounded-xl border border-[#e8e0ff] bg-[#f8f5ff] px-4 py-3">
           <p className="text-sm leading-6 text-[#6d5d9b]">
-            {note?.body ??
-              (lang === "zh"
-                ? "选一个创作类型，CC 会陪你把灵感整理成真正可编辑的作品。"
-                : "Choose a format and CC will help turn the idea into an editable work.")}
+            {lang === "zh"
+              ? "点击任意卡片或 Go，CC 会先给作品一个默认名字，你也可以马上改掉。"
+              : "Click any card or Go. CC will suggest a default name that you can edit before creating."}
           </p>
         </div>
         <div className="space-y-4">
@@ -429,12 +513,6 @@ function AssistantCard({
             body={lang === "zh" ? "作品默认保存在当前浏览器中" : "Your work stays in this browser by default"}
           />
         </div>
-        {selectedType ? (
-          <div className="flex items-center gap-2 border-t border-[#eeeafd] pt-4 text-xs text-[#8b88a4]">
-            <span className="size-2 rounded-full bg-[#8754ff]" />
-            {lang === "zh" ? `当前选择：${selectedType.label[lang]}` : `Selected: ${selectedType.label[lang]}`}
-          </div>
-        ) : null}
       </CardContent>
     </Card>
   );

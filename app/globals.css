@@ -151,3 +151,23 @@ body {
 html {
   @apply font-sans;
 }
+
+@keyframes home-header-surface {
+  from {
+    background-color: rgb(7 9 31 / 0);
+    border-bottom-color: rgb(255 255 255 / 0);
+  }
+
+  to {
+    background-color: rgb(7 9 31 / 1);
+    border-bottom-color: rgb(255 255 255 / 0.1);
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-header-scroll-surface {
+    animation: home-header-surface 1s linear both;
+    animation-range: 0 300px;
+    animation-timeline: scroll(root);
+  }
+}

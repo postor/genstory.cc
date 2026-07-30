@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, MenuIcon, Search } from "lucide-react";
+import { ChevronDown, MenuIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,7 @@ import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { localizedPath, type PublicLang } from "@/lib/seo";
 import { isImmersiveRoute } from "@/components/site-layout-routes";
+import { SiteSearch } from "@/components/site-search";
 
 export function SiteHeader() {
   const { lang, setLang } = useLang();
@@ -43,10 +44,10 @@ export function SiteHeader() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 border-b backdrop-blur supports-[backdrop-filter]:bg-background/60",
+        "sticky top-0 z-40 border-b backdrop-blur transition-colors duration-300",
         homeHeader
-          ? "border-white/10 bg-[#07091f]/90 text-white supports-[backdrop-filter]:bg-[#07091f]/75"
-          : "bg-background/80",
+          ? "home-header-scroll-surface border-white/10 bg-[#07091f]/90 text-white supports-[backdrop-filter]:bg-[#07091f]/75 lg:fixed lg:inset-x-0 lg:border-b lg:border-transparent lg:bg-transparent lg:backdrop-blur-none lg:supports-[backdrop-filter]:bg-transparent"
+          : "bg-background",
       )}
     >
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
@@ -58,7 +59,7 @@ export function SiteHeader() {
           )}
         >
           <Image
-            src="/home/logo-mark.png"
+            src="/icon-192.png"
             alt=""
             width={40}
             height={40}
@@ -74,7 +75,9 @@ export function SiteHeader() {
             publicLang={publicLang}
             homeHeader={homeHeader}
           />
-          {homeHeader ? <HomeHeaderTools labels={labels} /> : null}
+          <div className="hidden items-center gap-1.5 lg:flex">
+            <SiteSearch lang={publicLang} homeHeader={homeHeader} />
+          </div>
           <HeaderExternalLinks labels={labels} homeHeader={homeHeader} />
           <LanguageSwitcher
             publicLang={publicLang}
@@ -111,6 +114,13 @@ export function SiteHeader() {
                   homeHeader && "border-white/10 bg-[#111336] text-white",
                 )}
               >
+                <div className="mb-2 border-b border-border/60 pb-2">
+                  <SiteSearch
+                    lang={publicLang}
+                    homeHeader={homeHeader}
+                    className="w-full"
+                  />
+                </div>
                 <nav className="flex flex-col gap-1" aria-label={labels.menu}>
                   <HeaderNavLinks
                     navItems={navItems.filter((item) => item.href !== localizedPath(publicLang))}
@@ -209,7 +219,7 @@ function HeaderExternalLinks({
   showSourceLabel?: boolean;
 }) {
   return (
-    <>
+    <Popover>
       <Button
         className={cn(
           itemClassName,
@@ -232,88 +242,85 @@ function HeaderExternalLinks({
         {showSourceLabel ? labels.sourceCodeShort : null}
       </Button>
 
-      {!homeHeader ? (
-        <iframe
-          src="https://github.com/sponsors/postor/button"
-          title="Sponsor postor"
-          height="32"
-          width="114"
-          suppressHydrationWarning
-          className="block h-8 w-[114px] border-0"
-        />
-      ) : null}
-
-      {!homeHeader ? (
-        <Button
-          className={cn(
-            itemClassName,
-            homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
-          )}
-          render={
-            <a
-              href="https://github.com/postor/genstory.cc/issues/new"
-              target="_blank"
-              rel="noreferrer"
-            />
-          }
-          variant="ghost"
-          size="sm"
-          aria-label={labels.newIssue}
-          title={labels.newIssue}
-          onClick={onNavigate}
-        >
-          Issue
-        </Button>
-      ) : null}
-    </>
-  );
-}
-
-function HomeHeaderTools({ labels }: { labels: HeaderLabels }) {
-  return (
-    <div className="hidden items-center gap-1.5 xl:flex">
-      <Button
-        render={<Link href="#work-types" />}
-        variant="ghost"
-        size="sm"
-        className="h-9 min-w-48 justify-between gap-3 border border-white/10 bg-white/5 px-3 text-white/55 hover:bg-white/10 hover:text-white"
-        aria-label={labels.search}
+      <PopoverTrigger
+        render={
+          <Button
+            className={cn(
+              homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
+            )}
+            variant="ghost"
+            size="icon-sm"
+            aria-label={labels.githubMenu}
+            title={labels.githubMenu}
+          />
+        }
       >
-        <span className="inline-flex items-center gap-2">
-          <Search className="size-4" />
-          <span>{labels.search}</span>
-        </span>
-        <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white/45">
-          Ctrl K
-        </kbd>
-      </Button>
-      <Button
-        render={<Link href="#assistant-help" />}
-        variant="ghost"
-        size="icon-sm"
-        className="relative text-white/75 hover:bg-white/10 hover:text-white"
-        aria-label={labels.notifications}
-        title={labels.notifications}
-      >
-        <Bell className="size-4" />
-        <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-[#c58bff]" />
-      </Button>
-      <Link
-        href="#assistant-help"
-        className="grid size-9 place-items-center overflow-hidden rounded-full border border-white/20 bg-[#e9ddff] hover:border-white/50"
-        aria-label={labels.account}
-        title={labels.account}
-      >
-        <Image
-          src="/home/assistant-bust.png"
-          alt=""
-          width={48}
-          height={48}
-          className="size-10 object-contain"
-        />
-      </Link>
-      <ChevronDown className="size-4 text-white/60" aria-hidden="true" />
-    </div>
+        <ChevronDown className="size-4" aria-hidden="true" />
+      </PopoverTrigger>
+      <PopoverPortal>
+        <PopoverPositioner side="bottom" align="end" sideOffset={8}>
+          <PopoverPopup
+            className={cn(
+              "w-36",
+              homeHeader && "border-white/10 bg-[#111336] text-white",
+            )}
+          >
+            <div className="flex flex-col gap-1" role="menu">
+              <Button
+                className="justify-start"
+                render={
+                  <a
+                    href="https://github.com/postor/genstory.cc"
+                    target="_blank"
+                    rel="noreferrer"
+                  />
+                }
+                variant="ghost"
+                size="sm"
+                role="menuitem"
+                onClick={onNavigate}
+              >
+                {labels.star}
+              </Button>
+              <Button
+                className="justify-start"
+                render={
+                  <a
+                    href="https://github.com/sponsors/postor"
+                    target="_blank"
+                    rel="noreferrer"
+                  />
+                }
+                variant="ghost"
+                size="sm"
+                role="menuitem"
+                onClick={onNavigate}
+              >
+                {labels.sponsor}
+              </Button>
+              <Button
+                className="justify-start"
+                render={
+                  <a
+                    href="https://github.com/postor/genstory.cc/issues/new"
+                    target="_blank"
+                    rel="noreferrer"
+                  />
+                }
+                variant="ghost"
+                size="sm"
+                aria-label={labels.newIssue}
+                title={labels.newIssue}
+                role="menuitem"
+                onClick={onNavigate}
+              >
+                {labels.issue}
+              </Button>
+            </div>
+          </PopoverPopup>
+        </PopoverPositioner>
+      </PopoverPortal>
+    </Popover>
   );
 }
 
@@ -403,10 +410,12 @@ const headerLabels: Record<
     languageName: string;
     menu: string;
     search: string;
-    notifications: string;
-    account: string;
     sourceCode: string;
     sourceCodeShort: string;
+    githubMenu: string;
+    star: string;
+    sponsor: string;
+    issue: string;
     newIssue: string;
   }
 > = {
@@ -418,10 +427,12 @@ const headerLabels: Record<
     languageName: "中文",
     menu: "打开导航菜单",
     search: "搜索项目或内容",
-    notifications: "查看帮助",
-    account: "打开 CC 助手",
     sourceCode: "在 GitHub 上关注和点赞",
     sourceCodeShort: "GitHub",
+    githubMenu: "打开 GitHub 菜单",
+    star: "Star",
+    sponsor: "Sponsor",
+    issue: "Issue",
     newIssue: "提交 Issue",
   },
   en: {
@@ -432,10 +443,12 @@ const headerLabels: Record<
     languageName: "English",
     menu: "Open navigation menu",
     search: "Search projects or content",
-    notifications: "Open help",
-    account: "Open CC assistant",
     sourceCode: "Follow and star on GitHub",
     sourceCodeShort: "GitHub",
+    githubMenu: "Open GitHub menu",
+    star: "Star",
+    sponsor: "Sponsor",
+    issue: "Issue",
     newIssue: "Open a new Issue",
   },
 };

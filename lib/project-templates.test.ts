@@ -82,6 +82,19 @@ test("interactive video template follows the interactive video AGENTS.md segment
   assert.ok(paths.has("chapter-001/segments/segment-003/timeline.yml"));
   assert.ok(paths.has("assets/index.yml"));
 });
+
+test("picture-book template contains landscape pages, logical image and voice assets", async () => {
+  const files = await getProjectTemplate("picture-book", "zh", "小红帽");
+  const paths = new Set(files.map((file) => file.path));
+  const source = files.find((file) => file.path.endsWith("/page-001/story.md"))?.content ?? "";
+  assert.ok(paths.has("assets/index.yml"));
+  assert.ok(paths.has("chapter-001/pages/page-001/story.md"));
+  assert.ok(paths.has("assets/pages/page-001.png"));
+  assert.ok(paths.has("assets/voice/page-001.mp3"));
+  assert.match(source, /image_asset: pb_forest/);
+  assert.match(source, /voice_asset: pb_voice_001/);
+  assert.doesNotMatch(source, /\.png|\.mp3|[A-Za-z]:\\/);
+});
 test("visual novel template contains real OpenWebGal source files", async () => {
   const files = await getProjectTemplate("visual-novel", "zh", "小红帽");
   const paths = new Set(files.map((file) => file.path));

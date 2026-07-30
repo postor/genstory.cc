@@ -6,6 +6,8 @@ export interface ProjectPreviewSection {
   title: string;
   body: string;
   pageImagePath?: string;
+  pageVoicePath?: string;
+  layout?: "landscape";
 }
 
 export interface ProjectPreviewModel {
@@ -123,6 +125,37 @@ export async function readProjectPreview(
         title: frontmatter(meta).title || heading(body) || path,
         body,
         pageImagePath: page.finalImagePath,
+      });
+    }
+  } else if (type === "picture-book") {
+    const filePaths = entries
+      .filter((entry) => entry.kind === "file")
+      .map((entry) => entry.path);
+    const assetIndex = await safeText(root, "assets/index.yml");
+    const assets = new Map<string, string>();
+    let currentId = "";
+    for (const line of assetIndex.split(/\r?\n/)) {
+      const id = line.match(/^\s*- id:\s*([^\s]+)/)?.[1];
+      if (id) currentId = id;
+      const file = line.match(/^\s+file:\s*["']?([^"']+?)["']?\s*$/)?.[1];
+      if (currentId && file) assets.set(currentId, file);
+    }
+    const pages = filePaths
+      .filter((path) => /^chapter-[^/]+\/pages\/[^/]+\/story\.md$/i.test(path))
+      .sort((a, b) => a.localeCompare(b));
+    for (const path of pages) {
+      const body = await safeText(root, path);
+      const data = frontmatter(body);
+      const meta = await safeText(root, path.replace(/story\.md$/i, "meta.md"));
+      const imagePath = assets.get(data.image_asset);
+      const voicePath = assets.get(data.voice_asset);
+      sections.push({
+        path,
+        title: data.title || frontmatter(meta).title || heading(body) || path,
+        body,
+        pageImagePath: imagePath && filePaths.includes(imagePath) ? imagePath : undefined,
+        pageVoicePath: voicePath && filePaths.includes(voicePath) ? voicePath : undefined,
+        layout: data.layout === "landscape" ? "landscape" : undefined,
       });
     }
   } else {

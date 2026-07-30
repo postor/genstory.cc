@@ -183,8 +183,8 @@ interface EntryDialogState {
 
 function isPdfProject(
   project: Project | null
-): project is Project & { template: "book" | "comic" } {
-  return project?.template === "book" || project?.template === "comic";
+): project is Project & { template: "book" | "picture-book" | "comic" } {
+  return project?.template === "book" || project?.template === "picture-book" || project?.template === "comic";
 }
 
 interface CloudUploadPlan {

@@ -184,7 +184,7 @@ function renderSection(
   mediaUrls: Record<string, string>
 ): HTMLElement {
   const element = document.createElement("section");
-  element.className = model.type === "comic" ? "pdf-section pdf-comic-section" : "pdf-section";
+  element.className = model.type === "comic" ? "pdf-section pdf-comic-section" : model.type === "picture-book" ? "pdf-section pdf-picture-book-section" : "pdf-section";
 
   if (model.type === "comic" && section.pageImagePath) {
     const image = document.createElement("img");
@@ -192,6 +192,19 @@ function renderSection(
     image.src = mediaUrls[section.pageImagePath] ?? section.pageImagePath;
     image.alt = "";
     element.appendChild(image);
+    return element;
+  }
+
+  if (model.type === "picture-book" && section.pageImagePath) {
+    const image = document.createElement("img");
+    image.className = "pdf-picture-book-image";
+    image.src = mediaUrls[section.pageImagePath] ?? section.pageImagePath;
+    image.alt = section.title;
+    element.appendChild(image);
+    const caption = document.createElement("div");
+    caption.className = "pdf-picture-book-caption";
+    caption.innerHTML = markdownToHtml(section.body.replace(/^---[\s\S]*?---\s*/m, ""), mediaUrls);
+    element.appendChild(caption);
     return element;
   }
 
@@ -1322,6 +1335,24 @@ export async function buildReadableProjectPdf(
         max-height: 1120px;
         margin: 0 auto;
         object-fit: contain;
+      }
+      .pdf-picture-book-section {
+        display: block;
+        min-height: 1050px;
+        padding: 18px;
+        background: #fbf6e9;
+      }
+      .pdf-picture-book-image {
+        display: block;
+        width: 100%;
+        max-height: 610px;
+        margin: 0 auto 30px;
+        object-fit: cover;
+      }
+      .pdf-picture-book-caption {
+        font-size: 24px;
+        line-height: 1.7;
+        text-align: center;
       }
     </style>`;
   const frame = document.createElement("iframe");

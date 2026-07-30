@@ -286,6 +286,53 @@ interface IVVideoAsset {
   aspectRatio: string;
 }
 
+function pictureBookTemplate(title: string, lang: Lang, agents: string): ProjectTemplateFile[] {
+  const labels = lang === "zh"
+    ? ["森林小径", "花丛旁", "外婆的小屋"]
+    : ["The forest path", "Among the flowers", "Grandmother's cottage"];
+  const stories = lang === "zh"
+    ? [
+        "小红帽提着篮子，沿着妈妈叮嘱的小路出发。阳光穿过树叶，森林像一本刚刚打开的故事书。",
+        "花香从小路旁飘来。小红帽停下脚步，却没有忘记要早点赶到外婆家。",
+        "夜幕降临前，小红帽来到外婆的小屋。门里亮着暖黄色的灯，外婆正等着她。",
+      ]
+    : [
+        "Little Red Riding Hood sets out with her basket along the path her mother described. Sunlight falls through the leaves like a storybook opening.",
+        "A sweet scent drifts from the flowers. Little Red pauses, then remembers that grandmother is waiting.",
+        "Before dusk, Little Red reaches the cottage. A warm light shines inside, and grandmother is waiting for her.",
+      ];
+  const imageAssets = [
+    ["pb_forest", "assets/pages/page-001.png", "/project-templates/comic/assets/pages/page-001.png"],
+    ["pb_flowers", "assets/pages/page-002.png", "/project-templates/comic/assets/pages/page-002.png"],
+    ["pb_cottage", "assets/pages/page-003.png", "/project-templates/comic/assets/pages/page-003.png"],
+  ] as const;
+  const voiceAssets = [
+    ["pb_voice_001", "assets/voice/page-001.mp3", "/project-templates/interactive-video/assets/audio/voice_red.mp3"],
+    ["pb_voice_002", "assets/voice/page-002.mp3", "/project-templates/interactive-video/assets/audio/voice_wolf.mp3"],
+    ["pb_voice_003", "assets/voice/page-003.mp3", "/project-templates/interactive-video/assets/audio/voice_grandma.mp3"],
+  ] as const;
+  const files: ProjectTemplateFile[] = [
+    text("AGENTS.md", agents),
+    text("meta.md", meta("picture-book", title)),
+    text("chapter-001/meta.md", `---\ntitle: ${JSON.stringify(lang === "zh" ? "小红帽 · 森林里的故事" : "Little Red Riding Hood · A Forest Story")}\n---\n\n# ${lang === "zh" ? "绘本章节" : "Picture-book chapter"}\n`),
+    text("assets/index.yml", [
+      "# 绘本资产索引（Picture-book Asset Index）", "assets:",
+      ...imageAssets.flatMap(([id, file]) => [`  - id: ${id}`, "    type: Image", `    file: ${JSON.stringify(file)}`, "    layout: landscape"]),
+      ...voiceAssets.flatMap(([id, file]) => [`  - id: ${id}`, "    type: Voice", `    file: ${JSON.stringify(file)}`, `    language: ${lang}`]),
+      "",
+    ].join("\n")),
+    text("references/timeline.md", `# Timeline\n\n- chapter-001: ${lang === "zh" ? "小红帽从家出发，穿过森林，抵达外婆的小屋。" : "Little Red sets out, crosses the forest, and reaches grandmother's cottage."}\n`),
+  ];
+  imageAssets.forEach(([id, file, sourceUrl], index) => {
+    const page = String(index + 1).padStart(3, "0");
+    files.push(text(`chapter-001/pages/page-${page}/meta.md`, `---\ntitle: ${JSON.stringify(labels[index])}\norder: ${index + 1}\n---\n`));
+    files.push(text(`chapter-001/pages/page-${page}/story.md`, `---\ntitle: ${JSON.stringify(labels[index])}\nimage_asset: ${id}\nvoice_asset: ${voiceAssets[index][0]}\nlayout: landscape\n---\n\n# ${labels[index]}\n\n${stories[index]}\n`));
+    files.push({ path: `assets/pages/page-${page}.png`, kind: "binary", sourceUrl });
+    files.push({ path: `assets/voice/page-${page}.mp3`, kind: "binary", sourceUrl: voiceAssets[index][2] });
+  });
+  return files;
+}
+
 interface IVVoiceAsset {
   kind: "voice";
   id: string;
@@ -874,6 +921,7 @@ export async function getProjectTemplate(
   if (type === "comic") return comicTemplate(title, agents);
   if (type === "visual-novel") return visualNovelTemplate(title, agents);
   if (type === "book") return bookTemplate(title, lang, agents);
+  if (type === "picture-book") return pictureBookTemplate(title, lang, agents);
   if (type === "interactive-video") return interactiveVideoTemplate(title, lang, agents);
   if (type === "phaser-game") return phaserGameTemplate(title, lang, agents);
   return simpleTemplate(type, title, lang, agents);

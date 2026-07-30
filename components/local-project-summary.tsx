@@ -57,11 +57,21 @@ const sampleWorks: Array<{
 ];
 
 const typeImages: Record<ContentTypeId, string> = {
-  book: "/home/type-book.png",
-  comic: "/home/type-comic.png",
-  "visual-novel": "/home/type-vn.png",
-  "interactive-video": "/home/type-video.png",
-  "phaser-game": "/home/type-game.png",
+  book: "/home/type-icons/book.png",
+  "picture-book": "/home/type-icons/book.png",
+  comic: "/home/type-icons/comic.png",
+  "visual-novel": "/home/type-icons/visual-novel.png",
+  "interactive-video": "/home/type-icons/video.png",
+  "phaser-game": "/home/type-icons/game.png",
+};
+
+const typeImageDimensions: Record<ContentTypeId, { width: number; height: number }> = {
+  book: { width: 278, height: 172 },
+  "picture-book": { width: 278, height: 172 },
+  comic: { width: 285, height: 207 },
+  "visual-novel": { width: 310, height: 219 },
+  "interactive-video": { width: 356, height: 242 },
+  "phaser-game": { width: 315, height: 219 },
 };
 
 type DisplayWork = {
@@ -69,6 +79,7 @@ type DisplayWork = {
   title: string;
   template: ContentTypeId;
   image: string;
+  isTypeImage: boolean;
   updated: string;
   href: string;
 };
@@ -125,19 +136,24 @@ export function LocalProjectSummary() {
             title: work.title[lang],
             template: work.template,
             image: work.image,
+            isTypeImage: false,
             updated: work.updated[lang],
             href: `/projects/new?template=${work.template}`,
           }))
-        : projects.map((project) => ({
-            id: project.id,
-            title: project.title,
-            template: project.template,
-            image: projectCoverImages[project.id] ?? typeImages[project.template],
-            updated: new Date(project.updatedAt).toLocaleDateString(
-              lang === "zh" ? "zh-CN" : "en-US",
-            ),
-            href: `/projects/editor?id=${project.id}`,
-          })),
+        : projects.map((project) => {
+            const coverImage = projectCoverImages[project.id];
+            return {
+              id: project.id,
+              title: project.title,
+              template: project.template,
+              image: coverImage ?? typeImages[project.template],
+              isTypeImage: !coverImage,
+              updated: new Date(project.updatedAt).toLocaleDateString(
+                lang === "zh" ? "zh-CN" : "en-US",
+              ),
+              href: `/projects/editor?id=${project.id}`,
+            };
+          }),
     [isShowingSamples, lang, projectCoverImages, projects],
   );
   const filteredWorks = useMemo(
@@ -200,7 +216,7 @@ export function LocalProjectSummary() {
           return (
             <Card key={work.id ?? work.title} className="group overflow-hidden border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-shadow hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
               <Link href={work.href}>
-                <div className="relative aspect-[2.2/1] overflow-hidden bg-[#eeeaff]">
+                <div className="relative flex aspect-[2.2/1] items-center justify-center overflow-hidden bg-[#eeeaff]">
                   {work.image.startsWith("blob:") ? (
                     <>
                       {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
@@ -208,17 +224,32 @@ export function LocalProjectSummary() {
                       <img
                         src={work.image}
                         alt=""
-                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                        className={
+                          work.isTypeImage
+                            ? "h-full w-full object-contain object-center"
+                            : "h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]"
+                        }
                       />
                     </>
                   ) : (
-                    <Image
-                      src={work.image}
-                      alt=""
-                      fill
-                      sizes="(max-width: 640px) 100vw, 50vw"
-                      className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                    />
+                    work.isTypeImage ? (
+                      <Image
+                        src={work.image}
+                        alt=""
+                        width={typeImageDimensions[work.template].width}
+                        height={typeImageDimensions[work.template].height}
+                        sizes="(max-width: 640px) 78vw, 39vw"
+                        className="h-auto w-auto max-h-[78%] max-w-[78%] object-contain object-center"
+                      />
+                    ) : (
+                      <Image
+                        src={work.image}
+                        alt=""
+                        fill
+                        sizes="(max-width: 640px) 100vw, 50vw"
+                        className="object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    )
                   )}
                 </div>
                 <div className="flex items-start justify-between gap-3 px-4 pb-4 pt-3">

@@ -53,7 +53,8 @@ function parseTitle(meta: string): string {
 function inferTemplate(paths: string[], meta: string): ContentTypeId {
   const type = meta.match(/^type:\s*([a-z-]+)\s*$/m)?.[1];
   if (
-    type === "book" ||
+   type === "book" ||
+    type === "picture-book" ||
     type === "comic" ||
     type === "visual-novel" ||
     type === "interactive-video" ||
@@ -66,6 +67,9 @@ function inferTemplate(paths: string[], meta: string): ContentTypeId {
   }
   if (paths.some((path) => /chapter-[^/]+\/pages\/[^/]+\/script\.md$/i.test(path))) {
     return "comic";
+  }
+  if (paths.some((path) => /chapter-[^/]+\/pages\/[^/]+\/story\.md$/i.test(path))) {
+    return "picture-book";
   }
   if (paths.some((path) => /chapter-[^/]+\/segments\/[^/]+\/script\.md$/i.test(path))) {
     return "interactive-video";

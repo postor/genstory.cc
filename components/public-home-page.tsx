@@ -14,6 +14,8 @@ import {
   WandSparkles,
 } from "lucide-react";
 
+import bannerForeground from "@/docs/design/banner-fg.png";
+import { LocalContinueProjectCard } from "@/components/local-continue-project-card";
 import { LocalProjectSummary } from "@/components/local-project-summary";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,15 +30,17 @@ import { languageInfo, publicHomeCopy } from "@/lib/platform-i18n";
 import { localizedPath, type PublicLang } from "@/lib/seo";
 
 const typeImages: Record<ContentTypeId, string> = {
-  book: "/home/type-book.png",
-  comic: "/home/type-comic.png",
-  "visual-novel": "/home/type-vn.png",
-  "interactive-video": "/home/type-video.png",
-  "phaser-game": "/home/type-game.png",
+  book: "/home/type-icons/book.png",
+  "picture-book": "/home/type-icons/book.png",
+  comic: "/home/type-icons/comic.png",
+  "visual-novel": "/home/type-icons/visual-novel.png",
+  "interactive-video": "/home/type-icons/video.png",
+  "phaser-game": "/home/type-icons/game.png",
 };
 
 const typeIcons: Record<ContentTypeId, typeof BookOpen> = {
   book: BookOpen,
+  "picture-book": BookOpen,
   comic: FileImage,
   "visual-novel": MessageCircle,
   "interactive-video": Clapperboard,
@@ -50,6 +54,10 @@ const typeShortDescriptions: Record<
   book: {
     zh: "创作小说、文档、传记与长篇文字作品",
     en: "Novels, documents, lore, and long-form writing",
+  },
+  "picture-book": {
+    zh: "横版画面、文字与配音组成的绘本故事",
+    en: "Landscape art, page text, and narration for picture books",
   },
   comic: {
     zh: "分镜、页面、角色与漫画故事创作",
@@ -77,10 +85,6 @@ const homeUiCopy = {
     chooseType: "选择创作类型",
     chooseTypeBody: "从一个清晰的起点开始，把灵感变成可持续编辑的作品。",
     viewAll: "查看全部",
-    continueTitle: "今天继续创作",
-    continueWork: "星之旅人",
-    continueType: "视觉小说",
-    continueAction: "继续编辑",
     quickStart: "快速开始",
     templateTitle: "使用模板创建",
     templateBody: "从精选类型开始创作",
@@ -102,10 +106,6 @@ const homeUiCopy = {
     chooseType: "Choose a creation type",
     chooseTypeBody: "Start from a clear structure and turn an idea into an editable work.",
     viewAll: "View all",
-    continueTitle: "Continue creating",
-    continueWork: "Starfarer",
-    continueType: "Visual novel",
-    continueAction: "Continue editing",
     quickStart: "Quick start",
     templateTitle: "Create from a template",
     templateBody: "Start from a focused template",
@@ -137,22 +137,23 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
           fill
           priority
           sizes="100vw"
-          className="pointer-events-none object-cover object-center"
+          className="pointer-events-none z-0 object-cover object-center"
         />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] hidden w-[70%] bg-gradient-to-r from-[#07091f]/90 via-[#07091f]/65 to-transparent lg:block" />
         <Image
-          src="/home/fg.png"
+          src={bannerForeground}
           alt="CC 角色在故事世界中展开创作"
           width={1254}
           height={1254}
           priority
-          sizes="(max-width: 545px) 100vw, 545px"
-          className="pointer-events-none absolute bottom-0 right-0 z-[1] aspect-square h-auto w-[min(545px,100vw)] max-w-full lg:right-[15%]"
+          sizes="(max-width: 1023px) 100vw, 481px"
+          className="pointer-events-none absolute bottom-0 right-0 z-[2] aspect-square h-auto w-[min(545px,100vw)] max-w-full lg:right-[15%] lg:h-[calc(100%_-_4rem)] lg:w-auto"
         />
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-[2] w-[72%] bg-gradient-to-r from-[#07091f]/95 via-[#07091f]/80 to-transparent lg:hidden" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-[3] w-[72%] bg-gradient-to-r from-[#07091f]/95 via-[#07091f]/80 to-transparent lg:hidden" />
 
-        <div className="relative z-10 mx-auto h-[545px] max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="max-w-xl pb-7 pt-16 sm:pt-20 lg:pb-14 lg:pt-24">
-            <h1 className="max-w-xl text-4xl font-bold leading-[1.12] tracking-[0.01em] sm:text-6xl lg:whitespace-nowrap lg:text-5xl xl:text-6xl">
+        <div className="relative z-10 mx-auto h-[545px] max-w-7xl px-4 sm:px-6 lg:flex lg:items-center lg:px-8 lg:pt-16">
+          <div className="max-w-xl pb-7 pt-16 sm:pt-20 lg:pb-0 lg:pt-0">
+            <h1 className="max-w-xl text-4xl font-bold leading-[1.12] tracking-[0.01em] drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)] sm:text-6xl lg:whitespace-nowrap lg:text-5xl xl:text-6xl">
               {t.heroTitle.includes("，") ? (
                 <>
                   {t.heroTitle.split("，")[0]}，
@@ -247,53 +248,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
             </div>
 
             <aside className="space-y-4 xl:pt-9">
-              <Card className="overflow-hidden border-[#e8e3ff] bg-white/85 shadow-[0_18px_45px_rgba(88,67,166,0.08)]">
-                <CardHeader className="flex-row items-center justify-between border-b border-[#f0edff] px-5 py-4">
-                  <CardTitle className="text-lg">
-                    {ui.continueTitle}
-                  </CardTitle>
-                  <Link
-                    href="/projects"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-[#7250d9] hover:text-[#4c27ba]"
-                  >
-                    {ui.viewAll}
-                    <ArrowRight className="size-3" />
-                  </Link>
-                </CardHeader>
-                <CardContent className="p-5">
-                  <div className="flex gap-3">
-                    <Image
-                      src="/home/work-star.png"
-                      alt=""
-                      width={215}
-                      height={79}
-                      className="h-20 w-28 rounded-xl object-cover"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <h3 className="truncate font-semibold">
-                        {ui.continueWork}
-                      </h3>
-                      <p className="mt-1 text-xs text-[#7f7d9b]">
-                        {ui.continueType}
-                      </p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[#eeeaff]">
-                          <div className="h-full w-[61%] rounded-full bg-[#8658f3]" />
-                        </div>
-                        <span className="text-xs font-medium text-[#7b65bd]">61%</span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    render={<Link href="/projects" />}
-                    variant="outline"
-                    className="mt-5 w-full border-[#b79cff] text-[#6e43e5] hover:bg-[#f5f0ff] hover:text-[#5c34ce]"
-                  >
-                    {ui.continueAction}
-                    <ArrowRight data-icon="inline-end" />
-                  </Button>
-                </CardContent>
-              </Card>
+              <LocalContinueProjectCard lang={lang} />
 
               <Card className="border-[#e8e3ff] bg-white/85 shadow-[0_18px_45px_rgba(88,67,166,0.08)]">
                 <CardHeader className="px-5 pb-3 pt-5">
@@ -432,7 +387,7 @@ function CreationTypeCard({
               alt=""
               fill
               sizes="(max-width: 640px) 40vw, 18vw"
-              className="max-w-full object-contain transition-transform group-hover:scale-105"
+              className="object-contain object-center transition-opacity group-hover:opacity-90"
             />
           </div>
           <CardTitle className="text-sm sm:text-base">{type.label[lang]}</CardTitle>

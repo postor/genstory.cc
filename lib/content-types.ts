@@ -2,6 +2,7 @@ import type { Lang } from "@/lib/i18n";
 
 export type ContentTypeId =
   | "book"
+  | "picture-book"
   | "comic"
   | "visual-novel"
   | "interactive-video"
@@ -25,6 +26,15 @@ export const contentTypes: ContentTypeInfo[] = [
     description: {
       zh: "适合小说、设定集和长篇内容的浏览器写作项目，以根作品、章节、页面和媒体附件整理。",
       en: "Browser writing projects for novels, lore documents, and long-form work organized as root work, chapters, pages, and media attachments.",
+    },
+    enabled: true,
+  },
+  {
+    id: "picture-book",
+    label: { zh: "绘本", en: "Picture Book" },
+    description: {
+      zh: "以横版插画、分页文字和配音组织适合亲子阅读的故事作品。",
+      en: "Create read-aloud stories with landscape illustrations, page text, and optional narration.",
     },
     enabled: true,
   },

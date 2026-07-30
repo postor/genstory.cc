@@ -17,7 +17,10 @@ test("local project summary prefers project cover files before type artwork", as
 
   assert.match(source, /readProjectCoverUrl/);
   assert.match(source, /\["cover\.jpg", "cover\.png"\]/);
-  assert.match(source, /projectCoverImages\[project\.id\] \?\? typeImages\[project\.template\]/);
+  assert.match(source, /coverImage \?\? typeImages\[project\.template\]/);
+  assert.match(source, /\/home\/type-icons\//);
+  assert.match(source, /object-contain object-center/);
+  assert.match(source, /max-h-\[78%\] max-w-\[78%\]/);
   assert.match(source, /URL\.createObjectURL\(file\)/);
   assert.match(source, /URL\.revokeObjectURL\(url\)/);
 });

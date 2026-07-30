@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Pause, Play, RotateCcw } from "lucide-react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -104,6 +104,9 @@ export default function PreviewClient() {
   const [interactiveVideoPreview, setInteractiveVideoPreview] =
     useState<InteractiveVideoPreviewModel | null>(null);
   const [runtimePreviewHtml, setRuntimePreviewHtml] = useState<string | null>(null);
+  const [pictureBookPage, setPictureBookPage] = useState(0);
+  const [pictureBookPlaying, setPictureBookPlaying] = useState(false);
+  const pictureBookAudioRef = useRef<HTMLAudioElement | null>(null);
   const [sectionMediaUrls, setSectionMediaUrls] = useState<Record<string, Record<string, string>>>({});
   const [interactiveAssetUrls, setInteractiveAssetUrls] = useState<Record<string, string>>({});
   const sectionMediaUrlsRef = useRef<Record<string, Record<string, string>>>({});
@@ -206,6 +209,8 @@ export default function PreviewClient() {
           if (!cancelled) {
             setProjectRoot(root);
             setGenericPreview(model);
+            setPictureBookPage(0);
+            setPictureBookPlaying(false);
             setInteractiveVideoPreview(null);
             setRuntimePreviewHtml(null);
           }
@@ -227,6 +232,15 @@ export default function PreviewClient() {
       cancelled = true;
     };
   }, [id, lang, t]);
+
+  useEffect(() => {
+    const audio = pictureBookAudioRef.current;
+    if (audio) {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+    setPictureBookPlaying(false);
+  }, [pictureBookPage, genericPreview?.type]);
 
   useEffect(() => {
     if (!projectRoot || !genericPreview) {
@@ -326,7 +340,7 @@ export default function PreviewClient() {
   return (
     <main
       className={
-        genericPreview?.type === "comic"
+        genericPreview?.type === "comic" || genericPreview?.type === "picture-book"
           ? "flex h-svh flex-col overflow-hidden bg-neutral-950 text-white"
           : interactiveVideoPreview
             ? "flex h-svh flex-col overflow-hidden bg-neutral-950 text-white"
@@ -335,7 +349,7 @@ export default function PreviewClient() {
     >
       <div
         className={
-          genericPreview?.type === "comic"
+          genericPreview?.type === "comic" || genericPreview?.type === "picture-book"
             ? "flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3"
             : interactiveVideoPreview
               ? "flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3"
@@ -349,7 +363,7 @@ export default function PreviewClient() {
             size="icon"
             aria-label={t("editor.back")}
             className={
-              genericPreview?.type === "comic"
+              genericPreview?.type === "comic" || genericPreview?.type === "picture-book"
                 ? "text-white hover:bg-white/10 hover:text-white"
                 : interactiveVideoPreview
                   ? "text-white hover:bg-white/10 hover:text-white"
@@ -364,7 +378,7 @@ export default function PreviewClient() {
 
       <div
         className={
-          genericPreview?.type === "comic"
+            genericPreview?.type === "comic" || genericPreview?.type === "picture-book"
             ? "min-h-0 flex-1 overflow-auto bg-neutral-950"
             : interactiveVideoPreview
               ? "min-h-0 flex-1 overflow-hidden bg-neutral-950"
@@ -423,6 +437,17 @@ export default function PreviewClient() {
             })}
           </div>
         )}
+        {status === "ready" && genericPreview?.type === "picture-book" && (
+          <PictureBookReader
+            model={genericPreview}
+            pageIndex={pictureBookPage}
+            onPageChange={setPictureBookPage}
+            mediaUrls={sectionMediaUrls}
+            audioRef={pictureBookAudioRef}
+            playing={pictureBookPlaying}
+            onPlayingChange={setPictureBookPlaying}
+          />
+        )}
         {status === "ready" && interactiveVideoPreview && (
           <InteractiveVideoPlayer
             key={`${id ?? ""}-${interactiveVideoPreview.startSegmentId}-${interactiveVideoPreview.segments.length}`}
@@ -431,7 +456,7 @@ export default function PreviewClient() {
             lang={lang}
           />
         )}
-        {status === "ready" && genericPreview && genericPreview.type !== "comic" && (
+        {status === "ready" && genericPreview && genericPreview.type !== "comic" && genericPreview.type !== "picture-book" && (
           <article className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
             <p className="mb-2 text-sm text-muted-foreground">
               {contentTypeById[genericPreview.type].label[lang]}
@@ -481,5 +506,87 @@ export default function PreviewClient() {
         )}
       </div>
     </main>
+  );
+}
+
+function PictureBookReader({
+  model,
+  pageIndex,
+  onPageChange,
+  mediaUrls,
+  audioRef,
+  playing,
+  onPlayingChange,
+}: {
+  model: ProjectPreviewModel;
+  pageIndex: number;
+  onPageChange: (index: number) => void;
+  mediaUrls: Record<string, Record<string, string>>;
+  audioRef: MutableRefObject<HTMLAudioElement | null>;
+  playing: boolean;
+  onPlayingChange: (playing: boolean) => void;
+}) {
+  const section = model.sections[pageIndex];
+  if (!section) return <div className="flex h-full items-center justify-center text-white/60">No pages yet.</div>;
+  const urls = mediaUrls[section.path] ?? {};
+  const imageUrl = section.pageImagePath ? urls[section.pageImagePath] : undefined;
+  const voiceUrl = section.pageVoicePath ? urls[section.pageVoicePath] : undefined;
+  const playVoice = async () => {
+    const audio = audioRef.current;
+    if (!audio || !voiceUrl) return;
+    if (playing) {
+      audio.pause();
+      onPlayingChange(false);
+      return;
+    }
+    try {
+      await audio.play();
+      onPlayingChange(true);
+    } catch {
+      onPlayingChange(false);
+    }
+  };
+  return (
+    <div className="flex min-h-full flex-col items-center justify-center gap-5 bg-[#151311] px-4 py-6 text-white sm:px-8">
+      <div className="flex w-full max-w-6xl items-center justify-between text-sm text-white/65">
+        <span>{model.title}</span>
+        <span>{pageIndex + 1} / {model.sections.length}</span>
+      </div>
+      <article className="w-full max-w-6xl overflow-hidden border border-white/10 bg-[#fbf6e9] text-[#2d241d] shadow-2xl md:grid md:grid-cols-[minmax(0,1.7fr)_minmax(260px,0.8fr)]">
+        <div className="flex aspect-[16/9] items-center justify-center bg-white">
+          {imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={imageUrl} alt={section.title} className="h-full w-full object-cover" />
+          ) : <div className="text-sm text-muted-foreground">Illustration unavailable</div>}
+        </div>
+        <div className="flex min-h-56 flex-col justify-between gap-5 p-6 sm:p-8">
+          <div>
+            <p className="mb-2 text-xs uppercase tracking-[0.22em] text-[#876b52]">{section.title}</p>
+            <div className="prose prose-sm max-w-none text-[#2d241d]">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{section.body.replace(/^---[\s\S]*?---\s*/m, "")}</ReactMarkdown>
+            </div>
+          </div>
+          {voiceUrl && (
+            <div className="flex items-center gap-2">
+              <audio ref={audioRef} src={voiceUrl} onEnded={() => onPlayingChange(false)} />
+              <Button size="sm" onClick={playVoice} variant="outline" className="border-[#cbb99b] text-[#2d241d]">
+                {playing ? <Pause className="mr-2 size-4" /> : <Play className="mr-2 size-4" />}
+                {playing ? "Pause narration" : "Play narration"}
+              </Button>
+              <Button size="icon" variant="ghost" onClick={() => { if (audioRef.current) { audioRef.current.currentTime = 0; void audioRef.current.play(); onPlayingChange(true); } }} aria-label="Replay narration">
+                <RotateCcw className="size-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+      </article>
+      <div className="flex items-center gap-3">
+        <Button size="icon" variant="outline" disabled={pageIndex === 0} onClick={() => onPageChange(pageIndex - 1)} aria-label="Previous page"><ChevronLeft className="size-5" /></Button>
+        <div className="flex gap-1.5" aria-label="Page navigation">
+          {model.sections.map((item, index) => <button key={item.path} type="button" aria-label={`Go to page ${index + 1}`} aria-current={index === pageIndex ? "page" : undefined} onClick={() => onPageChange(index)} className={`size-2.5 rounded-full ${index === pageIndex ? "bg-white" : "bg-white/30"}`} />)}
+        </div>
+        <Button size="icon" variant="outline" disabled={pageIndex === model.sections.length - 1} onClick={() => onPageChange(pageIndex + 1)} aria-label="Next page"><ChevronRight className="size-5" /></Button>
+      </div>
+    </div>
   );
 }

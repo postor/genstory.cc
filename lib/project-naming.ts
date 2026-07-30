@@ -4,6 +4,7 @@ import type { Project } from "./local-projects";
 
 const TYPE_NAMES: Record<ContentTypeId, Record<Lang, string>> = {
   book: { zh: "图书", en: "Book" },
+  "picture-book": { zh: "绘本", en: "Picture Book" },
   comic: { zh: "漫画", en: "Comic" },
   "visual-novel": { zh: "视觉小说", en: "Visual Novel" },
   "interactive-video": { zh: "互动视频", en: "Interactive Video" },

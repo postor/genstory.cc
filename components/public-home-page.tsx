@@ -95,11 +95,6 @@ const homeUiCopy = {
     helpTitle: "需要帮助吗？",
     helpBody: "我随时在这里！",
     helperIntro: "保留结构，也保留创作的自由。",
-    mobileNav: "移动端导航",
-    mobileHome: "首页",
-    mobileProjects: "项目",
-    mobileExplore: "探索",
-    mobileMe: "我的",
   },
   en: {
     supportedTypes: "Built for many kinds of making",
@@ -116,11 +111,6 @@ const homeUiCopy = {
     helpTitle: "Need a hand?",
     helpBody: "CC is here when you need it.",
     helperIntro: "Keep the structure without losing creative freedom.",
-    mobileNav: "Mobile navigation",
-    mobileHome: "Home",
-    mobileProjects: "Projects",
-    mobileExplore: "Explore",
-    mobileMe: "Me",
   },
 } satisfies Record<PublicLang, Record<string, string>>;
 
@@ -387,15 +377,6 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
         </div>
       </section>
 
-      <nav
-        aria-label={ui.mobileNav}
-        className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 rounded-2xl border border-[#e8e2ff] bg-white/95 p-1.5 text-xs shadow-[0_14px_35px_rgba(48,36,91,0.16)] backdrop-blur sm:hidden"
-      >
-        <MobileNavLink href={localizedPath(lang)} label={ui.mobileHome} active />
-        <MobileNavLink href="/projects" label={ui.mobileProjects} />
-        <MobileNavLink href={localizedPath(lang, "types")} label={ui.mobileExplore} />
-        <MobileNavLink href="/settings" label={ui.mobileMe} />
-      </nav>
     </main>
   );
 }
@@ -461,27 +442,6 @@ function QuickStartItem({
         <span className="mt-1 block truncate text-xs text-[#8b88a4]">{body}</span>
       </span>
       <ArrowRight className="ml-auto size-4 shrink-0 text-[#b3add0] transition-transform group-hover:translate-x-0.5 group-hover:text-[#7653db]" />
-    </Link>
-  );
-}
-
-function MobileNavLink({
-  href,
-  label,
-  active = false,
-}: {
-  href: string;
-  label: string;
-  active?: boolean;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`flex min-h-11 items-center justify-center rounded-xl font-medium transition-colors ${
-        active ? "bg-[#eee8ff] text-[#7148db]" : "text-[#8986a3] hover:bg-[#f7f4ff]"
-      }`}
-    >
-      {label}
     </Link>
   );
 }

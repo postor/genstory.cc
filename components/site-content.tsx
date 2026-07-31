@@ -3,7 +3,9 @@
 import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 
-import { shouldShowSiteContentBackground } from "@/components/site-layout-routes";
+import {
+  shouldShowSiteContentBackground,
+} from "@/components/site-layout-routes";
 import { cn } from "@/lib/utils";
 
 export function SiteContent({ children }: { children: ReactNode }) {

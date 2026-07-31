@@ -44,6 +44,11 @@ import { nextDefaultProjectTitle } from "@/lib/project-naming";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { trackProjectCreated } from "@/lib/analytics";
+import {
+  hasAcceptedLegalTerms,
+  recordLegalTermsAcceptance,
+} from "@/lib/legal-consent";
+import { LegalConsentCheckbox } from "@/components/legal-consent-checkbox";
 
 const typeImages: Record<ContentTypeId, string> = {
   book: "/home/type-icons/book.png",
@@ -89,6 +94,10 @@ export default function NewClient() {
   const [title, setTitle] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [legalConsentState, setLegalConsentState] = useState<
+    "checking" | "required" | "accepted"
+  >("checking");
+  const [legalConsentChecked, setLegalConsentChecked] = useState(false);
   const [notice, setNotice] = useState<{
     title: string;
     description: string;
@@ -97,6 +106,10 @@ export default function NewClient() {
   useEffect(() => {
     document.title = t("meta.newTitle");
   }, [t]);
+
+  useEffect(() => {
+    setLegalConsentState(hasAcceptedLegalTerms() ? "accepted" : "required");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,6 +142,7 @@ export default function NewClient() {
   function closeCreateDialog() {
     setCreateTemplate(null);
     setTitle("");
+    setLegalConsentChecked(false);
   }
 
   async function handleSubmit() {
@@ -139,10 +153,21 @@ export default function NewClient() {
       });
       return;
     }
+    if (legalConsentState !== "accepted" && !legalConsentChecked) {
+      setNotice({
+        title: t("legal.consentRequiredTitle"),
+        description: t("legal.consentRequiredDescription"),
+      });
+      return;
+    }
     setSubmitting(true);
     try {
       if (!supportsFileSystemAccess()) {
         throw new Error(t("create.browserUnsupported"));
+      }
+      if (legalConsentState !== "accepted") {
+        recordLegalTermsAcceptance();
+        setLegalConsentState("accepted");
       }
       const now = Date.now();
       const id = crypto.randomUUID();
@@ -269,6 +294,9 @@ export default function NewClient() {
         inputLabel={t("create.name")}
         inputPlaceholder={t("create.namePlaceholder")}
         onTitleChange={setTitle}
+        requiresLegalConsent={legalConsentState !== "accepted"}
+        legalConsentChecked={legalConsentChecked}
+        onLegalConsentChange={setLegalConsentChecked}
         onSubmit={() => void handleSubmit()}
         onClose={closeCreateDialog}
       />
@@ -344,6 +372,9 @@ function CreateProjectDialog({
   inputLabel,
   inputPlaceholder,
   onTitleChange,
+  requiresLegalConsent,
+  legalConsentChecked,
+  onLegalConsentChange,
   onSubmit,
   onClose,
 }: {
@@ -357,6 +388,9 @@ function CreateProjectDialog({
   inputLabel: string;
   inputPlaceholder: string;
   onTitleChange: (value: string) => void;
+  requiresLegalConsent: boolean;
+  legalConsentChecked: boolean;
+  onLegalConsentChange: (checked: boolean) => void;
   onSubmit: () => void;
   onClose: () => void;
 }) {
@@ -439,6 +473,14 @@ function CreateProjectDialog({
                 />
               </div>
             </div>
+
+            {requiresLegalConsent ? (
+              <LegalConsentCheckbox
+                lang={lang}
+                checked={legalConsentChecked}
+                onChange={onLegalConsentChange}
+              />
+            ) : null}
           </div>
 
           <DialogFooter className="border-[#eeeafd] bg-[#fbfaff] sm:justify-between">
@@ -453,7 +495,10 @@ function CreateProjectDialog({
             </Button>
             <Button
               type="submit"
-              disabled={submitting}
+              disabled={
+                submitting ||
+                (requiresLegalConsent && !legalConsentChecked)
+              }
               className="border-0 bg-[#8754ff] text-white shadow-[0_12px_30px_rgba(95,44,255,0.24)] hover:bg-[#7642ef]"
             >
               {submitting ? (

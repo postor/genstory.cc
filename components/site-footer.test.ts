@@ -27,7 +27,8 @@ test("site content background is limited to non-home, non-immersive routes", () 
 test("site footer renders the requested copyright notice", async () => {
   const source = await readFile(new URL("./site-footer.tsx", import.meta.url), "utf8");
 
-  assert.match(source, /© 2026 GenStory\.cc 版权所有/);
+  assert.match(source, /© 2026 GenStory\.cc/);
+  assert.match(source, /lang === "zh" \? "版权所有" : "All rights reserved"/);
   assert.match(source, /mailto:postor@gmail\.com/);
   assert.match(source, /postor@gmail\.com[\s\S]*<\/a>/);
   assert.match(source, /if \(isImmersiveRoute\(pathname\)\)/);

@@ -155,6 +155,11 @@ const zh: Dict = {
   "create.noTemplateDescription": "请先选择一个项目类型，然后再继续创建作品。",
   "create.createFailedTitle": "创建作品失败",
   "create.createFailedDescription": "浏览器未能完成作品初始化，请检查权限或存储状态后重试。详细信息：{message}",
+  "legal.consentRequiredTitle": "请先确认使用说明",
+  "legal.consentRequiredDescription": "创建作品前，需要勾选并确认服务条款、隐私说明和 AI 使用说明。",
+  "legal.terms": "服务条款",
+  "legal.privacy": "隐私说明",
+  "legal.aiDisclosure": "AI 使用说明",
   "create.browserUnsupported":
     "当前浏览器不支持在浏览器中保存作品，请换用最新版 Chrome、Edge 或其他现代桌面浏览器。",
   "editor.title": "编辑作品",
@@ -504,6 +509,11 @@ const en: Dict = {
   "create.noTemplateDescription": "Choose a project type before creating the work.",
   "create.createFailedTitle": "Could not create the work",
   "create.createFailedDescription": "The browser could not finish initializing the work. Check browser permissions or storage state and try again. Details: {message}",
+  "legal.consentRequiredTitle": "Please confirm the usage notices",
+  "legal.consentRequiredDescription": "Before creating a work, check the box to confirm the Terms of Service, Privacy Notice, and AI Use Notice.",
+  "legal.terms": "Terms of Service",
+  "legal.privacy": "Privacy",
+  "legal.aiDisclosure": "AI Use Notice",
   "create.browserUnsupported":
     "This browser cannot save work in the browser. Use the latest Chrome, Edge, or another modern desktop browser.",
   "editor.title": "Edit work",

@@ -215,43 +215,46 @@ function HeaderExternalLinks({
 }) {
   return (
     <Popover>
-      <Button
-        className={cn(
-          itemClassName,
-          homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
-        )}
-        render={
-          <a
-            href="https://github.com/postor/genstory.cc"
-            target="_blank"
-            rel="noreferrer"
-          />
-        }
-        variant="ghost"
-        size={showSourceLabel ? "sm" : "icon-sm"}
-        aria-label={labels.sourceCode}
-        title={labels.sourceCode}
-        onClick={onNavigate}
-      >
-        <GitHubMark />
-        {showSourceLabel ? labels.sourceCodeShort : null}
-      </Button>
-
-      <PopoverTrigger
-        render={
-          <Button
-            className={cn(
-              homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
-            )}
-            variant="ghost"
-            size="icon-sm"
-            aria-label={labels.githubMenu}
-            title={labels.githubMenu}
-          />
-        }
-      >
-        <ChevronDown className="size-4" aria-hidden="true" />
-      </PopoverTrigger>
+      <div className={cn("flex items-center gap-1", showSourceLabel && "w-full")}>
+        <Button
+          className={cn(
+            showSourceLabel && "flex-1",
+            itemClassName,
+            homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
+          )}
+          render={
+            <a
+              href="https://github.com/postor/genstory.cc"
+              target="_blank"
+              rel="noreferrer"
+            />
+          }
+          variant="ghost"
+          size={showSourceLabel ? "sm" : "icon-sm"}
+          aria-label={labels.sourceCode}
+          title={labels.sourceCode}
+          onClick={onNavigate}
+        >
+          <GitHubMark />
+          {showSourceLabel ? labels.sourceCodeShort : null}
+        </Button>
+        <PopoverTrigger
+          render={
+            <Button
+              className={cn(
+                showSourceLabel && "shrink-0",
+                homeHeader && "text-white/75 hover:bg-white/10 hover:text-white",
+              )}
+              variant="ghost"
+              size="icon-sm"
+              aria-label={labels.githubMenu}
+              title={labels.githubMenu}
+            />
+          }
+        >
+          <ChevronDown className="size-4" aria-hidden="true" />
+        </PopoverTrigger>
+      </div>
       <PopoverPortal>
         <PopoverPositioner side="bottom" align="end" sideOffset={8}>
           <PopoverPopup

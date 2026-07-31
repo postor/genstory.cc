@@ -34,6 +34,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -100,6 +101,11 @@ import { useLang } from "@/lib/i18n";
 import { languageInfo } from "@/lib/platform-i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { ProjectTypeCover } from "@/components/project-cover";
+import { LegalConsentCheckbox } from "@/components/legal-consent-checkbox";
+import {
+  hasAcceptedLegalTerms,
+  recordLegalTermsAcceptance,
+} from "@/lib/legal-consent";
 
 type CloudAction = "upload" | "download";
 
@@ -141,6 +147,10 @@ export default function ProjectsPage() {
   const [importing, setImporting] = useState(false);
   const [pendingProjectImport, setPendingProjectImport] =
     useState<PendingProjectImport | null>(null);
+  const [pendingLegalImport, setPendingLegalImport] = useState<File | null>(
+    null
+  );
+  const [legalConsentChecked, setLegalConsentChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
   const [titleDraft, setTitleDraft] = useState("");
@@ -546,7 +556,7 @@ export default function ProjectsPage() {
     }
   }
 
-  async function handleImportSource(file: File | undefined) {
+  async function importSourceFile(file: File) {
     if (!file) return;
     setImporting(true);
     setError(null);
@@ -569,6 +579,24 @@ export default function ProjectsPage() {
       setImporting(false);
       if (importInputRef.current) importInputRef.current.value = "";
     }
+  }
+
+  function handleImportSource(file: File | undefined) {
+    if (!file) return;
+    if (!hasAcceptedLegalTerms()) {
+      setPendingLegalImport(file);
+      setLegalConsentChecked(false);
+      return;
+    }
+    void importSourceFile(file);
+  }
+
+  function confirmLegalImport() {
+    const file = pendingLegalImport;
+    if (!file || !legalConsentChecked) return;
+    recordLegalTermsAcceptance();
+    setPendingLegalImport(null);
+    void importSourceFile(file);
   }
 
   function progressText() {
@@ -637,9 +665,9 @@ export default function ProjectsPage() {
     .filter(Boolean)
     .join("\n\n");
   return (
-    <main className="min-h-full bg-[linear-gradient(180deg,#f8f6ff_0%,#ffffff_34%,#fbfaff_100%)] text-[#121331]">
+    <main className="min-h-full text-[#121331]">
       <div className="mx-auto w-full max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-        <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+        <div className="mb-8 flex flex-col gap-6">
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -660,7 +688,7 @@ export default function ProjectsPage() {
               </Link>
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <input
               ref={importInputRef}
               type="file"
@@ -671,7 +699,7 @@ export default function ProjectsPage() {
             <Button
               type="button"
               variant="outline"
-              className="border-[#ddd3ff] bg-white/75 text-[#5e469c] shadow-[0_8px_18px_rgba(92,75,160,0.05)] hover:border-[#cfc0ff] hover:bg-[#f3efff] hover:text-[#4f35a2]"
+              className="w-full justify-center border-[#ddd3ff] bg-white/75 text-[#5e469c] shadow-[0_8px_18px_rgba(92,75,160,0.05)] hover:border-[#cfc0ff] hover:bg-[#f3efff] hover:text-[#4f35a2]"
               onClick={() => importInputRef.current?.click()}
               disabled={importing}
             >
@@ -681,7 +709,7 @@ export default function ProjectsPage() {
             <Button
               type="button"
               variant="outline"
-              className="border-[#ddd3ff] bg-white/75 text-[#5e469c] shadow-[0_8px_18px_rgba(92,75,160,0.05)] hover:border-[#cfc0ff] hover:bg-[#f3efff] hover:text-[#4f35a2]"
+              className="w-full justify-center border-[#ddd3ff] bg-white/75 text-[#5e469c] shadow-[0_8px_18px_rgba(92,75,160,0.05)] hover:border-[#cfc0ff] hover:bg-[#f3efff] hover:text-[#4f35a2]"
               onClick={() => void prepareCloudDownload()}
               disabled={cloudOperation !== null || importing}
             >
@@ -691,7 +719,7 @@ export default function ProjectsPage() {
             <Button
               type="button"
               variant="outline"
-              className="border-[#ddd3ff] bg-white/75 text-[#5e469c] shadow-[0_8px_18px_rgba(92,75,160,0.05)] hover:border-[#cfc0ff] hover:bg-[#f3efff] hover:text-[#4f35a2]"
+              className="w-full justify-center border-[#ddd3ff] bg-white/75 text-[#5e469c] shadow-[0_8px_18px_rgba(92,75,160,0.05)] hover:border-[#cfc0ff] hover:bg-[#f3efff] hover:text-[#4f35a2]"
               onClick={() => void prepareCloudUpload()}
               disabled={cloudOperation !== null || importing}
             >
@@ -700,7 +728,7 @@ export default function ProjectsPage() {
             </Button>
             <Button
               render={<Link href="/projects/new" />}
-              className="bg-[#8754ff] text-white shadow-[0_12px_30px_rgba(95,44,255,0.24)] hover:bg-[#7642ef]"
+              className="w-full justify-center bg-[#8754ff] text-white shadow-[0_12px_30px_rgba(95,44,255,0.24)] hover:bg-[#7642ef]"
             >
               <Plus className="size-4" />
               {t("projects.new")}
@@ -860,6 +888,61 @@ export default function ProjectsPage() {
           </div>
         ) : null}
       </InteractionModal>
+      <Dialog
+        open={pendingLegalImport !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingLegalImport(null);
+            setLegalConsentChecked(false);
+            if (importInputRef.current) importInputRef.current.value = "";
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="border-[#e8e0ff] bg-white/95 p-0 text-[#121331] shadow-[0_24px_70px_rgba(61,45,120,0.2)] sm:max-w-md"
+        >
+          <div className="space-y-5 p-5 sm:p-6">
+            <DialogHeader>
+              <DialogTitle className="text-lg font-bold text-[#252047]">
+                {lang === "zh" ? "导入本地作品备份" : "Import a local work backup"}
+              </DialogTitle>
+              <DialogDescription className="leading-6 text-[#7a7897]">
+                {lang === "zh"
+                  ? "导入会把备份内容写入当前浏览器。继续前，请确认你已阅读相关说明。"
+                  : "Importing writes the backup into this browser. Confirm the notices before continuing."}
+              </DialogDescription>
+            </DialogHeader>
+            <LegalConsentCheckbox
+              lang={lang}
+              checked={legalConsentChecked}
+              onChange={setLegalConsentChecked}
+            />
+          </div>
+          <DialogFooter className="border-[#eeeafd] bg-[#fbfaff] sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setPendingLegalImport(null);
+                setLegalConsentChecked(false);
+                if (importInputRef.current) importInputRef.current.value = "";
+              }}
+              className="border-[#d8cdf9] bg-white text-[#6844c7] hover:border-[#bba7f4] hover:bg-white hover:text-[#4c27ba]"
+            >
+              {t("common.cancel")}
+            </Button>
+            <Button
+              type="button"
+              disabled={!legalConsentChecked || importing}
+              onClick={confirmLegalImport}
+              className="border-0 bg-[#8754ff] text-white shadow-[0_12px_30px_rgba(95,44,255,0.24)] hover:bg-[#7642ef]"
+            >
+              {lang === "zh" ? "继续导入" : "Continue import"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       <InteractionModal
         open={cloudConfirm === "upload"}
         onOpenChange={(open) => {

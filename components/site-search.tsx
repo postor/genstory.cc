@@ -120,7 +120,7 @@ export function SiteSearch({
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent
-          className="max-w-lg gap-0 overflow-x-hidden p-0"
+          className="max-w-lg gap-0 overflow-x-hidden p-0 pt-9"
           aria-label={copy.dialogLabel}
         >
           <DialogTitle className="sr-only">{copy.dialogLabel}</DialogTitle>

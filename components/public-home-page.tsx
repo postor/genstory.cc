@@ -124,9 +124,33 @@ const homeUiCopy = {
   },
 } satisfies Record<PublicLang, Record<string, string>>;
 
+function splitHeroSubtitle(text: string, lang: PublicLang): [string, string] {
+  const separator = lang === "zh" ? "，" : " for ";
+  const separatorIndex = text.indexOf(separator);
+
+  if (separatorIndex < 0) return [text, ""];
+
+  return lang === "zh"
+    ? [text.slice(0, separatorIndex + separator.length), text.slice(separatorIndex + separator.length)]
+    : [text.slice(0, separatorIndex), text.slice(separatorIndex + 1)];
+}
+
+function splitHeroTitle(text: string, lang: PublicLang): [string, string] {
+  const separator = lang === "zh" ? "，" : " a world";
+  const separatorIndex = text.indexOf(separator);
+
+  if (separatorIndex < 0) return [text, ""];
+
+  return lang === "zh"
+    ? [text.slice(0, separatorIndex + separator.length), text.slice(separatorIndex + separator.length)]
+    : [text.slice(0, separatorIndex), text.slice(separatorIndex + 1)];
+}
+
 export function PublicHomePage({ lang }: { lang: PublicLang }) {
   const t = publicHomeCopy[lang];
   const ui = homeUiCopy[lang];
+  const titleLines = splitHeroTitle(t.heroTitle, lang);
+  const subtitleLines = splitHeroSubtitle(t.heroSubtitle, lang);
 
   return (
     <main lang={languageInfo[lang].htmlLang} className="overflow-hidden bg-[#fbfaff] text-[#121331]">
@@ -140,35 +164,30 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
           className="pointer-events-none z-0 object-cover object-center"
         />
         <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] hidden w-[70%] bg-gradient-to-r from-[#07091f]/90 via-[#07091f]/65 to-transparent lg:block" />
-        <Image
-          src={bannerForeground}
-          alt="CC 角色在故事世界中展开创作"
-          width={1254}
-          height={1254}
-          priority
-          sizes="(max-width: 1023px) 100vw, 481px"
-          className="pointer-events-none absolute bottom-0 right-0 z-[2] aspect-square h-auto w-[min(545px,100vw)] max-w-full lg:right-[15%] lg:h-[calc(100%_-_4rem)] lg:w-auto"
-        />
-        <div className="pointer-events-none absolute inset-y-0 left-0 z-[3] w-[72%] bg-gradient-to-r from-[#07091f]/95 via-[#07091f]/80 to-transparent lg:hidden" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 z-[3] w-[72%] bg-gradient-to-r from-[#07091f]/95 via-[#07091f]/80 to-transparent md:hidden" />
 
-        <div className="relative z-10 mx-auto h-[545px] max-w-7xl px-4 sm:px-6 lg:flex lg:items-center lg:px-8 lg:pt-16">
-          <div className="max-w-xl pb-7 pt-16 sm:pt-20 lg:pb-0 lg:pt-0">
-            <h1 className="max-w-xl text-4xl font-bold leading-[1.12] tracking-[0.01em] drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)] sm:text-6xl lg:whitespace-nowrap lg:text-5xl xl:text-6xl">
-              {t.heroTitle.includes("，") ? (
-                <>
-                  {t.heroTitle.split("，")[0]}，
-                  <span className="bg-gradient-to-r from-[#d6c2ff] via-[#b17cff] to-[#8d57ff] bg-clip-text text-transparent">
-                    {t.heroTitle.split("，")[1]}
-                  </span>
-                </>
-              ) : (
-                t.heroTitle
-              )}
+        <div className="relative z-10 mx-auto flex min-h-[620px] max-w-7xl flex-col items-center gap-4 px-4 pb-6 pt-20 md:h-[480px] md:min-h-0 md:flex-row md:gap-5 md:px-6 md:pb-0 md:pt-16 lg:h-[545px] lg:gap-8 lg:px-8 lg:pt-16">
+          <div className="order-last flex w-full flex-col items-center text-center md:order-first md:min-w-0 md:flex-1 md:items-start md:text-left">
+            <h1 className="max-w-none break-words text-3xl font-bold leading-[1.12] tracking-[0.01em] drop-shadow-[0_8px_24px_rgba(0,0,0,0.28)] md:text-4xl lg:text-5xl xl:text-6xl">
+              <span className="block lg:inline">{titleLines[0]}</span>
+              {lang === "en" ? " " : null}
+              {titleLines[1] ? (
+                <span
+                  className={`block lg:inline ${
+                    lang === "zh"
+                      ? "bg-gradient-to-r from-[#d6c2ff] via-[#b17cff] to-[#8d57ff] bg-clip-text text-transparent"
+                      : ""
+                  }`}
+                >
+                  {titleLines[1]}
+                </span>
+              ) : null}
             </h1>
-            <p className="mt-5 max-w-lg text-base leading-7 text-white/75 sm:text-lg">
-              {t.heroSubtitle}
+            <p className="mt-4 max-w-lg text-base leading-7 text-white/75 lg:mt-5 lg:text-lg">
+              <span className="block lg:inline">{subtitleLines[0]}</span>{" "}
+              {subtitleLines[1] ? <span className="block lg:inline">{subtitleLines[1]}</span> : null}
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
+            <div className="mt-7 hidden flex-wrap gap-3 md:flex">
               <Button
                 render={<Link href="/projects/new" />}
                 size="lg"
@@ -187,9 +206,9 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
                 {t.ctaBrowseTypes}
               </Button>
             </div>
-            <div className="mt-7">
+            <div className="mt-7 hidden md:block">
               <p className="text-sm text-white/45">{ui.supportedTypes}</p>
-              <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
+              <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-sm text-white/70 lg:grid-cols-3 xl:flex xl:flex-wrap">
                 {contentTypes.map((type) => {
                   const Icon = typeIcons[type.id];
                   return (
@@ -206,13 +225,24 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
               </div>
             </div>
           </div>
+          <div className="pointer-events-none relative order-first z-[2] aspect-square w-[min(360px,100%)] max-w-full md:order-last md:w-[38%] md:max-w-[360px] md:shrink-0 lg:w-[42%] lg:max-w-[481px]">
+            <Image
+              src={bannerForeground}
+              alt="CC 角色在故事世界中展开创作"
+              width={1254}
+              height={1254}
+              priority
+              sizes="(max-width: 1023px) 100vw, 481px"
+              className="h-full w-full object-contain object-bottom"
+            />
+          </div>
         </div>
       </section>
 
       <section className="relative bg-[linear-gradient(180deg,#f8f6ff_0%,#ffffff_34%,#fbfaff_100%)]">
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
           <div className="grid gap-10 xl:grid-cols-[minmax(0,1fr)_320px]">
-            <div>
+            <div className="min-w-0">
               <section id="work-types" className="scroll-mt-20">
                 <div className="mb-5 flex items-end justify-between gap-4">
                   <div>
@@ -235,7 +265,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
                   {contentTypes.map((type) => (
                     <CreationTypeCard key={type.id} lang={lang} type={type} />
                   ))}
@@ -390,15 +420,20 @@ function CreationTypeCard({
               className="object-contain object-center transition-opacity group-hover:opacity-90"
             />
           </div>
-          <CardTitle className="text-sm sm:text-base">{type.label[lang]}</CardTitle>
+          <div className="flex items-start justify-between gap-2">
+            <CardTitle className="min-w-0 text-sm sm:text-base">
+              {type.label[lang]}
+            </CardTitle>
+            <span className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-[#f2edff] px-2 py-1 text-xs font-semibold text-[#7148db] transition-colors group-hover:bg-[#8754ff] group-hover:text-white">
+              Go
+              <ArrowRight className="size-3.5" aria-hidden="true" />
+            </span>
+          </div>
         </CardHeader>
-        <CardContent className="flex flex-1 flex-col justify-between gap-3 p-3 pt-1 sm:p-4 sm:pt-1">
+        <CardContent className="flex flex-1 flex-col gap-3 p-3 pt-1 sm:p-4 sm:pt-1">
           <CardDescription className="text-xs leading-5 text-[#7a7897]">
             {typeShortDescriptions[type.id][lang]}
           </CardDescription>
-          <span className="grid size-8 place-items-center self-end rounded-full bg-[#f2edff] text-[#7148db] transition-colors group-hover:bg-[#8754ff] group-hover:text-white">
-            <ArrowRight className="size-4" />
-          </span>
         </CardContent>
       </Link>
     </Card>

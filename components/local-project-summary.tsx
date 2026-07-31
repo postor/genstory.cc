@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { Grid2X2, ListFilter, MoreHorizontal, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { contentTypes, type ContentTypeId } from "@/lib/content-types";
-import { openProjectDirectory, readFile } from "@/lib/file-system/browser";
 import { useLang } from "@/lib/i18n";
 import { listProjects, type Project } from "@/lib/local-projects";
+import {
+  hasProjectCoverUrl,
+  projectTypeImages,
+  readProjectCoverUrl,
+} from "@/lib/project-cover";
 import { localizedPath } from "@/lib/seo";
+import { ProjectCover } from "@/components/project-cover";
 
 const sampleWorks: Array<{
   title: Record<"zh" | "en", string>;
@@ -56,24 +60,6 @@ const sampleWorks: Array<{
     updated: { zh: "2 周前", en: "2 weeks ago" },
   },
 ];
-
-const typeImages: Record<ContentTypeId, string> = {
-  book: "/home/type-icons/book.png",
-  "picture-book": "/home/type-icons/book.png",
-  comic: "/home/type-icons/comic.png",
-  "visual-novel": "/home/type-icons/visual-novel.png",
-  "interactive-video": "/home/type-icons/video.png",
-  "phaser-game": "/home/type-icons/game.png",
-};
-
-const typeImageDimensions: Record<ContentTypeId, { width: number; height: number }> = {
-  book: { width: 278, height: 172 },
-  "picture-book": { width: 278, height: 172 },
-  comic: { width: 285, height: 207 },
-  "visual-novel": { width: 310, height: 219 },
-  "interactive-video": { width: 356, height: 242 },
-  "phaser-game": { width: 315, height: 219 },
-};
 
 type DisplayWork = {
   id?: string;
@@ -147,7 +133,7 @@ export function LocalProjectSummary() {
               id: project.id,
               title: project.title,
               template: project.template,
-              image: coverImage ?? typeImages[project.template],
+              image: coverImage ?? projectTypeImages[project.template],
               isTypeImage: !coverImage,
               updated: new Date(project.updatedAt).toLocaleDateString(
                 lang === "zh" ? "zh-CN" : "en-US",
@@ -166,9 +152,9 @@ export function LocalProjectSummary() {
   );
 
   return (
-    <section aria-label={t("nav.projects")}>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
-        <div>
+    <section aria-label={t("nav.projects")} className="min-w-0">
+      <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
           <div className="flex items-center gap-3">
             <h2 id="my-works-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
               {lang === "zh" ? "我的作品" : "My works"}
@@ -194,7 +180,7 @@ export function LocalProjectSummary() {
         </Button>
       </div>
 
-      <div className="mb-5 flex max-w-full gap-1 overflow-x-auto pb-1">
+      <div className="mb-5 flex w-full min-w-0 max-w-full gap-1 overflow-x-auto pb-1">
         <FilterButton
           active={activeFilter === "all"}
           label={lang === "zh" ? "全部" : "All"}
@@ -217,42 +203,12 @@ export function LocalProjectSummary() {
           return (
             <Card key={work.id ?? work.title} className="group overflow-hidden border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-shadow hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
               <Link href={work.href}>
-                <div className="relative flex aspect-[2.2/1] items-center justify-center overflow-hidden bg-[#eeeaff]">
-                  {work.image.startsWith("blob:") ? (
-                    <>
-                      {/* Local OPFS previews use blob URLs; Next Image can render those as broken images. */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={work.image}
-                        alt=""
-                        className={
-                          work.isTypeImage
-                            ? "h-full w-full object-contain object-center"
-                            : "h-full w-full object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]"
-                        }
-                      />
-                    </>
-                  ) : (
-                    work.isTypeImage ? (
-                      <Image
-                        src={work.image}
-                        alt=""
-                        width={typeImageDimensions[work.template].width}
-                        height={typeImageDimensions[work.template].height}
-                        sizes="(max-width: 640px) 78vw, 39vw"
-                        className="h-auto w-auto max-h-[78%] max-w-[78%] object-contain object-center"
-                      />
-                    ) : (
-                      <Image
-                        src={work.image}
-                        alt=""
-                        fill
-                        sizes="(max-width: 640px) 100vw, 50vw"
-                        className="object-cover object-center transition-transform duration-300 group-hover:scale-[1.03]"
-                      />
-                    )
-                  )}
-                </div>
+                <ProjectCover
+                  image={work.image}
+                  isTypeImage={work.isTypeImage}
+                  template={work.template}
+                  sizes="(max-width: 640px) 100vw, 50vw"
+                />
                 <div className="flex items-start justify-between gap-3 px-4 pb-4 pt-3">
                   <div className="min-w-0">
                     <h3 className="truncate font-semibold text-[#242044]">{work.title}</h3>
@@ -311,28 +267,4 @@ function FilterButton({
       {label}
     </button>
   );
-}
-
-function hasProjectCoverUrl(entry: readonly [string, string | undefined]): entry is [string, string] {
-  return Boolean(entry[1]);
-}
-
-async function readProjectCoverUrl(project: Project): Promise<string | undefined> {
-  try {
-    const root = await openProjectDirectory(project.template, project.id);
-
-    for (const filename of ["cover.jpg", "cover.png"]) {
-      try {
-        const file = await readFile(root, filename);
-        return URL.createObjectURL(file);
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "NotFoundError") continue;
-        throw error;
-      }
-    }
-  } catch {
-    return undefined;
-  }
-
-  return undefined;
 }

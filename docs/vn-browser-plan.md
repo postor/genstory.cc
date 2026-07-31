@@ -130,8 +130,10 @@ AGENTS.md → 项目/章节/场景 meta.md → 当前选中的源文件
 资源，并还原原始引擎 Service Worker，不把浏览器桥接 SW 带入独立项目。
 
 项目列表和编辑器提供“下载源码”，导出当前 OPFS 项目目录的可编辑 source ZIP。项目列表
-提供“导入源码 ZIP”，用于恢复 GenStory.cc 自己导出的未压缩 source ZIP。导入会校验
-`meta.md` 与 `AGENTS.md`，推断项目类型，并写入新的 OPFS 目录；它不会覆盖已有项目。
+提供“导入备份”，会自动识别单项目 source ZIP 和整站 workspace ZIP。单项目备份会创建
+新的项目 ID；整站备份会恢复备份中的项目 ID 和项目元数据。导入前会列出当前浏览器中
+已经存在的同 ID 项目，确认后才覆盖这些项目的文件和索引，取消则整个批次不写入。
+两种备份都会校验 `meta.md` 与 `AGENTS.md`，并推断或读取项目类型。
 
 `public/webgal/` 是生成目录且被 gitignore。`npm run dev` 与 `npm run build` 都会先执行
 `npm run sync-webgal`；如果 `vn-template/node_modules/webgal-engine/dist` 不存在，同步脚本会

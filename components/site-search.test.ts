@@ -8,5 +8,9 @@ test("search candidates identify their kind and do not show the keyboard shortcu
   assert.match(source, /\{result\.kindLabel\}/);
   assert.match(source, /highlightText\(result\.title, query\)/);
   assert.match(source, /highlightText\(result\.content, query\)/);
+  assert.match(
+    source,
+    /className="max-w-lg gap-0 overflow-x-hidden p-0 pt-9"/,
+  );
   assert.doesNotMatch(source, /Ctrl K/);
 });

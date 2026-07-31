@@ -48,10 +48,10 @@ export function SiteHeader() {
     <>
       <header
         className={cn(
-          "sticky top-0 z-40 border-b backdrop-blur transition-colors duration-300 lg:fixed lg:inset-x-0",
+          "top-0 z-40 border-b transition-colors duration-300",
           homeHeader
-            ? "home-header-scroll-surface border-white/10 bg-[#07091f]/90 text-white supports-[backdrop-filter]:bg-[#07091f]/75 lg:border-b lg:border-transparent lg:bg-transparent lg:backdrop-blur-none lg:supports-[backdrop-filter]:bg-transparent"
-            : "border-white/10 bg-[#07091f] text-white",
+            ? "fixed inset-x-0 home-header-scroll-surface border-white/10 bg-transparent text-white backdrop-blur-none supports-[backdrop-filter]:bg-transparent lg:border-b lg:border-transparent"
+            : "sticky border-white/10 bg-[#07091f] text-white backdrop-blur lg:fixed lg:inset-x-0",
         )}
       >
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">

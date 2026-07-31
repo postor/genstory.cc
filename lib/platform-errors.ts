@@ -19,6 +19,12 @@ const ZH_TO_EN: Record<string, string> = {
     "The project backup is missing project metadata (meta.md) and cannot be restored.",
   "项目备份缺少创作规则文件，无法恢复作品":
     "The project backup is missing the project rules file and cannot be restored.",
+  "整站备份的工作区清单损坏，无法导入":
+    "The workspace manifest is corrupted and cannot be imported.",
+  "整站备份中没有可恢复的作品":
+    "The workspace backup contains no restorable works.",
+  "这是整站备份，请从项目列表导入整站备份":
+    "This is a workspace backup. Import it from the Projects page.",
   "模板资产加载失败": "Failed to load template asset",
   "模板二进制文件缺少来源": "Template binary file is missing a source",
   "Phaser 运行时尚未准备好，请重新加载应用后再导出":
@@ -63,6 +69,12 @@ const EN_TO_ZH: Record<string, string> = {
     "项目备份缺少作品信息（meta.md），无法恢复作品",
   "The project backup is missing the project rules file and cannot be restored.":
     "项目备份缺少创作规则文件，无法恢复作品",
+  "The workspace manifest is corrupted and cannot be imported.":
+    "整站备份的工作区清单损坏，无法导入",
+  "The workspace backup contains no restorable works.":
+    "整站备份中没有可恢复的作品",
+  "This is a workspace backup. Import it from the Projects page.":
+    "这是整站备份，请从项目列表导入整站备份",
   "Failed to load template asset": "模板资产加载失败",
   "Template binary file is missing a source": "模板二进制文件缺少来源",
   "The Phaser runtime is not ready yet. Reload the app and try exporting again.":

@@ -55,3 +55,24 @@ test("site header exposes the searchable project and document palette", async ()
   assert.match(source, /<SiteSearch lang=\{publicLang\} homeHeader=\{homeHeader\} \/>/);
   assert.doesNotMatch(source, /render=\{<Link href="#work-types" \/>/);
 });
+
+test("homepage header uses the scroll surface on mobile as well as desktop", async () => {
+  const headerSource = await readFile(
+    new URL("./site-header.tsx", import.meta.url),
+    "utf8",
+  );
+  const styles = await readFile(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(headerSource, /homeHeader\s*\?\s*"fixed inset-x-0/);
+  assert.match(
+    styles,
+    /\.home-header-scroll-surface\s*\{[\s\S]*animation-timeline:\s*scroll\(root\)/,
+  );
+  assert.doesNotMatch(
+    styles,
+    /@media\s*\(min-width:\s*1024px\)[\s\S]{0,160}\.home-header-scroll-surface/,
+  );
+});

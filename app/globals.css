@@ -164,10 +164,8 @@ html {
   }
 }
 
-@media (min-width: 1024px) {
-  .home-header-scroll-surface {
-    animation: home-header-surface 1s linear both;
-    animation-range: 0 300px;
-    animation-timeline: scroll(root);
-  }
+.home-header-scroll-surface {
+  animation: home-header-surface 1s linear both;
+  animation-range: 0 300px;
+  animation-timeline: scroll(root);
 }

@@ -11,6 +11,10 @@ test("home page sends creation-type exploration to local categories", async () =
   assert.match(source, /id="work-types"/);
   assert.match(source, /\/home\/type-icons\//);
   assert.match(source, /object-contain object-center/);
+  assert.match(source, /grid grid-cols-2 gap-3 lg:grid-cols-3/);
+  assert.match(source, /<div className="min-w-0">/);
+  assert.match(source, /flex items-start justify-between gap-2/);
+  assert.match(source, />\s*Go\s*<[\s\S]*ArrowRight/);
   assert.doesNotMatch(source, /group-hover:scale-105/);
   assert.doesNotMatch(source, /continueWork: "星之旅人"/);
   assert.doesNotMatch(source, /continueType: "视觉小说"/);

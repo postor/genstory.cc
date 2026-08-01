@@ -1,10 +1,11 @@
 import type { ContentTypeId } from "@/lib/content-types";
 import { openProjectDirectory, readFile } from "@/lib/file-system/browser";
 import type { Project } from "@/lib/local-projects";
+import pictureBookImage from "@/docs/design/icons/picture-book.png";
 
 export const projectTypeImages: Record<ContentTypeId, string> = {
   book: "/home/type-icons/book.png",
-  "picture-book": "/home/type-icons/book.png",
+  "picture-book": pictureBookImage.src,
   comic: "/home/type-icons/comic.png",
   "visual-novel": "/home/type-icons/visual-novel.png",
   "interactive-video": "/home/type-icons/video.png",
@@ -16,7 +17,7 @@ export const projectTypeImageDimensions: Record<
   { width: number; height: number }
 > = {
   book: { width: 278, height: 172 },
-  "picture-book": { width: 278, height: 172 },
+  "picture-book": { width: 419, height: 225 },
   comic: { width: 285, height: 207 },
   "visual-novel": { width: 310, height: 219 },
   "interactive-video": { width: 356, height: 242 },

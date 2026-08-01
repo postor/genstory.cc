@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
-  Feather,
+  BookOpenText,
+  FilePenLine,
   Loader2,
   Sparkles,
 } from "lucide-react";
@@ -18,6 +19,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import helperIcon from "@/docs/design/icons/helper-icon.png";
+import pictureBookImage from "@/docs/design/icons/picture-book.png";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -52,7 +55,7 @@ import { LegalConsentCheckbox } from "@/components/legal-consent-checkbox";
 
 const typeImages: Record<ContentTypeId, string> = {
   book: "/home/type-icons/book.png",
-  "picture-book": "/home/type-icons/book.png",
+  "picture-book": pictureBookImage.src,
   comic: "/home/type-icons/comic.png",
   "visual-novel": "/home/type-icons/visual-novel.png",
   "interactive-video": "/home/type-icons/video.png",
@@ -89,10 +92,13 @@ const assistantNotes: Record<ContentTypeId, { title: string; body: string }> = {
 export default function NewClient() {
   const { lang, t } = useLang();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [createTemplate, setCreateTemplate] = useState<ContentTypeId | null>(null);
   const [title, setTitle] = useState("");
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
+  const [handledTemplate, setHandledTemplate] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [legalConsentState, setLegalConsentState] = useState<
     "checking" | "required" | "accepted"
@@ -118,16 +124,36 @@ export default function NewClient() {
       .then((items) => {
         if (cancelled) return;
         setProjects(items);
+        setProjectsLoaded(true);
       })
       .catch(() => {
         if (cancelled) return;
         setProjects([]);
+        setProjectsLoaded(true);
       });
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (!projectsLoaded) return;
+
+    const nextTemplate = searchParams.get("template");
+    if (!nextTemplate || handledTemplate === nextTemplate) return;
+
+    setHandledTemplate(nextTemplate);
+
+    const matchedTemplate = contentTypes.find(
+      (type) => type.id === nextTemplate
+    )?.id;
+
+    if (!matchedTemplate) return;
+
+    setCreateTemplate(matchedTemplate);
+    setTitle(nextDefaultProjectTitle(matchedTemplate, lang, projects));
+  }, [handledTemplate, lang, projects, projectsLoaded, searchParams]);
 
   const createType = createTemplate
     ? contentTypes.find((c) => c.id === createTemplate)
@@ -226,7 +252,7 @@ export default function NewClient() {
       <div className="relative mx-auto w-full max-w-7xl px-4 py-8 pb-12 sm:px-6 sm:py-10 lg:px-8 lg:pb-16">
         <div className="mb-8 flex items-start justify-between gap-4 sm:mb-10">
           <div className="flex items-start gap-3 sm:gap-4">
-            <Feather
+            <BookOpenText
               aria-hidden="true"
               className="mt-1 size-9 shrink-0 text-[#9f7aff] sm:size-12"
             />
@@ -462,7 +488,10 @@ function CreateProjectDialog({
                 {inputLabel}
               </Label>
               <div className="flex items-center gap-3 rounded-xl border border-[#b79cff] bg-white px-3 shadow-[0_8px_22px_rgba(122,81,220,0.08)] transition-colors focus-within:border-[#8754ff] focus-within:ring-3 focus-within:ring-[#9f7aff]/20">
-                <Feather aria-hidden="true" className="size-5 shrink-0 text-[#a78af0]" />
+                <FilePenLine
+                  aria-hidden="true"
+                  className="size-5 shrink-0 text-[#a78af0]"
+                />
                 <Input
                   id="create-project-name"
                   autoFocus
@@ -483,7 +512,7 @@ function CreateProjectDialog({
             ) : null}
           </div>
 
-          <DialogFooter className="border-[#eeeafd] bg-[#fbfaff] sm:justify-between">
+          <DialogFooter className="mx-5 mb-5 border-[#eeeafd] bg-[#fbfaff] sm:mx-6 sm:mb-6 sm:justify-between">
             <Button
               type="button"
               variant="outline"
@@ -518,18 +547,18 @@ function CreateProjectDialog({
 function AssistantCard({ lang }: { lang: "zh" | "en" }) {
   return (
     <Card className="overflow-hidden border-[#e8e3ff] bg-white/85 shadow-[0_18px_45px_rgba(88,67,166,0.1)]">
-      <div className="relative h-36 overflow-hidden bg-[linear-gradient(145deg,#efe8ff_0%,#ffffff_82%)] sm:h-44">
-        <div className="absolute -right-8 -top-10 size-32 rounded-full bg-[#d7c7ff]/45 blur-2xl" />
-        <Image
-          src="/home/fg.png"
-          alt=""
-          fill
-          sizes="320px"
-          className="relative object-contain object-bottom"
-        />
-      </div>
-      <CardContent className="space-y-5 p-5 sm:p-6">
-        <div>
+      <CardHeader className="flex flex-row items-center gap-3 p-5 pb-0 sm:p-6 sm:pb-0">
+        <div className="grid size-12 shrink-0 place-items-center rounded-xl bg-[#f3efff]">
+          <Image
+            src={helperIcon}
+            alt=""
+            width={48}
+            height={48}
+            sizes="48px"
+            className="size-10 object-contain"
+          />
+        </div>
+        <div className="min-w-0">
           <p className="text-sm font-semibold text-[#7653db]">
             {lang === "zh" ? "CC 创作助手" : "CC creative assistant"}
           </p>
@@ -537,6 +566,8 @@ function AssistantCard({ lang }: { lang: "zh" | "en" }) {
             {lang === "zh" ? "选定类型后再命名" : "Pick a format, then name it"}
           </h2>
         </div>
+      </CardHeader>
+      <CardContent className="space-y-5 p-5 pt-4 sm:p-6 sm:pt-5">
         <div className="rounded-xl border border-[#e8e0ff] bg-[#f8f5ff] px-4 py-3">
           <p className="text-sm leading-6 text-[#6d5d9b]">
             {lang === "zh"

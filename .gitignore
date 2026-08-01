@@ -50,3 +50,6 @@ next-env.d.ts
 /vn-template/dist
 /vn-template/node_modules
 /vn-template/export
+
+# local Docker release archives
+/release/

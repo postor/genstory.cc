@@ -136,8 +136,9 @@ AGENTS.md → 项目/章节/场景 meta.md → 当前选中的源文件
 两种备份都会校验 `meta.md` 与 `AGENTS.md`，并推断或读取项目类型。
 
 `public/webgal/` 是生成目录且被 gitignore。`npm run dev` 与 `npm run build` 都会先执行
-`npm run sync-webgal`；如果 `vn-template/node_modules/webgal-engine/dist` 不存在，同步脚本会
-在 `vn-template/` 内执行 `npm ci` 后再复制引擎。
+`npm run sync-webgal`；同步脚本从主项目的 `node_modules/webgal-engine/dist` 复制引擎，
+不会安装或读取 `vn-template/node_modules`。因此主项目只需要在仓库根目录执行一次
+`npm install`（或 CI 中执行 `npm ci`）。
 
 ## SSG 与浏览器 API
 

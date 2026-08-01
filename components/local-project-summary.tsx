@@ -18,46 +18,25 @@ import { localizedPath } from "@/lib/seo";
 import { ProjectCover } from "@/components/project-cover";
 
 const sampleWorks: Array<{
-  title: Record<"zh" | "en", string>;
   template: ContentTypeId;
-  image: string;
-  updated: Record<"zh" | "en", string>;
 }> = [
   {
-    title: { zh: "星之旅人", en: "Starfarer" },
     template: "visual-novel",
-    image: "/home/work-star.png",
-    updated: { zh: "2 小时前", en: "2 hours ago" },
   },
   {
-    title: { zh: "代号：深渊", en: "Project: Abyss" },
     template: "comic",
-    image: "/home/work-manga.png",
-    updated: { zh: "昨天", en: "Yesterday" },
   },
   {
-    title: { zh: "永夜之城", en: "City of Night" },
     template: "book",
-    image: "/home/work-castle.png",
-    updated: { zh: "3 天前", en: "3 days ago" },
   },
   {
-    title: { zh: "时之回响", en: "Echoes of Time" },
     template: "interactive-video",
-    image: "/home/work-video.png",
-    updated: { zh: "1 周前", en: "1 week ago" },
   },
   {
-    title: { zh: "龙与少女的契约", en: "The Dragon's Pact" },
     template: "book",
-    image: "/home/work-dragon.png",
-    updated: { zh: "1 周前", en: "1 week ago" },
   },
   {
-    title: { zh: "机械迷城", en: "Clockwork City" },
     template: "comic",
-    image: "/home/work-city.png",
-    updated: { zh: "2 周前", en: "2 weeks ago" },
   },
 ];
 
@@ -74,21 +53,57 @@ type DisplayWork = {
 export function LocalProjectSummary() {
   const { lang, t } = useLang();
   const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoaded, setProjectsLoaded] = useState(false);
   const [projectCoverImages, setProjectCoverImages] = useState<Record<string, string>>({});
   const [activeFilter, setActiveFilter] = useState<ContentTypeId | "all">("all");
 
   useEffect(() => {
-    void listProjects().then(setProjects).catch(() => setProjects([]));
+    let cancelled = false;
+    let initialLoad = true;
+
+    const loadProjects = () => {
+      const isInitialLoad = initialLoad;
+      initialLoad = false;
+
+      void listProjects()
+        .then((nextProjects) => {
+          if (!cancelled) setProjects(nextProjects);
+        })
+        .catch(() => {
+          if (!cancelled && isInitialLoad) setProjects([]);
+        })
+        .finally(() => {
+          if (!cancelled && isInitialLoad) setProjectsLoaded(true);
+        });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") loadProjects();
+    };
+
+    loadProjects();
+    window.addEventListener("pageshow", loadProjects);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      window.removeEventListener("pageshow", loadProjects);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
-  const isShowingSamples = projects.length === 0;
+  const hasProjects = projects.length > 0;
+  const sampleWorkHrefs = useMemo(
+    () => sampleWorks.map((work) => localizedPath(lang, work.template)),
+    [lang],
+  );
 
   useEffect(() => {
     let cancelled = false;
     const coverUrls: string[] = [];
 
     async function loadCoverImages(): Promise<ReadonlyArray<readonly [string, string | undefined]>> {
-      if (isShowingSamples) return [];
+      if (!hasProjects) return [];
 
       return Promise.all(
         projects.map(async (project) => {
@@ -114,34 +129,25 @@ export function LocalProjectSummary() {
       cancelled = true;
       coverUrls.forEach((url) => URL.revokeObjectURL(url));
     };
-  }, [isShowingSamples, projects]);
+  }, [hasProjects, projects]);
 
   const works = useMemo<DisplayWork[]>(
     () =>
-      isShowingSamples
-        ? sampleWorks.map((work) => ({
-            title: work.title[lang],
-            template: work.template,
-            image: work.image,
-            isTypeImage: false,
-            updated: work.updated[lang],
-            href: localizedPath(lang, work.template),
-          }))
-        : projects.map((project) => {
-            const coverImage = projectCoverImages[project.id];
-            return {
-              id: project.id,
-              title: project.title,
-              template: project.template,
-              image: coverImage ?? projectTypeImages[project.template],
-              isTypeImage: !coverImage,
-              updated: new Date(project.updatedAt).toLocaleDateString(
-                lang === "zh" ? "zh-CN" : "en-US",
-              ),
-              href: `/projects/editor?id=${project.id}`,
-            };
-          }),
-    [isShowingSamples, lang, projectCoverImages, projects],
+      projects.map((project) => {
+        const coverImage = projectCoverImages[project.id];
+        return {
+          id: project.id,
+          title: project.title,
+          template: project.template,
+          image: coverImage ?? projectTypeImages[project.template],
+          isTypeImage: !coverImage,
+          updated: new Date(project.updatedAt).toLocaleDateString(
+            lang === "zh" ? "zh-CN" : "en-US",
+          ),
+          href: `/projects/editor?id=${project.id}`,
+        };
+      }),
+    [lang, projectCoverImages, projects],
   );
   const filteredWorks = useMemo(
     () =>
@@ -150,6 +156,70 @@ export function LocalProjectSummary() {
         : works.filter((work) => work.template === activeFilter),
     [activeFilter, works],
   );
+
+  if (!projectsLoaded) {
+    return (
+      <section
+        aria-label={t("nav.projects")}
+        className="min-w-0"
+        data-template-count={sampleWorkHrefs.length}
+      >
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <h2 id="my-works-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+                {lang === "zh" ? "我的作品" : "My works"}
+              </h2>
+              <div className="hidden items-center gap-1 text-[#aaa6bf] sm:flex" aria-hidden="true">
+                <Grid2X2 className="size-4" />
+                <ListFilter className="size-4" />
+              </div>
+            </div>
+            <p className="mt-2 text-sm leading-6 text-[#6b6a89]">
+              {lang === "zh"
+                ? "你的作品默认保存在当前浏览器中。"
+                : "Your works stay in this browser by default."}
+            </p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  if (!hasProjects) {
+    return (
+      <section
+        aria-label={t("nav.projects")}
+        className="min-w-0"
+        data-template-count={sampleWorkHrefs.length}
+      >
+        <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <div className="flex items-center gap-3">
+              <h2 id="my-works-title" className="text-2xl font-bold tracking-tight sm:text-3xl">
+                {lang === "zh" ? "我的作品" : "My works"}
+              </h2>
+              <div className="hidden items-center gap-1 text-[#aaa6bf] sm:flex" aria-hidden="true">
+                <Grid2X2 className="size-4" />
+                <ListFilter className="size-4" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <Card className="border-[#e9e5fb] bg-white/80 shadow-[0_10px_24px_rgba(92,75,160,0.06)]">
+          <div className="p-6 sm:p-8">
+            <p className="text-base font-semibold text-[#242044]">
+              {t("home.emptyCategoryTitle")}
+            </p>
+            <p className="mt-2 text-sm leading-6 text-[#6b6a89]">
+              {t("home.emptyCategoryBody")}
+            </p>
+          </div>
+        </Card>
+      </section>
+    );
+  }
 
   return (
     <section aria-label={t("nav.projects")} className="min-w-0">
@@ -165,13 +235,9 @@ export function LocalProjectSummary() {
             </div>
           </div>
           <p className="mt-2 text-sm leading-6 text-[#6b6a89]">
-            {isShowingSamples
-              ? lang === "zh"
-                ? "先看看创作空间的样子，创建后你的本地作品会出现在这里。"
-                : "Preview the workspace; your local works will appear here after you create one."
-              : lang === "zh"
-                ? "你的作品默认保存在当前浏览器中。"
-                : "Your works stay in this browser by default."}
+            {lang === "zh"
+              ? "你的作品默认保存在当前浏览器中。"
+              : "Your works stay in this browser by default."}
           </p>
         </div>
         <Button render={<Link href="/projects/new" />} size="sm" className="bg-[#8754ff] text-white hover:bg-[#7642ef]">

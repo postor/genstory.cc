@@ -18,7 +18,7 @@ import {
   restoreProjectDirectory,
   supportsFileSystemAccess,
 } from "@/lib/file-system/browser";
-import { parseProjectSourceZip } from "@/lib/project-import";
+import { readExampleProjectAsset } from "@/lib/example-project-asset";
 import type { ContentTypeId } from "@/lib/content-types";
 import { useLang } from "@/lib/i18n";
 import {
@@ -67,14 +67,19 @@ export function PublicCaseProjectPreview({
     }
     const response = await fetch(sourceUrl);
     if (!response.ok) throw new Error(labels.failed);
-    const imported = await parseProjectSourceZip(await response.blob());
+    let files: Awaited<ReturnType<typeof readExampleProjectAsset>>;
+    try {
+      files = await readExampleProjectAsset(await response.blob());
+    } catch {
+      throw new Error(labels.failed);
+    }
     const id = crypto.randomUUID();
     const now = Date.now();
-    await restoreProjectDirectory(imported.template, id, imported.files);
+    await restoreProjectDirectory(template, id, files);
     await saveProject({
       id,
-      template: imported.template || template,
-      title: imported.title || title,
+      template,
+      title,
       lang,
       createdAt: now,
       updatedAt: now,

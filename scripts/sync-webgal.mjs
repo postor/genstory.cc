@@ -1,25 +1,15 @@
 import fs from "node:fs";
 import path from "node:path";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, "..");
-const TEMPLATE = path.join(root, "vn-template");
-const SRC = path.join(root, "vn-template", "node_modules", "webgal-engine", "dist");
+const SRC = path.join(root, "node_modules", "webgal-engine", "dist");
 const DEST = path.join(root, "public", "webgal");
 const BRIDGE = path.join(__dirname, "webgal-bridge-sw.js");
 
 if (!fs.existsSync(SRC)) {
-  const lock = path.join(TEMPLATE, "package-lock.json");
-  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-  const installCommand = fs.existsSync(lock) ? "ci" : "install";
-  console.log("未找到 webgal-engine/dist，正在安装 vn-template 依赖...");
-  execFileSync(npm, [installCommand], { cwd: TEMPLATE, stdio: "inherit" });
-}
-
-if (!fs.existsSync(SRC)) {
-  console.error("未找到 webgal-engine/dist，无法生成 public/webgal");
+  console.error("未找到 node_modules/webgal-engine/dist，请先安装主项目依赖");
   process.exit(1);
 }
 

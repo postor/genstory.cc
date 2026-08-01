@@ -14,9 +14,6 @@ ENV NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000
 COPY package.json package-lock.json ./
 RUN npm ci
 
-COPY vn-template/package.json vn-template/package-lock.json ./vn-template/
-RUN npm ci --prefix vn-template
-
 COPY . .
 RUN npm run build
 

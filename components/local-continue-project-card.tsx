@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 
+import pictureBookImage from "@/docs/design/icons/picture-book.png";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -19,7 +20,7 @@ import type { PublicLang } from "@/lib/seo";
 
 const typeImages: Record<ContentTypeId, string> = {
   book: "/home/type-icons/book.png",
-  "picture-book": "/home/type-icons/book.png",
+  "picture-book": pictureBookImage.src,
   comic: "/home/type-icons/comic.png",
   "visual-novel": "/home/type-icons/visual-novel.png",
   "interactive-video": "/home/type-icons/video.png",

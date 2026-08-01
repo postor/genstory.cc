@@ -15,7 +15,9 @@ import {
 } from "lucide-react";
 
 import bannerForeground from "@/docs/design/banner-fg.png";
+import pictureBookImage from "@/docs/design/icons/picture-book.png";
 import { LocalContinueProjectCard } from "@/components/local-continue-project-card";
+import { LocalProjectQuickStartCard } from "@/components/local-project-quick-start-card";
 import { LocalProjectSummary } from "@/components/local-project-summary";
 import { Button } from "@/components/ui/button";
 import {
@@ -31,7 +33,7 @@ import { localizedPath, type PublicLang } from "@/lib/seo";
 
 const typeImages: Record<ContentTypeId, string> = {
   book: "/home/type-icons/book.png",
-  "picture-book": "/home/type-icons/book.png",
+  "picture-book": pictureBookImage.src,
   comic: "/home/type-icons/comic.png",
   "visual-novel": "/home/type-icons/visual-novel.png",
   "interactive-video": "/home/type-icons/video.png",
@@ -92,8 +94,6 @@ const homeUiCopy = {
     importBody: "导入文档、图片或脚本",
     assistantTitle: "AI 创作助手",
     assistantBody: "让 CC 帮你扩写灵感",
-    helpTitle: "需要帮助吗？",
-    helpBody: "我随时在这里！",
     helperIntro: "保留结构，也保留创作的自由。",
   },
   en: {
@@ -108,8 +108,6 @@ const homeUiCopy = {
     importBody: "Bring in docs, images, or scripts",
     assistantTitle: "AI creative assistant",
     assistantBody: "Let CC help shape an idea",
-    helpTitle: "Need a hand?",
-    helpBody: "CC is here when you need it.",
     helperIntro: "Keep the structure without losing creative freedom.",
   },
 } satisfies Record<PublicLang, Record<string, string>>;
@@ -134,6 +132,10 @@ function splitHeroTitle(text: string, lang: PublicLang): [string, string] {
   return lang === "zh"
     ? [text.slice(0, separatorIndex + separator.length), text.slice(separatorIndex + separator.length)]
     : [text.slice(0, separatorIndex), text.slice(separatorIndex + 1)];
+}
+
+function createProjectPath(type?: ContentTypeId) {
+  return type ? `/projects/new?template=${type}` : "/projects/new";
 }
 
 export function PublicHomePage({ lang }: { lang: PublicLang }) {
@@ -196,23 +198,28 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
                 {t.ctaBrowseTypes}
               </Button>
             </div>
-            <div className="mt-7 hidden md:block">
-              <p className="text-sm text-white/45">{ui.supportedTypes}</p>
-              <div className="mt-3 grid grid-cols-2 gap-x-5 gap-y-2 text-sm text-white/70 lg:grid-cols-3 xl:flex xl:flex-wrap">
+            <div className="mt-6 block w-full max-w-sm md:mt-7 md:max-w-none">
+              <p className="hidden text-xs font-medium tracking-[0.08em] text-white/55 md:block md:text-sm md:tracking-normal">
+                {ui.supportedTypes}
+              </p>
+              <nav
+                aria-label={ui.supportedTypes}
+                className="mt-0 grid grid-cols-3 justify-items-center gap-2 text-xs text-white/75 sm:gap-x-4 sm:gap-y-2 sm:text-sm md:mt-3 md:grid-cols-2 md:justify-items-start md:gap-x-5 md:gap-y-2 lg:grid-cols-3 xl:flex xl:flex-wrap"
+              >
                 {contentTypes.map((type) => {
                   const Icon = typeIcons[type.id];
                   return (
                     <Link
                       key={type.id}
                       href={localizedPath(lang, type.id)}
-                      className="inline-flex items-center gap-1.5 transition-colors hover:text-white"
+                      className="inline-flex min-w-0 items-center gap-1.5 rounded-lg border border-white/15 bg-[#07091f]/65 px-2.5 py-2 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.12)] backdrop-blur-sm transition-colors hover:border-white/25 hover:bg-[#07091f]/80 hover:text-white md:rounded-none md:border-0 md:bg-transparent md:px-0 md:py-0 md:shadow-none md:backdrop-blur-none"
                     >
-                      <Icon className="size-4 text-[#bd9aff]" />
-                      {type.label[lang]}
+                      <Icon className="size-4 shrink-0 text-[#bd9aff]" />
+                      <span className="whitespace-nowrap">{type.label[lang]}</span>
                     </Link>
                   );
                 })}
-              </div>
+              </nav>
             </div>
           </div>
           <div className="pointer-events-none relative order-first z-[2] aspect-square w-[min(360px,100%)] max-w-full md:order-last md:w-[38%] md:max-w-[360px] md:shrink-0 lg:w-[42%] lg:max-w-[481px]">
@@ -270,55 +277,18 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
             <aside className="space-y-4 xl:pt-9">
               <LocalContinueProjectCard lang={lang} />
 
-              <Card className="border-[#e8e3ff] bg-white/85 shadow-[0_18px_45px_rgba(88,67,166,0.08)]">
-                <CardHeader className="px-5 pb-3 pt-5">
-                  <CardTitle className="text-lg">
-                    {ui.quickStart}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="px-5 pb-5">
-                  <div className="divide-y divide-[#f0edff]">
-                    <QuickStartItem
-                      icon={FolderPlus}
-                      title={ui.templateTitle}
-                      body={ui.templateBody}
-                      href="/projects/new"
-                    />
-                    <QuickStartItem
-                      icon={Upload}
-                      title={ui.importTitle}
-                      body={ui.importBody}
-                      href="/projects"
-                    />
-                    <QuickStartItem
-                      icon={WandSparkles}
-                      title={ui.assistantTitle}
-                      body={ui.assistantBody}
-                      href="/settings"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
+              <LocalProjectQuickStartCard
+                copy={{
+                  title: ui.quickStart,
+                  templateTitle: ui.templateTitle,
+                  templateBody: ui.templateBody,
+                  importTitle: ui.importTitle,
+                  importBody: ui.importBody,
+                  assistantTitle: ui.assistantTitle,
+                  assistantBody: ui.assistantBody,
+                }}
+              />
             </aside>
-          </div>
-
-          <div id="assistant-help" className="mt-10 flex items-center gap-4 rounded-2xl border border-[#e6e0ff] bg-[#f1edff] px-5 py-3 shadow-[0_12px_30px_rgba(93,65,198,0.08)] sm:mt-14 sm:px-7">
-            <Image
-              src="/home/assistant-bust.png"
-              alt=""
-              width={110}
-              height={116}
-              className="size-16 shrink-0 object-contain sm:size-20"
-            />
-            <div className="min-w-0">
-              <p className="font-semibold text-[#372272]">
-                {ui.helpTitle}
-              </p>
-              <p className="mt-1 text-sm text-[#6c5c9a]">
-                {ui.helpBody}
-              </p>
-            </div>
-            <ArrowRight className="ml-auto size-5 shrink-0 text-[#7653db]" />
           </div>
 
           <section className="mt-14 border-t border-[#ece9f5] pt-10">
@@ -390,7 +360,7 @@ function CreationTypeCard({
 }) {
   return (
     <Card className="group h-full border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-transform hover:-translate-y-1 hover:border-[#cfc0ff] hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
-      <Link href={localizedPath(lang, type.id)} className="flex h-full flex-col">
+      <Link href={createProjectPath(type.id)} className="flex h-full flex-col">
         <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-1">
           <div className="relative flex h-20 w-full items-center justify-center overflow-hidden sm:h-24">
             <Image
@@ -418,30 +388,5 @@ function CreationTypeCard({
         </CardContent>
       </Link>
     </Card>
-  );
-}
-
-function QuickStartItem({
-  icon: Icon,
-  title,
-  body,
-  href,
-}: {
-  icon: typeof FolderPlus;
-  title: string;
-  body: string;
-  href: string;
-}) {
-  return (
-    <Link href={href} className="group flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-      <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-[#f0eaff] text-[#7951dd] transition-colors group-hover:bg-[#e6dcff]">
-        <Icon className="size-5" />
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-semibold text-[#252047]">{title}</span>
-        <span className="mt-1 block truncate text-xs text-[#8b88a4]">{body}</span>
-      </span>
-      <ArrowRight className="ml-auto size-4 shrink-0 text-[#b3add0] transition-transform group-hover:translate-x-0.5 group-hover:text-[#7653db]" />
-    </Link>
   );
 }

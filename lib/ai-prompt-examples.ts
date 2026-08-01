@@ -24,8 +24,8 @@ export const publicBookCaseProject: PublicCaseProject = {
     en: "Case project: Beyond the Time Crack",
   },
   description: {
-    zh: "一个已写入全局 meta 的日本高中穿越轻小说案例，包含两章正文、角色与地点设计引用、时间线、资产索引和高质量章节插图。",
-    en: "A Japanese high-school portal-fantasy case project with global meta, two chapters, character and location references, a timeline, an asset index, and finished chapter illustrations.",
+    zh: "一个日式高中穿越轻小说案例，包含两章正文、角色与地点设定、时间线和章节插图。",
+    en: "A Japanese high-school portal-fantasy light-novel case with two chapters, character and location references, a timeline, and chapter illustrations.",
   },
   model: "OpenRouter · Tencent: Hy3",
   sourceUrl: "/case-projects/book-jp-transfer-source.zip",
@@ -35,8 +35,8 @@ export const publicBookCaseProject: PublicCaseProject = {
     en: "Cost control: 2 chapter illustrations + 3 design references",
   },
   prompt: {
-    zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，更新到全局meta中，并以轻小说的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成插图，插图中角色和地点需先生成设计引用避免形象漂移",
-    en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the global meta and begin expanding the light-novel details: time, place, character ages and personalities. Control cost, generate one illustration per chapter, and create character and location design references first to prevent visual drift.",
+    zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，把这些变化同步到项目设定中，并以轻小说的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成插图，插图中角色和地点需先生成设计引用避免形象漂移",
+    en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the project setup and begin expanding the light-novel details: time, place, character ages and personalities. Control cost, generate one illustration per chapter, and create character and location design references first to prevent visual drift.",
   },
 };
 
@@ -46,19 +46,19 @@ export const publicComicCaseProject: PublicCaseProject = {
     en: "Case project: Beyond the Time Crack · Comic",
   },
   description: {
-    zh: "完整使用提供的漫画 source ZIP，包含章节、页面、panel、角色与地点设计资产、页面插图和全部可预览内容，不额外删减。",
-    en: "Uses the complete provided comic source ZIP, including chapters, pages, panels, character and location design assets, page illustrations, and all available preview content without extra trimming.",
+    zh: "一个日式高中穿越漫画案例，包含章节、页面、panel、角色与地点设计资产及页面插图。",
+    en: "A Japanese high-school portal-fantasy comic case with chapters, pages, panels, character and location design assets, and page illustrations.",
   },
   model: "OpenRouter · Tencent: Hy3",
   sourceUrl: "/case-projects/comic-jp-transfer-source.zip",
   template: "comic",
   costNote: {
-    zh: "页面图像使用 gpt-image-2；完整备份中的章节、页面、panel 和设计资产全部保留",
-    en: "Page images use gpt-image-2; all chapters, pages, panels, and design assets in the backup are preserved",
+    zh: "页面图像使用 gpt-image-2；先生成角色与地点设计资产，再生成页面以保持视觉一致",
+    en: "Page images use gpt-image-2; create character and location design assets before generating pages to keep the visuals consistent",
   },
   prompt: {
-    zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，更新到全局meta中，并以漫画的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成多个页面，页面包含多个panel，panel中角色和地点需先生成设计引用避免形象漂移，生成页面时使用 gpt image2 保证质量",
-    en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the global meta and begin expanding the time, place, character ages, personalities, and other details in comic form. Control cost, generate multiple pages per chapter with multiple panels per page, create character and location design references before panels to prevent visual drift, and use gpt-image-2 for page quality.",
+    zh: "把项目更改为日本高中男女生穿越故事，（第一章）男某天开始总能看到教学楼窗外的一道裂缝，别人都看不到，青梅竹马相信他约好放学后去调查（第二章）放学后按照约定进行调查，各种设备（拍照、电磁）都和其他人一样看不出异常，男决定从窗子探出手去接触，裂缝开始产生吸力，女想要抓住结果被一起，把这些变化同步到项目设定中，并以漫画的形式开始细化所有内容：时间地点角色性格年龄等，注意控制成本，给每个章节生成多个页面，页面包含多个panel，panel中角色和地点需先生成设计引用避免形象漂移，生成页面时使用 gpt image2 保证质量",
+    en: "Change the project into a Japanese high-school portal-fantasy story. Chapter 1: a boy starts seeing a crack outside the school building window that nobody else can see; his childhood friend believes him and agrees to investigate after school. Chapter 2: they investigate after school, but photos and electromagnetic checks show nothing unusual. The boy reaches out to touch the crack; it starts pulling him in, and the girl grabs him and is pulled in too. Update the project setup and begin expanding the time, place, character ages, personalities, and other details in comic form. Control cost, generate multiple pages per chapter with multiple panels per page, create character and location design references before panels to prevent visual drift, and use gpt-image-2 for page quality.",
   },
 };
 
@@ -75,20 +75,20 @@ export const publicPhaserGameCaseProject: PublicCaseProject = {
   sourceUrl: "/case-projects/animal-match3-source.zip",
   template: "phaser-game",
   costNote: {
-    zh: "成本控制：先用较低分辨率生成横向图，再拆分为独立图标；项目保留完整多关卡游戏源码",
-    en: "Cost control: generate a lower-resolution landscape sheet first, split it into independent icons, and keep the complete multi-level game source",
+    zh: "成本控制：先用较低分辨率生成横向图，再拆分为独立图标，完成完整的多关卡内容",
+    en: "Cost control: generate a lower-resolution landscape sheet first, then split it into independent icons to build out the full multi-level game",
   },
   prompt: {
-    zh: "使用 gpt image2 （横向图） 生成一套独立的的可爱动物主题的图标，每个动物使用一个独立的主颜色，节约成本使用较低的分辨率生成，然后调用工具拆分成独立的图标，做成一个多个关卡的三消小游戏",
-    en: "Use gpt-image-2 to generate a landscape sheet of cute animal-themed icons. Give each animal its own dominant color, use a lower resolution to control cost, then use a tool to split the sheet into independent icons and build a multi-level match-3 game.",
+    zh: "使用 gpt image2 （横向图） 生成一套独立的的可爱动物主题的图标，每个动物使用一个独立的主颜色，节约成本使用较低的分辨率生成，然后拆分成独立的图标，做成一个多个关卡的三消小游戏",
+    en: "Use gpt-image-2 to generate a landscape sheet of cute animal-themed icons. Give each animal its own dominant color, use a lower resolution to control cost, then split the sheet into independent icons and build a multi-level match-3 game.",
   },
   prompts: {
     zh: [
-      "使用 gpt image2 （横向图） 生成一套独立的的可爱动物主题的图标，每个动物使用一个独立的主颜色，节约成本使用较低的分辨率生成，然后调用工具拆分成独立的图标，做成一个多个关卡的三消小游戏",
+      "使用 gpt image2 （横向图） 生成一套独立的的可爱动物主题的图标，每个动物使用一个独立的主颜色，节约成本使用较低的分辨率生成，然后拆分成独立的图标，做成一个多个关卡的三消小游戏",
       "检查并修复点击三消图标后放大过大问题，完成游戏",
     ],
     en: [
-      "Use gpt-image-2 to generate a landscape sheet of cute animal-themed icons. Give each animal its own dominant color, use a lower resolution to control cost, then use a tool to split the sheet into independent icons and build a multi-level match-3 game.",
+      "Use gpt-image-2 to generate a landscape sheet of cute animal-themed icons. Give each animal its own dominant color, use a lower resolution to control cost, then split the sheet into independent icons and build a multi-level match-3 game.",
       "Check and fix the issue where match-3 icons become too large after clicking, then complete the game.",
     ],
   },
@@ -98,14 +98,14 @@ export const aiPromptChrome = {
   zh: {
     title: "AI prompt 示例",
     intro:
-      "这些示例展示 AI 助手适合参与的环节：先读取项目上下文和 AGENTS.md 约束，再给出可确认、可修改的草稿、结构或资产提示词。AI 辅助是可选能力，项目文件仍默认保存在本地浏览器中。",
+      "这些示例展示 AI 助手适合参与的环节：先读取项目上下文和创作规则，再给出可确认、可修改的草稿、结构或资产提示词。AI 辅助是可选能力，项目文件仍默认保存在本地浏览器中。",
     useCase: "需求",
     outcome: "适合产出",
   },
   en: {
     title: "AI prompt examples",
     intro:
-      "These examples show where the optional AI assistant fits: read the project context and AGENTS.md constraints first, then propose drafts, structure, or asset prompts that you can review and edit. Project files still stay local in this browser by default.",
+      "These examples show where the optional AI assistant fits: read the project context and project rules first, then propose drafts, structure, or asset prompts that you can review and edit. Project files still stay local in this browser by default.",
     useCase: "Need",
     outcome: "Good for",
   },
@@ -129,8 +129,8 @@ export const publicPagePromptExamples: Record<
         en: "Chapter structure, central conflict, character arcs, and foreshadowing notes",
       },
       prompt: {
-        zh: "请读取当前图书项目的 meta.md、章节和页面内容，在不改写已确立事实的前提下，把“一名失眠的档案管理员发现城市记忆被定期重写”扩展成 12 章小说大纲。每章给出目标、冲突、关键场景和需要回收的伏笔。",
-        en: "Read the current book project's meta.md, chapters, and pages. Without changing established facts, expand this premise into a 12-chapter novel outline: an insomniac archivist discovers the city's memories are rewritten on a schedule. For each chapter, include the goal, conflict, key scene, and foreshadowing to pay off later.",
+        zh: "请读取当前图书项目的项目设定、章节和页面内容，在不改写已确立事实的前提下，把“一名失眠的档案管理员发现城市记忆被定期重写”扩展成 12 章小说大纲。每章给出目标、冲突、关键场景和需要回收的伏笔。",
+        en: "Read the current book project's setup, chapters, and pages. Without changing established facts, expand this premise into a 12-chapter novel outline: an insomniac archivist discovers the city's memories are rewritten on a schedule. For each chapter, include the goal, conflict, key scene, and foreshadowing to pay off later.",
       },
     },
     {
@@ -157,8 +157,8 @@ export const publicPagePromptExamples: Record<
         en: "Illustration composition, mood, asset logical IDs, and copy-ready prompts",
       },
       prompt: {
-        zh: "请读取当前文章或章节内容，挑选 3 个最适合配插图的段落。每个段落输出一条插图生成 prompt：说明画面主体、构图、光线、情绪、时代/地点细节、画风、镜头距离、不要出现的文字和商标，并给出建议登记到 assets/index.yml 的逻辑 ID。不要替我改正文。",
-        en: "Read the current article or chapter and choose the three passages that would benefit most from illustrations. For each passage, write an illustration prompt with subject, composition, lighting, mood, period or location details, art style, camera distance, text and logo exclusions, plus the logical asset ID to register in assets/index.yml. Do not edit the prose.",
+        zh: "请读取当前文章或章节内容，挑选 3 个最适合配插图的段落。每个段落输出一条插图生成 prompt：说明画面主体、构图、光线、情绪、时代/地点细节、画风、镜头距离、不要出现的文字和商标，并给出建议登记到资产清单的逻辑 ID。不要替我改正文。",
+        en: "Read the current article or chapter and choose the three passages that would benefit most from illustrations. For each passage, write an illustration prompt with subject, composition, lighting, mood, period or location details, art style, camera distance, text and logo exclusions, plus a suggested logical asset ID for the asset list. Do not edit the prose.",
       },
     },
     {
@@ -201,8 +201,8 @@ export const publicPagePromptExamples: Record<
         en: "Character continuity, composition, lighting changes, and reusable page illustration prompts",
       },
       prompt: {
-        zh: "请读取当前绘本项目的 meta.md、角色设定和页面文字，为每一页生成一条插画 prompt。固定主角的年龄、毛色、服装和体型，固定森林地点的视觉特征；每条 prompt 都要包含主体、构图、镜头距离、光线、情绪、画风和不要出现的文字，不要改写页面正文。",
-        en: "Read the current picture book project's meta.md, character references, and page text, then write one illustration prompt per page. Keep the protagonist's age, fur color, clothing, and proportions consistent, and keep the forest's visual identity stable. Each prompt must include subject, composition, camera distance, lighting, mood, art style, and text exclusions without rewriting the page text.",
+        zh: "请读取当前绘本项目的项目设定、角色设定和页面文字，为每一页生成一条插画 prompt。固定主角的年龄、毛色、服装和体型，固定森林地点的视觉特征；每条 prompt 都要包含主体、构图、镜头距离、光线、情绪、画风和不要出现的文字，不要改写页面正文。",
+        en: "Read the current picture book project's setup, character references, and page text, then write one illustration prompt per page. Keep the protagonist's age, fur color, clothing, and proportions consistent, and keep the forest's visual identity stable. Each prompt must include subject, composition, camera distance, lighting, mood, art style, and text exclusions without rewriting the page text.",
       },
     },
   ],
@@ -217,8 +217,8 @@ export const publicPagePromptExamples: Record<
         en: "Page pacing, panel descriptions, character placement, and visual asset prompts",
       },
       prompt: {
-        zh: "请根据当前漫画项目的角色和设定，把这段剧情拆成 2 页、每页 4 格的分镜。每格写清镜头距离、角色位置、表情、对白摘要和需要登记到 assets/index.yml 的视觉资产逻辑 ID。不要生成成品图。",
-        en: "Using the current comic project's characters and canon, break this beat into two pages with four panels each. For every panel, specify camera distance, character placement, expression, dialogue summary, and the visual asset logical IDs that should be registered in assets/index.yml. Do not generate finished artwork.",
+        zh: "请根据当前漫画项目的角色和设定，把这段剧情拆成 2 页、每页 4 格的分镜。每格写清镜头距离、角色位置、表情、对白摘要和建议使用的视觉资产逻辑 ID。不要生成成品图。",
+        en: "Using the current comic project's characters and canon, break this beat into two pages with four panels each. For every panel, specify camera distance, character placement, expression, dialogue summary, and the visual asset logical IDs to use. Do not generate finished artwork.",
       },
     },
     {
@@ -275,8 +275,8 @@ export const publicPagePromptExamples: Record<
         en: "Dialogue draft, branch choices, stage-state updates, and asset logical IDs",
       },
       prompt: {
-        zh: "请读取当前视觉小说的 AGENTS.md、script.md 和 stage.yml，续写一个 5 分钟场景：主角在雨夜车站遇到失踪同伴。输出 Markdown 对白、2 个选择项、每个选择的后续影响，并列出 stage.yml 需要增量更新的 background、characters、expression、music 和 SFX 逻辑 ID。",
-        en: "Read the current visual novel's AGENTS.md, script.md, and stage.yml. Draft a five-minute scene where the protagonist meets a missing companion at a rainy station. Output Markdown dialogue, two choices, the consequence of each choice, and the incremental stage.yml updates for background, characters, expression, music, and SFX logical IDs.",
+        zh: "请读取当前视觉小说的创作规则、场景脚本和舞台状态，续写一个 5 分钟场景：主角在雨夜车站遇到失踪同伴。输出 Markdown 对白、2 个选择项、每个选择的后续影响，并列出需要增量更新的 background、characters、expression、music 和 SFX 逻辑 ID。",
+        en: "Read the current visual novel's project rules, scene script, and stage state. Draft a five-minute scene where the protagonist meets a missing companion at a rainy station. Output Markdown dialogue, two choices, the consequence of each choice, and the incremental updates needed for background, characters, expression, music, and SFX logical IDs.",
       },
     },
     {
@@ -303,8 +303,8 @@ export const publicPagePromptExamples: Record<
         en: "Logical IDs and prompts for backgrounds, sprites, expressions, BGM, and SFX",
       },
       prompt: {
-        zh: "请根据当前视觉小说场景，列出需要新增到 assets/index.yml 的资产计划。至少包含雨夜车站背景、同伴立绘、紧张表情、环境雨声和低频悬疑 BGM。每项给出逻辑 ID、用途、生成 prompt 和接入的场景位置。",
-        en: "Based on the current visual novel scene, list the asset plan to add to assets/index.yml. Include at least a rainy station background, companion sprite, tense expression, ambient rain SFX, and low suspense BGM. For each item, provide a logical ID, purpose, generation prompt, and where it appears in the scene.",
+        zh: "请根据当前视觉小说场景，列出需要补充到资产清单的资产计划。至少包含雨夜车站背景、同伴立绘、紧张表情、环境雨声和低频悬疑 BGM。每项给出逻辑 ID、用途、生成 prompt 和接入的场景位置。",
+        en: "Based on the current visual novel scene, list the asset plan to add to the asset list. Include at least a rainy station background, companion sprite, tense expression, ambient rain SFX, and low suspense BGM. For each item, provide a logical ID, purpose, generation prompt, and where it appears in the scene.",
       },
     },
     {
@@ -317,8 +317,8 @@ export const publicPagePromptExamples: Record<
         en: "Sprite-ready character sheet, expression chart, and costume details",
       },
       prompt: {
-        zh: "请根据当前视觉小说的角色档案，为 GPT Image 2 写一条角色设定图 prompt：22 岁男性，沉默、谨慎、擅长修理旧机器，是主角的临时同伴。画布 1024x768，包含正面、侧面、背面、半身立绘和 6 个表情头像；服装要写清外套层次、工具包、手套磨损、发型和主色/辅色。要求角色设计可拆成 tachie、expression 和 prop 资产，输出后再列出要登记到 assets/index.yml 的逻辑 ID，不写具体文件路径。",
-        en: "Using the current visual novel character files, write a GPT Image 2 prompt for a new character reference sheet: a 22-year-old male, quiet, cautious, good at repairing old machines, and a temporary companion to the protagonist. Use a 1024x768 canvas with front, side, back, half-body sprite, and six expression headshots. Specify jacket layers, tool pouch, worn gloves, hairstyle, and primary and accent colors. Make the design separable into tachie, expression, and prop assets, then list logical IDs to register in assets/index.yml without writing file paths.",
+        zh: "请根据当前视觉小说的角色档案，为 GPT Image 2 写一条角色设定图 prompt：22 岁男性，沉默、谨慎、擅长修理旧机器，是主角的临时同伴。画布 1024x768，包含正面、侧面、背面、半身立绘和 6 个表情头像；服装要写清外套层次、工具包、手套磨损、发型和主色/辅色。要求角色设计可拆成 tachie、expression 和 prop 资产，输出后再列出建议使用的逻辑 ID，不写具体文件路径。",
+        en: "Using the current visual novel character notes, write a GPT Image 2 prompt for a new character reference sheet: a 22-year-old male, quiet, cautious, good at repairing old machines, and a temporary companion to the protagonist. Use a 1024x768 canvas with front, side, back, half-body sprite, and six expression headshots. Specify jacket layers, tool pouch, worn gloves, hairstyle, and primary and accent colors. Make the design separable into tachie, expression, and prop assets, then list suggested logical IDs without writing file paths.",
       },
     },
   ],
@@ -361,8 +361,8 @@ export const publicPagePromptExamples: Record<
         en: "Prompts for styling, props, mood frames, and shot references",
       },
       prompt: {
-        zh: "请读取互动视频项目的片段、角色和时间线，为拍摄前参考图写 4 条图像 prompt：主角造型、关键手机道具、夜间走廊气氛和结局分歧的镜头参考。每条说明画面用途、构图、光线、服装/道具细节、禁止出现的文字或 logo，并给出 assets/index.yml 逻辑 ID。不要把这些参考图当作已经拍摄好的视频素材。",
-        en: "Read the interactive video project's segments, characters, and timeline. Write four image prompts for pre-production references: protagonist styling, key phone prop, night hallway mood, and a branching-ending shot reference. For each one, state its use, composition, lighting, costume or prop details, text and logo exclusions, and assets/index.yml logical ID. Do not treat these references as filmed video assets.",
+        zh: "请读取互动视频项目的片段、角色和时间线，为拍摄前参考图写 4 条图像 prompt：主角造型、关键手机道具、夜间走廊气氛和结局分歧的镜头参考。每条说明画面用途、构图、光线、服装/道具细节、禁止出现的文字或 logo，并给出建议使用的资产逻辑 ID。不要把这些参考图当作已经拍摄好的视频素材。",
+        en: "Read the interactive video project's segments, characters, and timeline. Write four image prompts for pre-production references: protagonist styling, key phone prop, night hallway mood, and a branching-ending shot reference. For each one, state its use, composition, lighting, costume or prop details, text and logo exclusions, and a suggested asset logical ID. Do not treat these references as filmed video assets.",
       },
     },
     {
@@ -391,8 +391,8 @@ export const publicPagePromptExamples: Record<
         en: "Scene responsibilities, input rules, win and fail states, and editable code snippets",
       },
       prompt: {
-        zh: "请读取当前 Phaser 项目的 src/main.js、菜单场景和测试场景，设计一个 60 秒可试玩玩法循环：玩家躲避巡逻光束并收集 5 个记忆碎片。输出场景职责、键盘输入、胜利/失败条件，以及应该新增或修改的 JavaScript 片段。不要假设外部图片和音频已经存在。",
-        en: "Read the current Phaser project's src/main.js, menu scene, and test scene. Design a 60-second playable loop where the player dodges patrol beams and collects five memory shards. Output scene responsibilities, keyboard input, win and fail conditions, and the JavaScript snippets to add or edit. Do not assume external images or audio already exist.",
+        zh: "请读取当前 Phaser 项目的主入口、菜单场景和测试场景，设计一个 60 秒可试玩玩法循环：玩家躲避巡逻光束并收集 5 个记忆碎片。输出场景职责、键盘输入、胜利/失败条件，以及应该新增或修改的 JavaScript 片段。不要假设外部图片和音频已经存在。",
+        en: "Read the current Phaser project's main entry, menu scene, and test scene. Design a 60-second playable loop where the player dodges patrol beams and collects five memory shards. Output scene responsibilities, keyboard input, win and fail conditions, and the JavaScript snippets to add or edit. Do not assume external images or audio already exist.",
       },
     },
     {
@@ -401,12 +401,12 @@ export const publicPagePromptExamples: Record<
         en: "Plan game asset prompts",
       },
       outcome: {
-        zh: "图片、音乐、音效提示词和 assets/index.yml 逻辑 ID",
-        en: "Image, music, sound-effect prompts, and assets/index.yml logical IDs",
+        zh: "图片、音乐、音效提示词和建议资产逻辑 ID",
+        en: "Image, music, sound-effect prompts, and suggested asset logical IDs",
       },
       prompt: {
-        zh: "请为这个 Phaser 游戏生成资产计划：菜单背景、玩家精灵、收集物、失败音效和背景音乐各 1 条 prompt。每条都给出逻辑 ID、用途、风格约束和接入哪个场景。先更新 assets/index.yml 计划，不要直接写入不存在的媒体文件路径。",
-        en: "Create an asset plan for this Phaser game: one prompt each for the menu background, player sprite, collectible, fail sound, and background music. For each item, provide a logical ID, purpose, style constraints, and the scene where it will be used. Update the assets/index.yml plan first; do not write paths for media files that do not exist yet.",
+        zh: "请为这个 Phaser 游戏生成资产计划：菜单背景、玩家精灵、收集物、失败音效和背景音乐各 1 条 prompt。每条都给出逻辑 ID、用途、风格约束和接入哪个场景。先整理资产计划，不要直接写入不存在的媒体文件路径。",
+        en: "Create an asset plan for this Phaser game: one prompt each for the menu background, player sprite, collectible, fail sound, and background music. For each item, provide a logical ID, purpose, style constraints, and the scene where it will be used. Organize the asset plan first; do not write paths for media files that do not exist yet.",
       },
     },
     {

@@ -162,6 +162,7 @@ export async function readVNProjectFromDirectory(
   root: FileSystemDirectoryHandle
 ): Promise<VNProject> {
   const projectMeta = await readTextFile(root, "meta.md");
+  const projectMetaFields = frontmatter(projectMeta);
   const assetIndex = await readTextFile(root, "assets/index.yml");
   const assets = parseAssets(assetIndex);
   const files = await listProjectFiles(root);
@@ -169,7 +170,7 @@ export async function readVNProjectFromDirectory(
 
   for (const entry of files) {
     if (entry.kind !== "file") continue;
-    if (/\.(md|ya?ml|txt|json)$/i.test(entry.path)) {
+    if (/\.(md|ya?ml|txt|json|css)$/i.test(entry.path)) {
       textByPath.set(entry.path, await readTextFile(root, entry.path));
     }
   }
@@ -210,7 +211,8 @@ export async function readVNProjectFromDirectory(
   }
 
   return {
-    title: frontmatter(projectMeta).title || "Untitled",
+    title: projectMetaFields.title || "Untitled",
+    userStyleSheet: textByPath.get("userStyleSheet.css"),
     titleImageDataUrl: await projectFileDataUrl(root, "assets/ui/menu-background.png"),
     chapters: [...chapters.entries()].map(([id, value]) => ({
       id,

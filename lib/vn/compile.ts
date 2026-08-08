@@ -96,6 +96,9 @@ function basename(path: string): string {
 export async function compile(vn: VNProject): Promise<Record<string, Blob>> {
   const files: Record<string, Blob> = {};
   const byId = new Map<string, VNAsset>(vn.assets.map((a) => [a.id, a]));
+  if (vn.userStyleSheet !== undefined) {
+    files["userStyleSheet.css"] = textBlob(vn.userStyleSheet);
+  }
 
   for (const a of vn.assets) {
     const dir = ASSET_DIR[a.type];

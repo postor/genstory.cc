@@ -127,6 +127,8 @@ assets/ui/menu-background.png
 
 该文件不写入舞台状态；预览和导出会将其编译为 OpenWebGal 的 `game/background/Title.png`。
 
+示例模板会在 `userStyleSheet.css` 中放一行低调的菜单页署名；如不需要，可直接修改或删除该文件。
+
 可用资产类型保持开放，例如：
 
 - Character

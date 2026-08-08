@@ -6,6 +6,7 @@ import { buildVNProjectFiles } from "./vn/project-files.ts";
 import { seedRedRidingHood } from "./vn/seed.ts";
 import { seedComicRedRidingHood } from "./comic/seed.ts";
 import { buildComicProjectFiles } from "./comic/project-files.ts";
+import { genstoryMenuCredit, genstoryVNMenuCreditCss } from "./template-credits.ts";
 
 const FALLBACK_AGENTS = `# GenStory.cc 项目约束
 
@@ -216,9 +217,10 @@ function simpleTemplate(type: ContentTypeId, title: string, lang: Lang, agents: 
   return files;
 }
 
-function visualNovelTemplate(title: string, agents: string): ProjectTemplateFile[] {
+function visualNovelTemplate(title: string, lang: Lang, agents: string): ProjectTemplateFile[] {
   const vn = seedRedRidingHood();
   vn.title = title;
+  vn.userStyleSheet = genstoryVNMenuCreditCss(lang);
   const generated = buildVNProjectFiles(vn, agents);
   const files = generated
     .filter((file) => file.kind !== "asset")
@@ -603,12 +605,14 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
   const instructions = isZh
     ? "方向键移动，空格跳跃，Esc 返回菜单"
     : "Arrow keys move, Space jumps, Esc returns to menu";
+  const creditLine = genstoryMenuCredit(lang);
   const gameTitle = title.trim() || (isZh ? "游戏模板" : "Game Template");
   const htmlLang = isZh ? "zh-CN" : "en";
   const gameTitleLiteral = JSON.stringify(gameTitle);
   const menuTitleLiteral = JSON.stringify(menuTitle);
   const testTitleLiteral = JSON.stringify(testTitle);
   const instructionsLiteral = JSON.stringify(instructions);
+  const creditLineLiteral = JSON.stringify(creditLine);
 
   return [
     text("AGENTS.md", agents),
@@ -772,6 +776,7 @@ function phaserGameTemplate(title: string, lang: Lang, agents: string): ProjectT
         '    button.on("pointerup", () => this.scene.start("TestGameScene"));',
         '    this.input.keyboard.once("keydown-ENTER", () => this.scene.start("TestGameScene"));',
         `    this.add.text(480, 420, ${instructionsLiteral}, { fontSize: "16px", color: "#cbd5e1" }).setOrigin(0.5);`,
+        `    this.add.text(480, 478, ${creditLineLiteral}, { fontSize: "12px", color: "#64748b" }).setOrigin(0.5);`,
         "    void label;",
         "",
         "    // Audio prompt: a calm looping arcade menu theme, 90 BPM, no vocals.",
@@ -914,7 +919,7 @@ export async function getProjectTemplate(
 ): Promise<ProjectTemplateFile[]> {
   const agents = await loadAgentsTemplate(type, lang);
   if (type === "comic") return comicTemplate(title, agents);
-  if (type === "visual-novel") return visualNovelTemplate(title, agents);
+  if (type === "visual-novel") return visualNovelTemplate(title, lang, agents);
   if (type === "book") return bookTemplate(title, lang, agents);
   if (type === "picture-book") return pictureBookTemplate(title, lang, agents);
   if (type === "interactive-video") return interactiveVideoTemplate(title, lang, agents);

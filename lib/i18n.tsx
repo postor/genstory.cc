@@ -177,6 +177,13 @@ const zh: Dict = {
   "editor.shareUnsupportedTitle": "当前浏览器不支持分享 PDF",
   "editor.shareUnsupportedDescription":
     "请换用支持文件分享的现代浏览器，或先导出 PDF 后通过其他方式发送。",
+  "editor.submitShowcase": "提交到 Show Case",
+  "editor.showcaseTitle": "提交到 Show Case",
+  "editor.showcaseDescription":
+    "确认后会下载当前作品的 PDF 或 ZIP 导出包，并打开 postor/genstory.cc 的 GitHub 新 Issue 页面。请上传导出包，并用“{title}”作为 Issue 标题。",
+  "editor.showcaseIssueTitleLabel": "Issue 标题",
+  "editor.showcaseIssueLink": "打开 GitHub 新 Issue",
+  "editor.showcaseConfirm": "下载并打开 Issue",
   "phaser.export": "导出 Phaser 游戏",
   "editor.back": "返回列表",
   "editor.notFound": "未找到该项目，可能已被删除。",
@@ -531,6 +538,13 @@ const en: Dict = {
   "editor.shareUnsupportedTitle": "This browser cannot share PDF files",
   "editor.shareUnsupportedDescription":
     "Use a modern browser that supports file sharing, or export the PDF and send it another way.",
+  "editor.submitShowcase": "Submit to Show Case",
+  "editor.showcaseTitle": "Submit to Show Case",
+  "editor.showcaseDescription":
+    "Confirm to download this work's PDF or ZIP export, then open a new GitHub issue in postor/genstory.cc. Upload the export package and use “{title}” as the issue title.",
+  "editor.showcaseIssueTitleLabel": "Issue title",
+  "editor.showcaseIssueLink": "Open GitHub new issue",
+  "editor.showcaseConfirm": "Download and open issue",
   "phaser.export": "Export Phaser game",
   "editor.back": "Back to list",
   "editor.notFound": "Project not found — it may have been deleted.",

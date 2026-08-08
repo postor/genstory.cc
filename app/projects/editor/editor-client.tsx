@@ -188,6 +188,27 @@ function isPdfProject(
   return project?.template === "book" || project?.template === "picture-book" || project?.template === "comic";
 }
 
+const SHOWCASE_ISSUE_BASE_URL = "https://github.com/postor/genstory.cc/issues/new";
+
+function exportLabelForProject(
+  project: Project | null,
+  t: (key: string, values?: Record<string, string | number>) => string
+): string {
+  if (isPdfProject(project)) return t("editor.exportPdf");
+  if (project?.template === "visual-novel") return t("vn.exportOpenwebgal");
+  if (project?.template === "phaser-game") return t("phaser.export");
+  return t("editor.export");
+}
+
+function showcaseIssueTitle(project: Project | null): string {
+  return `add to show case ${project?.title.trim() || "project"}`;
+}
+
+function showcaseIssueUrl(project: Project | null): string {
+  const params = new URLSearchParams({ title: showcaseIssueTitle(project) });
+  return `${SHOWCASE_ISSUE_BASE_URL}?${params.toString()}`;
+}
+
 interface CloudUploadPlan {
   snapshot: LocalWorkspaceSnapshot;
   remoteFiles: CloudRemoteFile[];
@@ -290,7 +311,7 @@ function TreeNodeActions({
   );
 }
 
-function MobileProjectActions({
+function ProjectActionsMenu({
   project,
   hasRoot,
   vn,
@@ -306,8 +327,13 @@ function MobileProjectActions({
   onShare,
   onDownloadSource,
   onCloudUpload,
+  onShowcase,
   onToggleScene,
   onSave,
+  includePreview = true,
+  includeSceneToggle = true,
+  includeSave = true,
+  className,
 }: {
   project: Project | null;
   hasRoot: boolean;
@@ -324,8 +350,13 @@ function MobileProjectActions({
   onShare: () => void;
   onDownloadSource: () => void;
   onCloudUpload: () => void;
+  onShowcase: () => void;
   onToggleScene: () => void;
   onSave: () => void;
+  includePreview?: boolean;
+  includeSceneToggle?: boolean;
+  includeSave?: boolean;
+  className?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -335,42 +366,41 @@ function MobileProjectActions({
   }
 
   const projectReady = Boolean(project && hasRoot);
-  const exportLabel =
-    isPdfProject(project)
-      ? t("editor.exportPdf")
-      : project?.template === "visual-novel"
-      ? t("vn.exportOpenwebgal")
-      : project?.template === "phaser-game"
-        ? t("phaser.export")
-        : t("editor.export");
   const actions: {
     label: string;
     icon: ReactNode;
     disabled?: boolean;
     onSelect: () => void;
-  }[] = [
-    {
+  }[] = [];
+
+  if (includePreview) {
+    actions.push({
       label: t("editor.preview"),
       icon: <Play />,
       disabled: !projectReady,
       onSelect: onPreview,
-    },
+    });
+  }
+
+  actions.push(
     {
-      label: exportLabel,
+      label: exportLabelForProject(project, t),
       icon: exporting ? <Loader2 className="animate-spin" /> : <FileDown />,
       disabled: !projectReady || exporting,
       onSelect: onExport,
-    },
-    ...(isPdfProject(project)
-      ? [
-          {
-            label: t("editor.sharePdf"),
-            icon: <Share2 />,
-            disabled: !projectReady || exporting,
-            onSelect: onShare,
-          },
-        ]
-      : []),
+    }
+  );
+
+  if (isPdfProject(project)) {
+    actions.push({
+      label: t("editor.sharePdf"),
+      icon: <Share2 />,
+      disabled: !projectReady || exporting,
+      onSelect: onShare,
+    });
+  }
+
+  actions.push(
     {
       label: t("editor.downloadSource"),
       icon: exporting ? <Loader2 className="animate-spin" /> : <FileDown />,
@@ -388,9 +418,15 @@ function MobileProjectActions({
       disabled: !projectReady || exporting || cloudOperation !== null,
       onSelect: onCloudUpload,
     },
-  ];
+    {
+      label: t("editor.submitShowcase"),
+      icon: exporting ? <Loader2 className="animate-spin" /> : <Upload />,
+      disabled: !projectReady || exporting,
+      onSelect: onShowcase,
+    },
+  );
 
-  if (project?.template === "visual-novel") {
+  if (includeSceneToggle && project?.template === "visual-novel") {
     actions.push({
       label: t("vn.structuredEditor"),
       icon: <Pencil />,
@@ -399,12 +435,14 @@ function MobileProjectActions({
     });
   }
 
-  actions.push({
-    label: saved && !saving ? `${t("editor.save")} · ${t("editor.saved")}` : t("editor.save"),
-    icon: saving ? <Loader2 className="animate-spin" /> : <Save />,
-    disabled: !dirty || saving || status !== "ready",
-    onSelect: onSave,
-  });
+  if (includeSave) {
+    actions.push({
+      label: saved && !saving ? `${t("editor.save")} · ${t("editor.saved")}` : t("editor.save"),
+      icon: saving ? <Loader2 className="animate-spin" /> : <Save />,
+      disabled: !dirty || saving || status !== "ready",
+      onSelect: onSave,
+    });
+  }
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -414,7 +452,7 @@ function MobileProjectActions({
             type="button"
             variant="outline"
             size="icon"
-            className="lg:hidden"
+            className={className}
             title={t("editor.actions")}
             aria-label={t("editor.actions")}
           />
@@ -493,6 +531,7 @@ export default function EditorClient() {
     title: string;
     description: string;
   } | null>(null);
+  const [showcaseDialogOpen, setShowcaseDialogOpen] = useState(false);
   const chatRef = useRef<ChatBoxHandle>(null);
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
   const uploadTargetRef = useRef<EntryDialogState | null>(null);
@@ -1263,24 +1302,59 @@ export default function EditorClient() {
     );
   }
 
+  async function exportCurrentProject() {
+    if (!project || !root) return;
+    if (project.template === "visual-novel") {
+      await exportVNZipFromDirectory(root, `${project.title || "openwebgal"}.zip`);
+    } else if (project.template === "phaser-game") {
+      await exportPhaserProjectZip(root, project.title);
+    } else if (project.template === "interactive-video") {
+      await exportInteractiveVideoProjectZip(root, project.title);
+    } else if (project.template === "picture-book") {
+      const preview = await readProjectPreview(root, project.template);
+      await exportPictureBookZip(root, preview, project.title, project.lang);
+    } else {
+      const preview = await readProjectPreview(root, project.template);
+      await exportReadableProjectPdf(root, preview, project.title, project.lang);
+    }
+  }
+
   async function handleExport() {
     if (!project || !root) return;
     setExporting(true);
     try {
-      if (project.template === "visual-novel") {
-        await exportVNZipFromDirectory(root, `${project.title || "openwebgal"}.zip`);
-      } else if (project.template === "phaser-game") {
-        await exportPhaserProjectZip(root, project.title);
-      } else if (project.template === "interactive-video") {
-        await exportInteractiveVideoProjectZip(root, project.title);
-      } else if (project.template === "picture-book") {
-        const preview = await readProjectPreview(root, project.template);
-        await exportPictureBookZip(root, preview, project.title, project.lang);
+      await exportCurrentProject();
+    } catch (e) {
+      setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleShowcaseSubmit() {
+    if (!project || !root) return;
+    const nextIssueUrl = showcaseIssueUrl(project);
+    const issueWindow = window.open("", "_blank");
+    if (issueWindow) issueWindow.opener = null;
+    setShowcaseDialogOpen(false);
+    setExporting(true);
+    setError("");
+    try {
+      if (dirty) {
+        const ok = await handleSave();
+        if (!ok) {
+          issueWindow?.close();
+          return;
+        }
+      }
+      await exportCurrentProject();
+      if (issueWindow) {
+        issueWindow.location.href = nextIssueUrl;
       } else {
-        const preview = await readProjectPreview(root, project.template);
-        await exportReadableProjectPdf(root, preview, project.title, project.lang);
+        window.open(nextIssueUrl, "_blank", "noopener,noreferrer");
       }
     } catch (e) {
+      issueWindow?.close();
       setError(localizePlatformErrorMessage(e instanceof Error ? e.message : String(e), lang));
     } finally {
       setExporting(false);
@@ -1829,6 +1903,8 @@ export default function EditorClient() {
   ]
     .filter(Boolean)
     .join("\n\n");
+  const showcaseTitle = showcaseIssueTitle(project);
+  const showcaseUrl = showcaseIssueUrl(project);
 
   return (
     <main className="flex h-svh flex-col overflow-hidden">
@@ -1898,48 +1974,6 @@ export default function EditorClient() {
                 <Play className="size-4" />
                 {t("editor.preview")}
               </Button>
-              <Button variant="outline" size="sm" onClick={() => void handleExport()} disabled={exporting}>
-                {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
-                {isPdfProject(project)
-                  ? t("editor.exportPdf")
-                  : project.template === "visual-novel"
-                  ? t("vn.exportOpenwebgal")
-                  : project.template === "phaser-game"
-                    ? t("phaser.export")
-                    : t("editor.export")}
-              </Button>
-              {isPdfProject(project) && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => void handleShare()}
-                  disabled={exporting}
-                >
-                  {exporting ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Share2 className="size-4" />
-                  )}
-                  {t("editor.sharePdf")}
-                </Button>
-              )}
-              <Button variant="outline" size="sm" onClick={() => void handleDownloadSource()} disabled={exporting}>
-                {exporting ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}
-                {t("editor.downloadSource")}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => void prepareCloudUpload()}
-                disabled={exporting || cloudOperation !== null}
-              >
-                {cloudOperation === "upload" ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <CloudUpload className="size-4" />
-                )}
-                {t("projects.cloudUploadProject")}
-              </Button>
               {project.template === "visual-novel" && (
                 <Button
                   variant={mode === "scene" ? "default" : "outline"}
@@ -1957,8 +1991,33 @@ export default function EditorClient() {
             {t("editor.save")}
             {saved && !saving ? ` · ${t("editor.saved")}` : ""}
           </Button>
+          <ProjectActionsMenu
+            project={project}
+            hasRoot={root !== null}
+            vn={vn}
+            exporting={exporting}
+            cloudOperation={cloudOperation}
+            saving={saving}
+            saved={saved}
+            dirty={dirty}
+            status={status}
+            t={t}
+            onPreview={() => void handlePreview()}
+            onExport={() => void handleExport()}
+            onShare={() => void handleShare()}
+            onDownloadSource={() => void handleDownloadSource()}
+            onCloudUpload={() => void prepareCloudUpload()}
+            onShowcase={() => setShowcaseDialogOpen(true)}
+            onToggleScene={() =>
+              setMode((previous) => (previous === "scene" ? "source" : "scene"))
+            }
+            onSave={() => void handleSave()}
+            includePreview={false}
+            includeSceneToggle={false}
+            includeSave={false}
+          />
         </div>
-        <MobileProjectActions
+        <ProjectActionsMenu
           project={project}
           hasRoot={root !== null}
           vn={vn}
@@ -1974,10 +2033,12 @@ export default function EditorClient() {
           onShare={() => void handleShare()}
           onDownloadSource={() => void handleDownloadSource()}
           onCloudUpload={() => void prepareCloudUpload()}
+          onShowcase={() => setShowcaseDialogOpen(true)}
           onToggleScene={() =>
             setMode((previous) => (previous === "scene" ? "source" : "scene"))
           }
           onSave={() => void handleSave()}
+          className="lg:hidden"
         />
       </div>
 
@@ -2254,6 +2315,31 @@ export default function EditorClient() {
         confirmLabel={t("common.ok")}
         onConfirm={() => setShareNotice(null)}
       />
+      <InteractionModal
+        open={showcaseDialogOpen}
+        onOpenChange={(open) => setShowcaseDialogOpen(open)}
+        title={t("editor.showcaseTitle")}
+        description={t("editor.showcaseDescription", { title: showcaseTitle })}
+        confirmLabel={t("editor.showcaseConfirm")}
+        confirmDisabled={!project || !root || exporting}
+        cancelLabel={t("common.cancel")}
+        onConfirm={() => void handleShowcaseSubmit()}
+      >
+        <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+          <p className="font-medium">{t("editor.showcaseIssueTitleLabel")}</p>
+          <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+            {showcaseTitle}
+          </p>
+          <Button
+            render={<Link href={showcaseUrl} target="_blank" rel="noreferrer" />}
+            variant="outline"
+            size="sm"
+            className="mt-3"
+          >
+            {t("editor.showcaseIssueLink")}
+          </Button>
+        </div>
+      </InteractionModal>
       <Dialog open={cloudOperation !== null}>
         <DialogContent className="max-w-sm">
           <DialogHeader>

@@ -83,6 +83,7 @@ function getGameMap() {
 
 function contentType(p) {
   if (p.endsWith(".txt")) return "text/plain; charset=utf-8";
+  if (p.endsWith(".css")) return "text/css; charset=utf-8";
   if (p.endsWith(".json")) return "application/json";
   if (p.endsWith(".png")) return "image/png";
   if (p.endsWith(".jpg") || p.endsWith(".jpeg")) return "image/jpeg";

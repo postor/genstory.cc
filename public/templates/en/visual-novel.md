@@ -127,6 +127,8 @@ assets/ui/menu-background.png
 
 This file is not part of stage state; preview and export compile it to OpenWebGal's `game/background/Title.png`.
 
+The sample template places a subtle menu credit in `userStyleSheet.css`; edit or delete that file if it is not needed.
+
 Available asset types are open-ended, for example:
 
 - Character

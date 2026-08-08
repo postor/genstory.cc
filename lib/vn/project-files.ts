@@ -7,7 +7,8 @@ export type VNProjectFileKind =
   | "asset"
   | "scene-meta"
   | "stage"
-  | "script";
+  | "script"
+  | "style";
 
 export interface VNProjectFile {
   path: string;
@@ -115,6 +116,13 @@ export function buildVNProjectFiles(
       kind: "asset-index",
     },
   ];
+  if (vn.userStyleSheet !== undefined) {
+    files.push({
+      path: "userStyleSheet.css",
+      content: vn.userStyleSheet,
+      kind: "style",
+    });
+  }
 
   for (const chapter of vn.chapters) {
     files.push({

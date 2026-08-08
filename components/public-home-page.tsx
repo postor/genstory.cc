@@ -134,8 +134,8 @@ function splitHeroTitle(text: string, lang: PublicLang): [string, string] {
     : [text.slice(0, separatorIndex), text.slice(separatorIndex + 1)];
 }
 
-function createProjectPath(type?: ContentTypeId) {
-  return type ? `/projects/new?template=${type}` : "/projects/new";
+function createProjectPath(lang: PublicLang, type?: ContentTypeId) {
+  return localizedPath(lang, type ? `projects/new?template=${type}` : "projects/new");
 }
 
 export function PublicHomePage({ lang }: { lang: PublicLang }) {
@@ -181,7 +181,7 @@ export function PublicHomePage({ lang }: { lang: PublicLang }) {
             </p>
             <div className="mt-7 hidden flex-wrap gap-3 md:flex">
               <Button
-                render={<Link href="/projects/new" />}
+                render={<Link href={createProjectPath(lang)} />}
                 size="lg"
                 className="min-h-11 border-0 bg-[#8754ff] px-5 text-white shadow-[0_12px_30px_rgba(95,44,255,0.35)] hover:bg-[#7642ef] lg:!pl-4"
               >
@@ -360,7 +360,7 @@ function CreationTypeCard({
 }) {
   return (
     <Card className="group h-full border-[#e9e5fb] bg-white/90 shadow-[0_10px_24px_rgba(92,75,160,0.06)] transition-transform hover:-translate-y-1 hover:border-[#cfc0ff] hover:shadow-[0_16px_32px_rgba(92,75,160,0.12)]">
-      <Link href={createProjectPath(type.id)} className="flex h-full flex-col">
+      <Link href={createProjectPath(lang, type.id)} className="flex h-full flex-col">
         <CardHeader className="p-3 pb-1 sm:p-4 sm:pb-1">
           <div className="relative flex h-20 w-full items-center justify-center overflow-hidden sm:h-24">
             <Image

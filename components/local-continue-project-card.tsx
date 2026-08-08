@@ -16,7 +16,7 @@ import {
 import { contentTypes, type ContentTypeId } from "@/lib/content-types";
 import { openProjectDirectory, readFile } from "@/lib/file-system/browser";
 import { listProjects, type Project } from "@/lib/local-projects";
-import type { PublicLang } from "@/lib/seo";
+import { localizedPath, type PublicLang } from "@/lib/seo";
 
 const typeImages: Record<ContentTypeId, string> = {
   book: "/home/type-icons/book.png",
@@ -78,7 +78,7 @@ export function LocalContinueProjectCard({ lang }: { lang: PublicLang }) {
 
   if (!recentProject) return null;
 
-  const projectHref = `/projects/editor?id=${recentProject.id}`;
+  const projectHref = localizedPath(lang, `projects/editor?id=${recentProject.id}`);
   const projectType = contentTypes.find((type) => type.id === recentProject.template);
   const image = coverImage ?? typeImages[recentProject.template];
   const updated = new Date(recentProject.updatedAt).toLocaleDateString(
@@ -92,7 +92,7 @@ export function LocalContinueProjectCard({ lang }: { lang: PublicLang }) {
           {lang === "zh" ? "今天继续创作" : "Continue creating today"}
         </CardTitle>
         <Link
-          href="/projects"
+          href={localizedPath(lang, "projects")}
           className="inline-flex items-center gap-1 text-xs font-medium text-[#7250d9] hover:text-[#4c27ba]"
         >
           {lang === "zh" ? "查看全部" : "View all"}

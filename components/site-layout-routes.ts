@@ -1,8 +1,11 @@
+import { pathnameWithoutPublicLang } from "@/lib/seo";
+
 const immersiveRoutes = ["/projects/editor", "/projects/preview"];
 const homeRoutes = ["/", "/zh", "/en"];
 
 export function isImmersiveRoute(pathname: string) {
-  return immersiveRoutes.some((route) => pathname.startsWith(route));
+  const unlocalizedPathname = pathnameWithoutPublicLang(pathname);
+  return immersiveRoutes.some((route) => unlocalizedPathname.startsWith(route));
 }
 
 export function isHomeRoute(pathname: string) {

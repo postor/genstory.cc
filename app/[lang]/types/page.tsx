@@ -6,7 +6,6 @@ import {
   normalizePublicLang,
   pageUrl,
   publicPageMetadata,
-  publicLanguages,
   publicPageSlugs,
   publicPages,
   siteKeywords,
@@ -18,12 +17,6 @@ import {
 type Props = {
   params: Promise<{ lang: string }>;
 };
-
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return publicLanguages.map((lang) => ({ lang }));
-}
 
 function typesMetadata(lang: PublicLang) {
   return {

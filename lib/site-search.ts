@@ -191,7 +191,7 @@ export function searchSiteContent(
           description: `${templateLabel} · ${new Date(project.updatedAt).toLocaleDateString(
             lang === "zh" ? "zh-CN" : "en-US",
           )}`,
-          href: `/projects/editor?id=${encodeURIComponent(project.id)}`,
+          href: localizedPath(lang, `projects/editor?id=${encodeURIComponent(project.id)}`),
         },
         score: matchScore(normalizedQuery, [project.title, templateLabel]),
       };

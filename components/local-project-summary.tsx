@@ -144,7 +144,7 @@ export function LocalProjectSummary() {
           updated: new Date(project.updatedAt).toLocaleDateString(
             lang === "zh" ? "zh-CN" : "en-US",
           ),
-          href: `/projects/editor?id=${project.id}`,
+          href: localizedPath(lang, `projects/editor?id=${project.id}`),
         };
       }),
     [lang, projectCoverImages, projects],
@@ -240,7 +240,7 @@ export function LocalProjectSummary() {
               : "Your works stay in this browser by default."}
           </p>
         </div>
-        <Button render={<Link href="/projects/new" />} size="sm" className="bg-[#8754ff] text-white hover:bg-[#7642ef]">
+        <Button render={<Link href={localizedPath(lang, "projects/new")} />} size="sm" className="bg-[#8754ff] text-white hover:bg-[#7642ef]">
           <Plus data-icon="inline-start" />
           {lang === "zh" ? "创建新项目" : "New project"}
         </Button>
@@ -293,7 +293,7 @@ export function LocalProjectSummary() {
         })}
 
         <Link
-          href="/projects/new"
+          href={localizedPath(lang, "projects/new")}
           className="group flex min-h-40 items-center justify-center rounded-xl border border-dashed border-[#cfc3f8] bg-[#f7f3ff] text-[#7850df] transition-colors hover:border-[#9f84f0] hover:bg-[#f0eaff]"
         >
           <span className="flex flex-col items-center gap-2">

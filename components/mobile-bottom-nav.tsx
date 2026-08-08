@@ -5,7 +5,12 @@ import { usePathname } from "next/navigation";
 
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { localizedPath, type PublicLang } from "@/lib/seo";
+import {
+  isPublicLang,
+  localizedPath,
+  pathnameWithoutPublicLang,
+  type PublicLang,
+} from "@/lib/seo";
 import { isImmersiveRoute } from "@/components/site-layout-routes";
 
 const labels = {
@@ -44,7 +49,11 @@ export function MobileBottomNav() {
       className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 rounded-2xl border border-[#e8e2ff] bg-white/95 p-1.5 text-xs shadow-[0_14px_35px_rgba(48,36,91,0.16)] backdrop-blur sm:hidden"
     >
       <MobileNavLink href={localizedPath(publicLang)} label={copy.home} active={isHomePath(pathname, publicLang)} />
-      <MobileNavLink href="/projects" label={copy.projects} active={pathname.startsWith("/projects")} />
+      <MobileNavLink
+        href={localizedPath(publicLang, "projects")}
+        label={copy.projects}
+        active={isProjectsPath(pathname)}
+      />
       <MobileNavLink href={localizedPath(publicLang, "types")} label={copy.explore} active={isExplorePath(pathname)} />
       <MobileNavLink href={sponsorHref} label={copy.sponsor} external />
     </nav>
@@ -86,7 +95,7 @@ function MobileNavLink({
 
 function getPublicLang(pathname: string): PublicLang | null {
   const segment = pathname.split("/")[1];
-  return segment === "zh" || segment === "en" ? segment : null;
+  return isPublicLang(segment) ? segment : null;
 }
 
 function isHomePath(pathname: string, lang: PublicLang) {
@@ -94,8 +103,15 @@ function isHomePath(pathname: string, lang: PublicLang) {
 }
 
 function isExplorePath(pathname: string) {
-  const segments = pathname.split("/").filter(Boolean);
-  const firstContentSegment = segments[0] === "zh" || segments[0] === "en" ? segments[1] : segments[0];
+  const segments = pathnameWithoutPublicLang(pathname).split("/").filter(Boolean);
 
-  return firstContentSegment === "types";
+  return segments[0] === "types";
+}
+
+function isProjectsPath(pathname: string) {
+  const unlocalizedPathname = pathnameWithoutPublicLang(pathname);
+  return (
+    unlocalizedPathname === "/projects" ||
+    unlocalizedPathname.startsWith("/projects/")
+  );
 }

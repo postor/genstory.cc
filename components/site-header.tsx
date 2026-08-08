@@ -4,7 +4,7 @@ import { ChevronDown, MenuIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type MouseEvent } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,7 +16,12 @@ import {
 } from "@/components/ui/popover";
 import { useLang } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
-import { localizedPath, type PublicLang } from "@/lib/seo";
+import {
+  isPublicLang,
+  localizedPath,
+  localizedRoutePath,
+  type PublicLang,
+} from "@/lib/seo";
 import {
   isHomeRoute,
   isImmersiveRoute,
@@ -38,8 +43,8 @@ export function SiteHeader() {
 
   const navItems = [
     { href: localizedPath(publicLang), label: labels.home },
-    { href: "/projects", label: labels.projects },
-    { href: "/settings", label: labels.settings },
+    { href: localizedPath(publicLang, "projects"), label: labels.projects },
+    { href: localizedPath(publicLang, "settings"), label: labels.settings },
   ];
   const zhHref = getLocalizedHref(pathname, "zh");
   const enHref = getLocalizedHref(pathname, "en");
@@ -177,8 +182,8 @@ function HeaderNavLinks({
   return navItems.map((item) => {
     const active =
       item.href === localizedPath(publicLang)
-        ? pathname === "/" || pathname === item.href
-        : pathname.startsWith(item.href);
+        ? pathname === item.href
+        : pathname === item.href || pathname.startsWith(`${item.href}/`);
     return (
       <Button
         key={item.href}
@@ -341,6 +346,20 @@ function LanguageSwitcher({
   onNavigate?: () => void;
   className?: string;
 }) {
+  function handleLanguageClick(
+    event: MouseEvent<HTMLElement>,
+    nextLang: PublicLang,
+  ) {
+    setLang(nextLang);
+    onNavigate?.();
+    if (typeof window === "undefined") return;
+    event.preventDefault();
+    const nextPath = localizedRoutePath(nextLang, window.location.pathname);
+    window.location.assign(
+      `${nextPath}${window.location.search}${window.location.hash}`,
+    );
+  }
+
   return (
     <div
       className={cn(
@@ -352,7 +371,7 @@ function LanguageSwitcher({
       aria-label={labels.language}
     >
       <Button
-        render={<Link href={zhHref} />}
+        render={<a href={zhHref} />}
         variant={homeHeader ? "ghost" : publicLang === "zh" ? "default" : "ghost"}
         className={
           homeHeader
@@ -363,15 +382,12 @@ function LanguageSwitcher({
         }
         size="xs"
         aria-pressed={publicLang === "zh"}
-        onClick={() => {
-          setLang("zh");
-          onNavigate?.();
-        }}
+        onClick={(event) => handleLanguageClick(event, "zh")}
       >
         {headerLabels.zh.languageName}
       </Button>
       <Button
-        render={<Link href={enHref} />}
+        render={<a href={enHref} />}
         variant={homeHeader ? "ghost" : publicLang === "en" ? "default" : "ghost"}
         className={
           homeHeader
@@ -382,10 +398,7 @@ function LanguageSwitcher({
         }
         size="xs"
         aria-pressed={publicLang === "en"}
-        onClick={() => {
-          setLang("en");
-          onNavigate?.();
-        }}
+        onClick={(event) => handleLanguageClick(event, "en")}
       >
         {headerLabels.en.languageName}
       </Button>
@@ -395,7 +408,7 @@ function LanguageSwitcher({
 
 function getPublicLang(pathname: string): PublicLang | null {
   const segment = pathname.split("/")[1];
-  return segment === "zh" || segment === "en" ? segment : null;
+  return isPublicLang(segment) ? segment : null;
 }
 
 const headerLabels: Record<
@@ -465,11 +478,5 @@ function GitHubMark() {
 }
 
 function getLocalizedHref(pathname: string, nextLang: PublicLang) {
-  const segments = pathname.split("/").filter(Boolean);
-  if (segments[0] === "zh" || segments[0] === "en") {
-    return `/${[nextLang, ...segments.slice(1)].join("/")}`;
-  }
-  if (pathname === "/") return localizedPath(nextLang);
-  if (pathname.startsWith("/projects") || pathname.startsWith("/settings")) return pathname;
-  return localizedPath(nextLang, pathname);
+  return localizedRoutePath(nextLang, pathname);
 }

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { useId } from "react";
 
+import { localizedPath } from "@/lib/seo";
+
 export function LegalConsentCheckbox({
   lang,
   checked,
@@ -30,7 +32,7 @@ export function LegalConsentCheckbox({
             ? "创建作品前，请确认你已阅读并同意"
             : "Before creating a work, confirm that you have read and agree to"}{" "}
           <Link
-            href="/terms"
+            href={localizedPath(lang, "terms")}
             target="_blank"
             className="font-semibold text-[#6f45dc] underline decoration-[#cfc0ff] underline-offset-2 hover:text-[#4c27ba]"
           >
@@ -38,7 +40,7 @@ export function LegalConsentCheckbox({
           </Link>
           {lang === "zh" ? "、" : " and "}
           <Link
-            href="/privacy"
+            href={localizedPath(lang, "privacy")}
             target="_blank"
             className="font-semibold text-[#6f45dc] underline decoration-[#cfc0ff] underline-offset-2 hover:text-[#4c27ba]"
           >
@@ -46,7 +48,7 @@ export function LegalConsentCheckbox({
           </Link>
           {lang === "zh" ? "和" : " and "}
           <Link
-            href="/ai-disclosure"
+            href={localizedPath(lang, "ai-disclosure")}
             target="_blank"
             className="font-semibold text-[#6f45dc] underline decoration-[#cfc0ff] underline-offset-2 hover:text-[#4c27ba]"
           >

@@ -26,6 +26,7 @@ import {
   recordLegalTermsAcceptance,
 } from "@/lib/legal-consent";
 import { LegalConsentCheckbox } from "@/components/legal-consent-checkbox";
+import { localizedPath } from "@/lib/seo";
 
 export function PublicCaseProjectPreview({
   sourceUrl,
@@ -98,7 +99,10 @@ export function PublicCaseProjectPreview({
     try {
       const id = await importCaseProject();
       router.push(
-        `/projects/preview?id=${encodeURIComponent(id)}&returnTo=${encodeURIComponent(returnTo)}`
+        localizedPath(
+          lang,
+          `projects/preview?id=${encodeURIComponent(id)}&returnTo=${encodeURIComponent(returnTo)}`
+        )
       );
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : labels.failed);
@@ -117,7 +121,7 @@ export function PublicCaseProjectPreview({
     setError("");
     try {
       const id = await importCaseProject();
-      router.push(`/projects/editor?id=${encodeURIComponent(id)}`);
+      router.push(localizedPath(lang, `projects/editor?id=${encodeURIComponent(id)}`));
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : labels.failed);
     } finally {

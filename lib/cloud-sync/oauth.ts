@@ -89,7 +89,14 @@ export async function createPkce(): Promise<{ verifier: string; challenge: strin
 
 export function getCloudRedirectUri(): string {
   if (typeof window === "undefined") return "";
-  return `${window.location.origin}/settings`;
+  const lang = currentRouteLang();
+  return `${window.location.origin}/${lang}/settings`;
+}
+
+function currentRouteLang(): "zh" | "en" {
+  if (typeof window === "undefined") return "zh";
+  const segment = window.location.pathname.split("/")[1];
+  return segment === "en" ? "en" : "zh";
 }
 
 export function buildAuthorizationUrl(
@@ -277,7 +284,7 @@ export async function handleCloudOAuthCallback(): Promise<CloudProviderId | null
   );
   saveCloudToken(request.provider, token, request.rememberAuthorization);
   clearOAuthRequest();
-  window.history.replaceState({}, "", `${window.location.origin}/settings`);
+  window.history.replaceState({}, "", new URL(request.redirectUri).pathname);
   return request.provider;
 }
 

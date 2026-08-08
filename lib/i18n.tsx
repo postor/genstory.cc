@@ -127,7 +127,7 @@ const zh: Dict = {
   "settings.cloud.guideButton": "连接说明",
   "settings.cloud.guideTitle": "连接云盘",
   "settings.cloud.guideDescription": "OAuth 授权直接在云盘官方页面完成，GenStory.cc 没有账号系统或后端代理。",
-  "settings.cloud.guideSteps": "Google Drive 使用内置公开 client ID；请在 Google Cloud Console 中把 /settings 加入允许的回调地址。连接后，项目页会按作品类型、作品 ID 和文件相对路径同步到云盘目录。",
+  "settings.cloud.guideSteps": "Google Drive 使用内置公开 client ID；请在 Google Cloud Console 中把 /zh/settings 和 /en/settings 加入允许的回调地址。连接后，项目页会按作品类型、作品 ID 和文件相对路径同步到云盘目录。",
   "settings.cloud.apiDocs": "API 文档",
   "settings.cloud.oauthDocs": "OAuth 文档",
   "settings.cloud.clientIdNote": "client ID 是公开标识，不是 client secret。Google Drive 的公开 client ID 已内置；不要把 client secret、服务账号密钥或 refresh token 粘贴到页面。",
@@ -488,7 +488,7 @@ const en: Dict = {
   "settings.cloud.guideButton": "Connection guide",
   "settings.cloud.guideTitle": "Connect a cloud drive",
   "settings.cloud.guideDescription": "Authorization happens on the provider's official page. GenStory.cc has no account system or backend proxy.",
-  "settings.cloud.guideSteps": "Google Drive uses a built-in public client ID. Add /settings as an allowed redirect URI in Google Cloud Console. After connecting, Projects syncs by work type, work ID, and relative file path.",
+  "settings.cloud.guideSteps": "Google Drive uses a built-in public client ID. Add /zh/settings and /en/settings as allowed redirect URIs in Google Cloud Console. After connecting, Projects syncs by work type, work ID, and relative file path.",
   "settings.cloud.apiDocs": "API docs",
   "settings.cloud.oauthDocs": "OAuth docs",
   "settings.cloud.clientIdNote": "A client ID is public, not a client secret. The Google Drive client ID is built in. Never paste a client secret, service-account key, or refresh token into the page.",
@@ -748,12 +748,18 @@ interface LangContextValue {
 
 const LangContext = createContext<LangContextValue | null>(null);
 
-export function LangProvider({ children }: { children: ReactNode }) {
+export function LangProvider({
+  children,
+  initialLang = "zh",
+}: {
+  children: ReactNode;
+  initialLang?: Lang;
+}) {
   const pathname = usePathname();
-  const [lang, setLangState] = useState<Lang>("zh");
+  const [lang, setLangState] = useState<Lang>(initialLang);
 
   useEffect(() => {
-    let initial: Lang = "zh";
+    let initial: Lang = initialLang;
     const routeLang = pathname.split("/")[1];
     try {
       const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -765,12 +771,12 @@ export function LangProvider({ children }: { children: ReactNode }) {
     }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLangState(initial);
-    document.documentElement.lang = initial;
-  }, [pathname]);
+    document.documentElement.lang = initial === "zh" ? "zh-CN" : "en";
+  }, [initialLang, pathname]);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);
-    document.documentElement.lang = next;
+    document.documentElement.lang = next === "zh" ? "zh-CN" : "en";
     try {
       window.localStorage.setItem(STORAGE_KEY, next);
     } catch {

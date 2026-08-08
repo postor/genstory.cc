@@ -1,22 +1,12 @@
 import type { MetadataRoute } from "next";
 
-import { pageLanguageAlternates, pageUrl, publicLanguages, publicPageSlugs, siteUrl } from "@/lib/seo";
+import { pageLanguageAlternates, pageUrl, publicLanguages, publicPageSlugs } from "@/lib/seo";
 
 export const dynamic = "force-static";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const routes: MetadataRoute.Sitemap = [
-    {
-      url: siteUrl,
-      lastModified: now,
-      changeFrequency: "monthly",
-      priority: 1,
-      alternates: {
-        languages: pageLanguageAlternates(),
-      },
-    },
-  ];
+  const routes: MetadataRoute.Sitemap = [];
 
   for (const lang of publicLanguages) {
     routes.push({
@@ -38,6 +28,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
         languages: pageLanguageAlternates("types"),
       },
     });
+
+    for (const path of ["terms", "privacy", "ai-disclosure"]) {
+      routes.push({
+        url: pageUrl(lang, path),
+        lastModified: now,
+        changeFrequency: "yearly",
+        priority: 0.3,
+        alternates: {
+          languages: pageLanguageAlternates(path),
+        },
+      });
+    }
 
     for (const slug of publicPageSlugs) {
       routes.push({

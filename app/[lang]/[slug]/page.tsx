@@ -8,7 +8,6 @@ import {
   pageUrl,
   publicPageMetadata,
   publicPageKeywords,
-  publicLanguages,
   publicPageSlugs,
   publicPages,
   sharedPageKeywords,
@@ -24,9 +23,7 @@ type Props = {
 export const dynamicParams = false;
 
 export function generateStaticParams() {
-  return publicLanguages.flatMap((lang) =>
-    publicPageSlugs.map((slug) => ({ lang, slug }))
-  );
+  return publicPageSlugs.map((slug) => ({ slug }));
 }
 
 function isPublicPageSlug(value: string): value is PublicPageSlug {

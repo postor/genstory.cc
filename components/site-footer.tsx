@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 import { isImmersiveRoute } from "@/components/site-layout-routes";
 import { useLang } from "@/lib/i18n";
+import { localizedPath } from "@/lib/seo";
 
 export function SiteFooter() {
   const pathname = usePathname();
@@ -41,21 +42,21 @@ export function SiteFooter() {
           <span aria-hidden="true">·</span>
           <Link
             className="underline-offset-4 hover:text-foreground hover:underline"
-            href="/terms"
+            href={localizedPath(lang, "terms")}
           >
             {t("legal.terms")}
           </Link>
           <span aria-hidden="true">·</span>
           <Link
             className="underline-offset-4 hover:text-foreground hover:underline"
-            href="/privacy"
+            href={localizedPath(lang, "privacy")}
           >
             {t("legal.privacy")}
           </Link>
           <span aria-hidden="true">·</span>
           <Link
             className="underline-offset-4 hover:text-foreground hover:underline"
-            href="/ai-disclosure"
+            href={localizedPath(lang, "ai-disclosure")}
           >
             {t("legal.aiDisclosure")}
           </Link>

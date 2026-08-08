@@ -199,7 +199,7 @@ export function PublicTopicPage({
 
               <div className="mt-8 flex flex-wrap gap-3">
                 <Button
-                  render={<Link href={`/projects/new?template=${slug}`} />}
+                  render={<Link href={localizedPath(lang, `projects/new?template=${slug}`)} />}
                   size="lg"
                   className="min-h-11 border-0 bg-[#8754ff] px-5 text-white shadow-[0_12px_30px_rgba(95,44,255,0.2)] hover:bg-[#7642ef]"
                 >
@@ -443,7 +443,7 @@ export function PublicTopicPage({
                 return (
                   <Link
                     key={otherSlug}
-                    href={`/projects/new?template=${otherSlug}`}
+                    href={localizedPath(lang, otherSlug)}
                     className="group flex h-full flex-col gap-4 rounded-lg border border-[#ddd7e9] bg-white p-4 transition-colors hover:border-[#b9a5ee] hover:bg-[#fcfbff] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-[#8b65ef]/35 sm:p-5"
                   >
                     <div className="flex items-start gap-4">

@@ -586,6 +586,20 @@ export const publicPages: Record<
   },
 };
 
+function metadataLocale(lang: PublicLang) {
+  return lang === "zh"
+    ? {
+        contentLanguage: "zh-CN",
+        ogLocale: "zh_CN",
+        alternateOgLocale: "en_US",
+      }
+    : {
+        contentLanguage: "en",
+        ogLocale: "en_US",
+        alternateOgLocale: "zh_CN",
+      };
+}
+
 export function publicPageMetadata({
   lang,
   path = "",
@@ -599,17 +613,7 @@ export function publicPageMetadata({
   description: string;
   keywords?: string[];
 }): Metadata {
-  const locale = lang === "zh"
-    ? {
-        contentLanguage: "zh-CN",
-        ogLocale: "zh_CN",
-        alternateOgLocale: "en_US",
-      }
-    : {
-        contentLanguage: "en",
-        ogLocale: "en_US",
-        alternateOgLocale: "zh_CN",
-      };
+  const locale = metadataLocale(lang);
   const url = pageUrl(lang, path);
 
   return {
@@ -650,22 +654,28 @@ export function publicPageMetadata({
 }
 
 export function privatePageMetadata({
+  lang,
   path,
   title,
   description,
 }: {
+  lang: PublicLang;
   path: string;
   title: string;
   description: string;
 }): Metadata {
-  const url = `${siteUrl}/${path.replace(/^\/+/, "")}`;
+  const locale = metadataLocale(lang);
+  const url = pageUrl(lang, path);
 
   return {
     title: { absolute: title },
     description,
+    other: {
+      "content-language": locale.contentLanguage,
+    },
     alternates: {
       canonical: url,
-      languages: {},
+      languages: pageLanguageAlternates(path),
     },
     openGraph: {
       type: "website",
@@ -673,6 +683,8 @@ export function privatePageMetadata({
       title,
       description,
       url,
+      locale: locale.ogLocale,
+      alternateLocale: [locale.alternateOgLocale],
       images: [
         {
           url: ogImagePath,
@@ -698,6 +710,23 @@ export function privatePageMetadata({
 export function localizedPath(lang: PublicLang, path = "") {
   const suffix = path.startsWith("/") ? path : `/${path}`;
   return `/${lang}${suffix === "/" ? "" : suffix}`;
+
+}
+
+export function isPublicLang(value: string | undefined): value is PublicLang {
+  return value === "zh" || value === "en";
+}
+
+export function pathnameWithoutPublicLang(pathname: string) {
+  const normalized = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  const segments = normalized.split("/");
+  return isPublicLang(segments[1])
+    ? `/${segments.slice(2).join("/")}`.replace(/\/$/, "") || "/"
+    : normalized;
+}
+
+export function localizedRoutePath(lang: PublicLang, pathname = "/") {
+  return localizedPath(lang, pathnameWithoutPublicLang(pathname));
 
 }
 

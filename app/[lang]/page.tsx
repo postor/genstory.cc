@@ -10,7 +10,6 @@ import {
   normalizePublicLang,
   pageUrl,
   publicPageMetadata,
-  publicLanguages,
   siteKeywords,
   siteFeatureList,
   siteMetadata,
@@ -21,12 +20,6 @@ import {
 type Props = {
   params: Promise<{ lang: string }>;
 };
-
-export const dynamicParams = false;
-
-export function generateStaticParams() {
-  return publicLanguages.map((lang) => ({ lang }));
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const lang = normalizePublicLang((await params).lang);

@@ -10,7 +10,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useLang } from "@/lib/i18n";
 import { listProjects } from "@/lib/local-projects";
+import { localizedPath } from "@/lib/seo";
 
 type QuickStartCopy = {
   title: string;
@@ -27,6 +29,7 @@ export function LocalProjectQuickStartCard({
 }: {
   copy: QuickStartCopy;
 }) {
+  const { lang } = useLang();
   const [hasProjects, setHasProjects] = useState<boolean>();
 
   useEffect(() => {
@@ -60,19 +63,19 @@ export function LocalProjectQuickStartCard({
             icon={FolderPlus}
             title={copy.templateTitle}
             body={copy.templateBody}
-            href="/projects/new"
+            href={localizedPath(lang, "projects/new")}
           />
           <QuickStartItem
             icon={Upload}
             title={copy.importTitle}
             body={copy.importBody}
-            href="/projects"
+            href={localizedPath(lang, "projects")}
           />
           <QuickStartItem
             icon={WandSparkles}
             title={copy.assistantTitle}
             body={copy.assistantBody}
-            href="/settings"
+            href={localizedPath(lang, "settings")}
           />
         </div>
       </CardContent>

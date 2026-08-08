@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowLeft, FileText, ShieldCheck, Sparkles } from "lucide-react";
 
 import { useLang } from "@/lib/i18n";
+import { localizedPath } from "@/lib/seo";
 
 type LegalPageKind = "terms" | "privacy" | "ai";
 
@@ -98,7 +99,7 @@ export function LegalPage({ kind }: { kind: LegalPageKind }) {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(190,162,255,0.28),transparent_40%)]" />
       <div className="relative mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
         <Link
-          href="/"
+          href={localizedPath(lang)}
           className="inline-flex items-center gap-2 text-sm font-medium text-[#6f45dc] hover:text-[#4c27ba]"
         >
           <ArrowLeft className="size-4" />

@@ -306,9 +306,10 @@ const zh: Dict = {
   "chat.compressionOptionsLabel": "压缩上下文选项",
   "chat.send": "发送",
   "chat.sending": "发送中…",
-  "chat.authTitle": "需要授权",
-  "chat.authDescription": "该聊天需要连接 OpenRouter MCP 才能调用工具。是否跳转到授权页面完成 OAuth 登录？",
-  "chat.authorize": "前往授权",
+  "chat.authTitle": "连接 OpenRouter，让 CC 帮你创作",
+  "chat.authDescription":
+    "GenStory.cc 是创作工具，不提供 AI 模型。连接 OpenRouter 后，CC 才能调用 AI 和项目工具。点击继续会跳转到 OpenRouter 官方页面，完成授权后回到这里。",
+  "chat.authorize": "继续并前往 OpenRouter",
   "chat.noToken": "未找到可用令牌，请先完成 OAuth 授权。",
   "chat.noTools": "尚未连接 MCP 或未发现工具，无法在聊天中调用工具。",
   "chat.emptySummary": "上下文压缩未返回摘要",
@@ -352,9 +353,17 @@ const zh: Dict = {
   "chat.toolImageAlt": "工具返回图片",
   "chat.toolCallFailed": "工具调用失败: {message}",
 
-  "mcp.authTitle": "需要授权",
-  "mcp.authDescription": "该操作需要连接 OpenRouter MCP。是否跳转到授权页面完成 OAuth 登录？",
-  "mcp.authorize": "前往授权",
+  "mcp.assistantName": "CC 创作助手",
+  "mcp.assistantAvatarAlt": "CC 创作助手头像",
+  "mcp.authTitle": "连接 OpenRouter，让 CC 帮你创作",
+  "mcp.authDescription":
+    "GenStory.cc 是创作工具，不提供 AI 模型。连接 OpenRouter 后，CC 才能调用 AI 和项目工具。点击继续会跳转到 OpenRouter 官方页面，完成授权后回到这里。",
+  "mcp.authCostTitle": "费用说明",
+  "mcp.authCostDescription":
+    "GenStory.cc 不收取费用；OpenRouter 会根据你选择的模型和实际使用量（例如请求次数）计费，具体价格以 OpenRouter 页面为准。",
+  "mcp.authAlternativeNote":
+    "授权会在 OpenRouter 官方页面完成。暂不授权也没关系，你仍可以继续使用本地创作功能。",
+  "mcp.authorize": "继续并前往 OpenRouter",
   "mcp.oauthStartFailed": "OAuth 启动失败: {message}",
   "mcp.reconnectFailed": "自动重连失败，请手动连接",
   "mcp.authRequired": "需要授权才能连接 OpenRouter MCP",
@@ -668,9 +677,10 @@ const en: Dict = {
   "chat.compressionOptionsLabel": "Context compression options",
   "chat.send": "Send",
   "chat.sending": "Sending…",
-  "chat.authTitle": "Authorization required",
-  "chat.authDescription": "This chat needs an OpenRouter MCP connection to call tools. Go to the authorization page to finish OAuth login?",
-  "chat.authorize": "Authorize",
+  "chat.authTitle": "Connect OpenRouter to use CC's AI",
+  "chat.authDescription":
+    "GenStory.cc is a creative tool, not an AI model provider. Connecting OpenRouter lets CC use AI and project tools. Continue to OpenRouter's official page, authorize the connection, and then return here.",
+  "chat.authorize": "Continue to OpenRouter",
   "chat.noToken": "No available token found. Complete OAuth authorization first.",
   "chat.noTools": "MCP is not connected or no tools were found, so chat cannot call tools.",
   "chat.emptySummary": "Context compression did not return a summary",
@@ -714,9 +724,17 @@ const en: Dict = {
   "chat.toolImageAlt": "Tool result image",
   "chat.toolCallFailed": "Tool call failed: {message}",
 
-  "mcp.authTitle": "Authorization required",
-  "mcp.authDescription": "This action needs an OpenRouter MCP connection. Go to the authorization page to finish OAuth login?",
-  "mcp.authorize": "Authorize",
+  "mcp.assistantName": "CC creative assistant",
+  "mcp.assistantAvatarAlt": "CC creative assistant avatar",
+  "mcp.authTitle": "Connect OpenRouter to use CC's AI",
+  "mcp.authDescription":
+    "GenStory.cc is a creative tool, not an AI model provider. Connecting OpenRouter lets CC use AI and project tools. Continue to OpenRouter's official page, authorize the connection, and then return here.",
+  "mcp.authCostTitle": "Cost",
+  "mcp.authCostDescription":
+    "GenStory.cc does not charge you. OpenRouter bills based on the model you choose and your actual usage, such as request count. Check OpenRouter for current pricing.",
+  "mcp.authAlternativeNote":
+    "Authorization happens on OpenRouter's official page. You can cancel for now and continue using the local creative tools.",
+  "mcp.authorize": "Continue to OpenRouter",
   "mcp.oauthStartFailed": "OAuth start failed: {message}",
   "mcp.reconnectFailed": "Automatic reconnect failed. Connect manually.",
   "mcp.authRequired": "Authorization is required to connect OpenRouter MCP",

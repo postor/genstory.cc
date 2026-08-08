@@ -37,6 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLang, type Lang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { cn } from "@/lib/utils";
+import { OpenRouterAuthDialog } from "@/openroutermcp/OpenRouterAuthDialog";
 import {
   isOpenAICompatibleConfigured,
   loadOpenAICompatibleSettings,
@@ -48,14 +49,6 @@ import {
   trackModelSelected,
   trackToolCalled,
 } from "@/lib/analytics";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Popover,
   PopoverPopup,
@@ -1845,35 +1838,14 @@ export const ChatBox = forwardRef<ChatBoxHandle, ChatBoxProps>(function ChatBox(
         </div>
       </div>
 
-      <Dialog
+      <OpenRouterAuthDialog
         open={oauthOpen}
-        onOpenChange={(o) => {
-          // Closing via overlay/ESC cancels the OAuth flow.
-          if (!o) setOauthOpen(false);
+        onCancel={() => setOauthOpen(false)}
+        onAuthorize={() => {
+          setOauthOpen(false);
+          authorize(); // redirects the browser to the OAuth page
         }}
-      >
-        <DialogContent onClick={(e) => e.stopPropagation()} showCloseButton={false}>
-          <DialogHeader>
-            <DialogTitle>{t("chat.authTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("chat.authDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOauthOpen(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button
-              onClick={() => {
-                setOauthOpen(false);
-                authorize(); // redirects the browser to the OAuth page
-              }}
-            >
-              {t("chat.authorize")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      />
     </div>
   );
 });

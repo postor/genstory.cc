@@ -28,12 +28,21 @@ import {
 } from "@/components/site-layout-routes";
 import { SiteSearch } from "@/components/site-search";
 
+const documentationNavLabels: Record<
+  PublicLang,
+  { guides: string; faq: string }
+> = {
+  zh: { guides: "指南", faq: "FAQ" },
+  en: { guides: "Guides", faq: "FAQ" },
+};
+
 export function SiteHeader() {
   const { lang, setLang } = useLang();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const publicLang = getPublicLang(pathname) ?? lang;
   const labels = headerLabels[publicLang];
+  const documentationLabels = documentationNavLabels[publicLang];
   const homeHeader = isHomeRoute(pathname);
   const darkHeader = true;
 
@@ -44,6 +53,8 @@ export function SiteHeader() {
   const navItems = [
     { href: localizedPath(publicLang), label: labels.home },
     { href: localizedPath(publicLang, "projects"), label: labels.projects },
+    { href: localizedPath(publicLang, "guides"), label: documentationLabels.guides },
+    { href: localizedPath(publicLang, "faq"), label: documentationLabels.faq },
     { href: localizedPath(publicLang, "settings"), label: labels.settings },
   ];
   const zhHref = getLocalizedHref(pathname, "zh");

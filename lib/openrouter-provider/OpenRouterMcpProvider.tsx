@@ -22,15 +22,7 @@ import {
 } from "react";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+import { OpenRouterAuthDialog } from "@/openroutermcp/OpenRouterAuthDialog";
 import {
   type AuthContext,
   type AuthServerMetadata,
@@ -431,28 +423,11 @@ export function OpenRouterMcpProvider({
   return (
     <OpenRouterMcpContext.Provider value={value}>
       {children}
-      <Dialog
+      <OpenRouterAuthDialog
         open={oauthConfirmOpen}
-        onOpenChange={(o) => {
-          // Closing via overlay/ESC rejects the pending confirmation.
-          if (!o) closeOAuthConfirm(false);
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("mcp.authTitle")}</DialogTitle>
-            <DialogDescription>
-              {t("mcp.authDescription")}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => closeOAuthConfirm(false)}>
-              {t("common.cancel")}
-            </Button>
-            <Button onClick={() => closeOAuthConfirm(true)}>{t("mcp.authorize")}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onCancel={() => closeOAuthConfirm(false)}
+        onAuthorize={() => closeOAuthConfirm(true)}
+      />
     </OpenRouterMcpContext.Provider>
   );
 }

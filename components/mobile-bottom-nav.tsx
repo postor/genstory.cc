@@ -11,7 +11,10 @@ import {
   pathnameWithoutPublicLang,
   type PublicLang,
 } from "@/lib/seo";
-import { isImmersiveRoute } from "@/components/site-layout-routes";
+import {
+  isDocumentationRoute,
+  isImmersiveRoute,
+} from "@/components/site-layout-routes";
 
 const labels = {
   zh: {
@@ -39,7 +42,7 @@ export function MobileBottomNav() {
   const publicLang = getPublicLang(pathname) ?? lang;
   const copy = labels[publicLang];
 
-  if (isImmersiveRoute(pathname)) {
+  if (isImmersiveRoute(pathname) || isDocumentationRoute(pathname)) {
     return null;
   }
 

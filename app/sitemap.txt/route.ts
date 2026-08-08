@@ -2,8 +2,8 @@ import sitemap from "../sitemap";
 
 export const dynamic = "force-static";
 
-export function GET() {
-  const urls = sitemap().map((entry) => entry.url).join("\n");
+export async function GET() {
+  const urls = (await sitemap()).map((entry) => entry.url).join("\n");
 
   return new Response(`${urls}\n`, {
     headers: {

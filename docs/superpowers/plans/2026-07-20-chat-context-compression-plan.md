@@ -23,21 +23,21 @@
 
 ## 2. 文件结构
 
-- Create: `openroutermcp/chatbox/contextCompression.ts`
+- Create: `components/openrouter-mcp/chatbox/contextCompression.ts`
   - 纯函数：turn 分组、压缩窗口选择、摘要 message 注入、预算计算、状态类型。
-- Create: `openroutermcp/chatbox/contextCompression.test.ts`
+- Create: `components/openrouter-mcp/chatbox/contextCompression.test.ts`
   - 覆盖预算触发、最近窗口保留、tool call 邻接保护、摘要注入、清空状态。
-- Modify: `openroutermcp/chatbox/transcript.ts`
+- Modify: `components/openrouter-mcp/chatbox/transcript.ts`
   - 增加压缩 notice 工厂；继续确保 notice 不进入 LLM 历史。
-- Modify: `openroutermcp/chatbox/transcript.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/transcript.test.ts`
   - 覆盖压缩 notice。
-- Modify: `openroutermcp/chatbox/ChatBox.tsx`
+- Modify: `components/openrouter-mcp/chatbox/ChatBox.tsx`
   - 新增摘要状态、自动压缩 checkbox、条件显示的手动压缩按钮、localStorage key、发送流程、状态展示、清空逻辑。
-- Modify: `openroutermcp/chatbox/contextSize.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextSize.ts`
   - 增加用于多段 messages 的 token 统计帮助函数，避免 ChatBox 内重复手算。
-- Modify: `openroutermcp/chatbox/contextSize.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextSize.test.ts`
   - 覆盖摘要 + 最近历史的 token 统计。
-- Modify: `openroutermcp/chatbox/index.ts`
+- Modify: `components/openrouter-mcp/chatbox/index.ts`
   - 导出新增纯函数，方便后续复用或测试。
 
 Before implementation, read the relevant local Next.js docs under `node_modules/next/dist/docs/` for Client Components and browser APIs, because this repository explicitly targets a Next.js version with breaking changes.
@@ -79,8 +79,8 @@ export interface CompressionPlan {
 ## 4. Task 1: Pure Compression Planner
 
 **Files:**
-- Create: `openroutermcp/chatbox/contextCompression.ts`
-- Create: `openroutermcp/chatbox/contextCompression.test.ts`
+- Create: `components/openrouter-mcp/chatbox/contextCompression.ts`
+- Create: `components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 - [ ] **Step 1: Write failing tests for trigger thresholds**
 
@@ -141,7 +141,7 @@ test("compresses when request crosses known model trigger ratio", () => {
 
 - [ ] **Step 2: Run tests and verify they fail**
 
-Run: `node --experimental-strip-types --test openroutermcp/chatbox/contextCompression.test.ts`
+Run: `node --experimental-strip-types --test components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 Expected: FAIL with module/function not found.
 
@@ -265,15 +265,15 @@ export function planContextCompression(input: CompressionPlanInput): Compression
 
 - [ ] **Step 4: Run tests**
 
-Run: `node --experimental-strip-types --test openroutermcp/chatbox/contextCompression.test.ts`
+Run: `node --experimental-strip-types --test components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 Expected: PASS for threshold tests, with later tool-boundary tests not yet present.
 
 ## 5. Task 2: Tool Call Boundary Protection
 
 **Files:**
-- Modify: `openroutermcp/chatbox/contextCompression.ts`
-- Modify: `openroutermcp/chatbox/contextCompression.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextCompression.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 - [ ] **Step 1: Add failing tests for tool adjacency**
 
@@ -359,15 +359,15 @@ const splitIndex = adjustSplitForToolBoundary(
 
 - [ ] **Step 3: Run tests**
 
-Run: `node --experimental-strip-types --test openroutermcp/chatbox/contextCompression.test.ts`
+Run: `node --experimental-strip-types --test components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 Expected: PASS.
 
 ## 6. Task 3: Summary Message Builder
 
 **Files:**
-- Modify: `openroutermcp/chatbox/contextCompression.ts`
-- Modify: `openroutermcp/chatbox/contextCompression.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextCompression.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 - [ ] **Step 1: Add failing tests for summary injection**
 
@@ -415,15 +415,15 @@ export function buildCompressedLlmMessages(input: {
 
 - [ ] **Step 3: Run tests**
 
-Run: `node --experimental-strip-types --test openroutermcp/chatbox/contextCompression.test.ts`
+Run: `node --experimental-strip-types --test components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 Expected: PASS.
 
 ## 7. Task 4: Summary Prompt and Fingerprint
 
 **Files:**
-- Modify: `openroutermcp/chatbox/contextCompression.ts`
-- Modify: `openroutermcp/chatbox/contextCompression.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextCompression.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 - [ ] **Step 1: Add failing tests for summarizer prompt**
 
@@ -501,15 +501,15 @@ export function buildCompressionPrompt(input: {
 
 - [ ] **Step 3: Run tests**
 
-Run: `node --experimental-strip-types --test openroutermcp/chatbox/contextCompression.test.ts`
+Run: `node --experimental-strip-types --test components/openrouter-mcp/chatbox/contextCompression.test.ts`
 
 Expected: PASS.
 
 ## 8. Task 5: Context Size Helpers
 
 **Files:**
-- Modify: `openroutermcp/chatbox/contextSize.ts`
-- Modify: `openroutermcp/chatbox/contextSize.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextSize.ts`
+- Modify: `components/openrouter-mcp/chatbox/contextSize.test.ts`
 
 - [ ] **Step 1: Add failing test**
 
@@ -567,15 +567,15 @@ export function estimateRequestContextUsage(input: ContextSizeInput & { fixedTok
 
 - [ ] **Step 3: Run test**
 
-Run: `node --experimental-strip-types --test openroutermcp/chatbox/contextSize.test.ts`
+Run: `node --experimental-strip-types --test components/openrouter-mcp/chatbox/contextSize.test.ts`
 
 Expected: PASS.
 
 ## 9. Task 6: Transcript Notice
 
 **Files:**
-- Modify: `openroutermcp/chatbox/transcript.ts`
-- Modify: `openroutermcp/chatbox/transcript.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/transcript.ts`
+- Modify: `components/openrouter-mcp/chatbox/transcript.test.ts`
 
 - [ ] **Step 1: Add failing test**
 
@@ -613,14 +613,14 @@ export function createContextCompressionNotice(input: {
 
 - [ ] **Step 3: Run test**
 
-Run: `node --experimental-strip-types --test openroutermcp/chatbox/transcript.test.ts`
+Run: `node --experimental-strip-types --test components/openrouter-mcp/chatbox/transcript.test.ts`
 
 Expected: PASS.
 
 ## 10. Task 7: ChatBox Integration
 
 **Files:**
-- Modify: `openroutermcp/chatbox/ChatBox.tsx`
+- Modify: `components/openrouter-mcp/chatbox/ChatBox.tsx`
 
 - [ ] **Step 1: Add imports and localStorage key**
 
@@ -905,14 +905,14 @@ In the context usage text:
 
 - [ ] **Step 9: Run lint**
 
-Run: `npm run lint -- openroutermcp/chatbox/ChatBox.tsx`
+Run: `npm run lint -- components/openrouter-mcp/chatbox/ChatBox.tsx`
 
 Expected: PASS.
 
 ## 11. Task 8: Export and Regression Tests
 
 **Files:**
-- Modify: `openroutermcp/chatbox/index.ts`
+- Modify: `components/openrouter-mcp/chatbox/index.ts`
 
 - [ ] **Step 1: Export helpers**
 
@@ -931,7 +931,7 @@ export {
 Run:
 
 ```bash
-node --experimental-strip-types --test openroutermcp/chatbox/contextSize.test.ts openroutermcp/chatbox/transcript.test.ts openroutermcp/chatbox/contextCompression.test.ts
+node --experimental-strip-types --test components/openrouter-mcp/chatbox/contextSize.test.ts components/openrouter-mcp/chatbox/transcript.test.ts components/openrouter-mcp/chatbox/contextCompression.test.ts
 ```
 
 Expected: PASS.

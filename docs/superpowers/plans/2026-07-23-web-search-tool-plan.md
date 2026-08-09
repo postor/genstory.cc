@@ -24,8 +24,8 @@
 ### Task 2: Expose `web_search` to the chat agent loop
 
 **Files:**
-- Modify: `openroutermcp/chatbox/ChatBox.tsx`
-- Modify: `openroutermcp/chatbox/ChatBox.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/ChatBox.tsx`
+- Modify: `components/openrouter-mcp/chatbox/ChatBox.test.ts`
 - Modify: `lib/analytics.ts` only if tool-source tracking needs a new source
 
 - [ ] **Step 1: Add a failing source/behavior test** proving the chat tool list contains `web_search` and tool errors do not leak the API key.

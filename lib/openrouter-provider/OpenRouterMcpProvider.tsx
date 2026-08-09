@@ -22,7 +22,7 @@ import {
 } from "react";
 import { useLang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
-import { OpenRouterAuthDialog } from "@/openroutermcp/OpenRouterAuthDialog";
+import { OpenRouterAuthDialog } from "@/components/openrouter-mcp/OpenRouterAuthDialog";
 import {
   type AuthContext,
   type AuthServerMetadata,

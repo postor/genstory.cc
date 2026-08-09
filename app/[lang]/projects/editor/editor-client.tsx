@@ -30,9 +30,9 @@ import {
   type ChatBoxHandle,
   type ChatFileChange,
   type ChatProjectTool,
-} from "@/openroutermcp/chatbox";
+} from "@/components/openrouter-mcp/chatbox";
 import { useOpenRouterMcp } from "@/lib/openrouter-provider/useOpenRouterMcp";
-import type { ExtractedToolImage } from "@/openroutermcp/chatbox/chatRender";
+import type { ExtractedToolImage } from "@/components/openrouter-mcp/chatbox/chatRender";
 import { contentTypeById } from "@/lib/content-types";
 import type { ProjectFileEntry } from "@/lib/file-system/types";
 import { parentDirectoryPath, resolveNewEntryPath, uploadTargetDirectory } from "@/lib/file-system/ops";

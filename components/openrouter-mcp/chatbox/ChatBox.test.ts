@@ -67,7 +67,7 @@ test("chatbox redacts workspace write payloads before storing tool calls", async
 
 test("editor exposes text writes as a project tool so file edits render as tool calls", async () => {
   const source = await readFile(
-    new URL("../../app/projects/editor/editor-client.tsx", import.meta.url),
+    new URL("../../../app/[lang]/projects/editor/editor-client.tsx", import.meta.url),
     "utf8"
   );
 
@@ -100,7 +100,7 @@ test("chatbox keeps going until five consecutive tool request failures", async (
 test("chatbox wires OpenRouter's server-side web search tool into chat requests", async () => {
   const [chatboxSource, openrouterSource] = await Promise.all([
     readFile(new URL("./ChatBox.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../../lib/openrouter.ts", import.meta.url), "utf8"),
+    readFile(new URL("../../../lib/openrouter.ts", import.meta.url), "utf8"),
   ]);
 
   assert.match(chatboxSource, /OPENROUTER_WEB_SEARCH_TOOL/);

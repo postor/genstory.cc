@@ -103,8 +103,8 @@ Restore always creates new project IDs, rewrites each project manifest, maps pro
 
 **Files:**
 - Modify: `lib/i18n.tsx`
-- Modify: `openroutermcp/chatbox/ChatBox.tsx`
-- Test: `openroutermcp/chatbox/storage.test.ts`
+- Modify: `components/openrouter-mcp/chatbox/ChatBox.tsx`
+- Test: `components/openrouter-mcp/chatbox/chatStorage.test.ts`
 
 - [ ] Write tests for chat state load/save and preference migration without touching auth keys.
 - [ ] Run the focused tests and confirm they fail.
@@ -135,7 +135,7 @@ Restore always creates new project IDs, rewrites each project manifest, maps pro
 
 - [ ] Document which state is backed up, which state is intentionally excluded, and the restore behavior.
 - [ ] Run `npm run lint`.
-- [ ] Run `node --experimental-strip-types --test lib/**/*.test.ts openroutermcp/**/*.test.ts components/**/*.test.ts app/**/*.test.ts`.
+- [ ] Run `node --experimental-strip-types --test lib/**/*.test.ts components/openrouter-mcp/**/*.test.ts components/**/*.test.ts app/**/*.test.ts`.
 - [ ] Run `npm run build`.
 - [ ] Run `git diff --check`.
 - [ ] Inspect the final diff and verify no production path exports OAuth credentials or preview caches.

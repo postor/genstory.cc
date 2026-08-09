@@ -37,7 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLang, type Lang } from "@/lib/i18n";
 import { localizePlatformErrorMessage } from "@/lib/platform-errors";
 import { cn } from "@/lib/utils";
-import { OpenRouterAuthDialog } from "@/openroutermcp/OpenRouterAuthDialog";
+import { OpenRouterAuthDialog } from "../OpenRouterAuthDialog";
 import {
   isOpenAICompatibleConfigured,
   loadOpenAICompatibleSettings,

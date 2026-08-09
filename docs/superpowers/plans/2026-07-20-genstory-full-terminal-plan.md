@@ -465,7 +465,7 @@ type-specific source files
 - Create: `lib/project-runtime/ai-context.ts`
 - Create: `lib/project-runtime/change-set.ts`
 - Modify: `app/projects/editor/editor-client.tsx`
-- Modify: `openroutermcp/chatbox/ChatBox.tsx`
+- Modify: `components/openrouter-mcp/chatbox/ChatBox.tsx`
 
 任务：
 
@@ -629,7 +629,7 @@ git diff --check
 |---|---|---|
 | A. 运行时协议与索引 | `lib/project-runtime/`, `lib/local-projects.ts` | — |
 | B. 适配器迁移 | `lib/vn/`, `lib/phaser/`, `lib/project-source.ts` | A |
-| C. 编辑器生命周期 | `app/projects/`, `openroutermcp/chatbox/` | A |
+| C. 编辑器生命周期 | `app/projects/`, `components/openrouter-mcp/chatbox/` | A |
 | D. 互动视频 | `lib/interactive-video/`, templates | A |
 | E. 运行缓存与 SW | `lib/vn/`, `app/projects/preview/` | A, B |
 | F. 响应式 UI | `app/projects/editor/`, `components/ui/` | C |

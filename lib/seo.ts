@@ -10,8 +10,9 @@ export type PublicPageSlug =
   | "interactive-video"
   | "phaser-game";
 
-export const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.genstory.cc";
+const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, "");
+
+export const siteUrl = configuredSiteUrl || "https://www.genstory.cc";
 export const ogImagePath = "/og/genstory-og.png";
 export const ogImageUrl = `${siteUrl}${ogImagePath}`;
 
@@ -163,6 +164,18 @@ export const siteFeatureList: Record<PublicLang, string[]> = {
     "Visual novel preview in the browser",
     "Standalone OpenWebGal project export",
   ],
+};
+
+export const publicRobots: Metadata["robots"] = {
+  index: true,
+  follow: true,
+  googleBot: {
+    index: true,
+    follow: true,
+    "max-video-preview": -1,
+    "max-image-preview": "large",
+    "max-snippet": -1,
+  },
 };
 
 export const publicPageKeywords: Record<
@@ -627,6 +640,7 @@ export function publicPageMetadata({
       canonical: url,
       languages: pageLanguageAlternates(path),
     },
+    robots: publicRobots,
     openGraph: {
       type: "website",
       siteName: siteMetadata.name,

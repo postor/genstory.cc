@@ -41,6 +41,7 @@ test("builds localized public metadata in the homepage SEO shape", () => {
 
 test("builds noindex metadata for private workspace pages", () => {
   const metadata = privatePageMetadata({
+    lang: "zh",
     path: "projects",
     title: "我的作品 - GenStory.cc",
     description: "管理浏览器中的本地创作项目。",
@@ -49,8 +50,8 @@ test("builds noindex metadata for private workspace pages", () => {
   assert.deepEqual(metadata.title, { absolute: "我的作品 - GenStory.cc" });
   assert.equal(metadata.description, "管理浏览器中的本地创作项目。");
   assert.deepEqual(metadata.robots, { index: false, follow: false });
-  assert.equal(metadata.alternates?.canonical, "https://www.genstory.cc/projects");
-  assert.equal(metadata.openGraph?.url, "https://www.genstory.cc/projects");
+  assert.equal(metadata.alternates?.canonical, "https://www.genstory.cc/zh/projects");
+  assert.equal(metadata.openGraph?.url, "https://www.genstory.cc/zh/projects");
   assert.deepEqual(metadata.twitter, {
     card: "summary_large_image",
     title: "我的作品 - GenStory.cc",

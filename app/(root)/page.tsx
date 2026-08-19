@@ -4,6 +4,7 @@ import Link from "next/link";
 import {
   ogImagePath,
   pageLanguageAlternates,
+  publicRobots,
   siteMetadata,
   siteUrl,
 } from "@/lib/seo";
@@ -17,6 +18,8 @@ export const metadata: Metadata = {
   applicationName: siteMetadata.name,
   title: { absolute: title },
   description,
+  manifest: "/manifest.webmanifest",
+  robots: publicRobots,
   alternates: {
     canonical: siteUrl,
     languages: {

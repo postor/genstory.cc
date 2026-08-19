@@ -1,5 +1,6 @@
 "use client";
 
+import { FolderOpen, Home, Images, LayoutGrid } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -9,6 +10,7 @@ import {
   isPublicLang,
   localizedPath,
   pathnameWithoutPublicLang,
+  publicPageSlugs,
   type PublicLang,
 } from "@/lib/seo";
 import {
@@ -21,20 +23,18 @@ const labels = {
     nav: "移动端导航",
     home: "首页",
     projects: "项目",
+    showcase: "展示",
     explore: "探索",
-    sponsor: "Sponsor",
   },
   en: {
     nav: "Mobile navigation",
     home: "Home",
     projects: "Projects",
+    showcase: "Showcase",
     explore: "Explore",
-    sponsor: "Sponsor",
   },
 
 } satisfies Record<PublicLang, Record<string, string>>;
-
-const sponsorHref = "https://github.com/sponsors/postor";
 
 export function MobileBottomNav() {
   const pathname = usePathname();
@@ -51,14 +51,30 @@ export function MobileBottomNav() {
       aria-label={copy.nav}
       className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 rounded-2xl border border-[#e8e2ff] bg-white/95 p-1.5 text-xs shadow-[0_14px_35px_rgba(48,36,91,0.16)] backdrop-blur sm:hidden"
     >
-      <MobileNavLink href={localizedPath(publicLang)} label={copy.home} active={isHomePath(pathname, publicLang)} />
+      <MobileNavLink
+        href={localizedPath(publicLang)}
+        label={copy.home}
+        icon={Home}
+        active={isHomePath(pathname, publicLang)}
+      />
       <MobileNavLink
         href={localizedPath(publicLang, "projects")}
         label={copy.projects}
+        icon={FolderOpen}
         active={isProjectsPath(pathname)}
       />
-      <MobileNavLink href={localizedPath(publicLang, "types")} label={copy.explore} active={isExplorePath(pathname)} />
-      <MobileNavLink href={sponsorHref} label={copy.sponsor} external />
+      <MobileNavLink
+        href={localizedPath(publicLang, "showcase")}
+        label={copy.showcase}
+        icon={Images}
+        active={isShowcasePath(pathname)}
+      />
+      <MobileNavLink
+        href={localizedPath(publicLang, "types")}
+        label={copy.explore}
+        icon={LayoutGrid}
+        active={isExplorePath(pathname)}
+      />
     </nav>
   );
 }
@@ -66,32 +82,25 @@ export function MobileBottomNav() {
 function MobileNavLink({
   href,
   label,
+  icon: Icon,
   active = false,
-  external = false,
 
 }: {
   href: string;
   label: string;
+  icon: typeof Home;
   active?: boolean;
-  external?: boolean;
 
 }) {
   const className = cn(
-    "flex min-h-11 items-center justify-center rounded-xl font-medium transition-colors",
+    "flex min-h-11 flex-col items-center justify-center gap-0.5 rounded-xl font-medium transition-colors",
     active ? "bg-[#eee8ff] text-[#7148db]" : "text-[#8986a3] hover:bg-[#f7f4ff]",
   );
 
-  if (external) {
-    return (
-      <a href={href} target="_blank" rel="noreferrer" className={className}>
-        {label}
-      </a>
-    );
-  }
-
   return (
     <Link href={href} className={className}>
-      {label}
+      <Icon className="size-4" aria-hidden="true" />
+      <span className="max-w-full truncate">{label}</span>
     </Link>
   );
 }
@@ -108,7 +117,10 @@ function isHomePath(pathname: string, lang: PublicLang) {
 function isExplorePath(pathname: string) {
   const segments = pathnameWithoutPublicLang(pathname).split("/").filter(Boolean);
 
-  return segments[0] === "types";
+  return (
+    segments[0] === "types" ||
+    publicPageSlugs.includes(segments[0] as (typeof publicPageSlugs)[number])
+  );
 }
 
 function isProjectsPath(pathname: string) {
@@ -116,5 +128,13 @@ function isProjectsPath(pathname: string) {
   return (
     unlocalizedPathname === "/projects" ||
     unlocalizedPathname.startsWith("/projects/")
+  );
+}
+
+function isShowcasePath(pathname: string) {
+  const unlocalizedPathname = pathnameWithoutPublicLang(pathname);
+  return (
+    unlocalizedPathname === "/showcase" ||
+    unlocalizedPathname.startsWith("/showcase/")
   );
 }

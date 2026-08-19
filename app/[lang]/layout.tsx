@@ -14,6 +14,7 @@ import {
   ogImagePath,
   pageLanguageAlternates,
   pageUrl,
+  publicRobots,
   publicLanguages,
   siteKeywords,
   siteMetadata,
@@ -59,6 +60,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description: metadata.description,
     keywords: siteKeywords[lang],
     creator: siteMetadata.name,
+    manifest: "/manifest.webmanifest",
+    robots: publicRobots,
     other: {
       "content-language": locale.contentLanguage,
     },

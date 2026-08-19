@@ -71,6 +71,24 @@ const typeIndexCopy: Record<
   },
 };
 
+const showcaseIndexCopy: Record<
+  PublicLang,
+  { title: string; label: string; description: string; keywords: string[] }
+> = {
+  zh: {
+    title: "模板项目与示例项目导出",
+    label: "作品展示",
+    description: "下载当前模板项目源码 ZIP，浏览并导出完整示例项目。",
+    keywords: ["模板导出", "示例项目", "案例项目", "源码 ZIP", "showcase"],
+  },
+  en: {
+    title: "Template and Case Project Exports",
+    label: "Showcase",
+    description: "Download current template source ZIPs and complete case project exports.",
+    keywords: ["template export", "case project", "source ZIP", "showcase"],
+  },
+};
+
 export function buildSearchDocuments(lang: PublicLang): SearchDocument[] {
   const typesDocument: SearchDocument = {
     kind: "document",
@@ -84,9 +102,19 @@ export function buildSearchDocuments(lang: PublicLang): SearchDocument[] {
     ],
     href: localizedPath(lang, "types"),
   };
+  const showcaseDocument: SearchDocument = {
+    kind: "document",
+    slug: "showcase",
+    title: showcaseIndexCopy[lang].title,
+    label: showcaseIndexCopy[lang].label,
+    description: showcaseIndexCopy[lang].description,
+    keywords: showcaseIndexCopy[lang].keywords,
+    href: localizedPath(lang, "showcase"),
+  };
 
   return [
     typesDocument,
+    showcaseDocument,
     ...publicPageSlugs.map((slug) => {
       const page = publicPages[slug];
       return {

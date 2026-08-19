@@ -53,6 +53,7 @@ export function SiteHeader() {
   const navItems = [
     { href: localizedPath(publicLang), label: labels.home },
     { href: localizedPath(publicLang, "projects"), label: labels.projects },
+    { href: localizedPath(publicLang, "showcase"), label: labels.showcase },
     { href: localizedPath(publicLang, "guides"), label: documentationLabels.guides },
     { href: localizedPath(publicLang, "faq"), label: documentationLabels.faq },
     { href: localizedPath(publicLang, "settings"), label: labels.settings },
@@ -85,7 +86,7 @@ export function SiteHeader() {
             <span>GenStory.cc</span>
           </Link>
 
-          <nav className="hidden items-center gap-1 sm:flex">
+          <nav className="hidden items-center gap-1 lg:flex">
             <HeaderNavLinks
               navItems={navItems}
               pathname={pathname}
@@ -110,7 +111,7 @@ export function SiteHeader() {
             <PopoverTrigger
               render={
                 <Button
-                  className="sm:hidden text-white hover:bg-white/10 hover:text-white"
+                  className="lg:hidden text-white hover:bg-white/10 hover:text-white"
                   variant="ghost"
                   size="icon"
                   aria-label={labels.menu}
@@ -427,6 +428,7 @@ const headerLabels: Record<
   {
     home: string;
     projects: string;
+    showcase: string;
     settings: string;
     language: string;
     languageName: string;
@@ -444,6 +446,7 @@ const headerLabels: Record<
   zh: {
     home: "首页",
     projects: "项目",
+    showcase: "作品展示",
     settings: "设置",
     language: "语言",
     languageName: "中文",
@@ -460,6 +463,7 @@ const headerLabels: Record<
   en: {
     home: "Home",
     projects: "Projects",
+    showcase: "Showcase",
     settings: "Settings",
     language: "Language",
     languageName: "English",

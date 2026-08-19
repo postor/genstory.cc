@@ -5,13 +5,10 @@ import {
   getDocumentationSectionCopy,
   getDocumentationTree,
 } from "@/lib/guides-faq";
-import { languageInfo } from "@/lib/platform-i18n";
 import {
   normalizePublicLang,
-  pageUrl,
   publicPageMetadata,
   siteKeywords,
-  type PublicLang,
 } from "@/lib/seo";
 
 type Props = {

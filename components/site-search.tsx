@@ -24,7 +24,7 @@ const searchCopy = {
   zh: {
     placeholder: "搜索项目或内容",
     dialogLabel: "搜索项目和文档",
-    documents: "SEO 文档",
+    documents: "文档",
     projects: "本地项目",
     empty: "没有匹配的项目或文档",
     hint: "输入标题、类型或关键词",
@@ -32,7 +32,7 @@ const searchCopy = {
   en: {
     placeholder: "Search projects or content",
     dialogLabel: "Search projects and documents",
-    documents: "SEO docs",
+    documents: "Docs",
     projects: "Local projects",
     empty: "No matching projects or documents",
     hint: "Search by title, type, or keyword",

@@ -180,8 +180,9 @@ const zh: Dict = {
   "editor.submitShowcase": "提交到 Show Case",
   "editor.showcaseTitle": "提交到 Show Case",
   "editor.showcaseDescription":
-    "确认后会下载当前作品的 PDF 或 ZIP 导出包，并打开 postor/genstory.cc 的 GitHub 新 Issue 页面。请上传导出包，并用“{title}”作为 Issue 标题。",
+    "确认后会下载当前作品的 PDF 或 ZIP 导出包，并打开 postor/genstory.cc 的 GitHub 新 Issue 页面。Issue 会预填标题、作者、类型、缩略图、简介和 ZIP/PDF 附件模板。",
   "editor.showcaseIssueTitleLabel": "Issue 标题",
+  "editor.showcaseIssueTemplateLabel": "Issue 模板",
   "editor.showcaseIssueLink": "打开 GitHub 新 Issue",
   "editor.showcaseConfirm": "下载并打开 Issue",
   "phaser.export": "导出 Phaser 游戏",
@@ -550,8 +551,9 @@ const en: Dict = {
   "editor.submitShowcase": "Submit to Show Case",
   "editor.showcaseTitle": "Submit to Show Case",
   "editor.showcaseDescription":
-    "Confirm to download this work's PDF or ZIP export, then open a new GitHub issue in postor/genstory.cc. Upload the export package and use “{title}” as the issue title.",
+    "Confirm to download this work's PDF or ZIP export, then open a new GitHub issue in postor/genstory.cc. The issue is prefilled with title, author, type, thumbnail, introduction, and ZIP/PDF attachment fields.",
   "editor.showcaseIssueTitleLabel": "Issue title",
+  "editor.showcaseIssueTemplateLabel": "Issue template",
   "editor.showcaseIssueLink": "Open GitHub new issue",
   "editor.showcaseConfirm": "Download and open issue",
   "phaser.export": "Export Phaser game",

@@ -6,13 +6,27 @@ import {
   pageUrl,
   publicLanguages,
   publicPageSlugs,
+  siteUrl,
 } from "@/lib/seo";
 
 export const dynamic = "force-static";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
-  const routes: MetadataRoute.Sitemap = [];
+  const routes: MetadataRoute.Sitemap = [
+    {
+      url: siteUrl,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.95,
+      alternates: {
+        languages: {
+          ...pageLanguageAlternates(),
+          "x-default": siteUrl,
+        },
+      },
+    },
+  ];
 
   for (const lang of publicLanguages) {
     routes.push({
@@ -32,6 +46,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
       alternates: {
         languages: pageLanguageAlternates("types"),
+      },
+    });
+
+    routes.push({
+      url: pageUrl(lang, "showcase"),
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.85,
+      alternates: {
+        languages: pageLanguageAlternates("showcase"),
       },
     });
 
